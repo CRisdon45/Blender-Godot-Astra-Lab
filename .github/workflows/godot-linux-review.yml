@@ -19,11 +19,13 @@ jobs:
     timeout-minutes: 15
     env:
       GODOT_VERSION: 4.7.1
+      # Official godotengine/godot-builds release asset 476992009 digest.
+      GODOT_SHA256: c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba
       LIBGL_ALWAYS_SOFTWARE: "true"
       LP_NUM_THREADS: "4"
     steps:
       - name: Check out the requested branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
       - name: Preserve source identity and existing reference images
@@ -51,10 +53,7 @@ jobs:
           BASE="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
           ZIP="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
           curl --fail --location --retry 2 --max-time 180 "$BASE/$ZIP" --output "$ZIP"
-          curl --fail --location --retry 2 --max-time 60 "$BASE/SHA256-SUMS.txt" --output SHA256-SUMS.txt
-          grep -F "$ZIP" SHA256-SUMS.txt > selected.sha256
-          test "$(wc -l < selected.sha256)" -eq 1
-          sha256sum --check selected.sha256
+          printf '%s  %s\n' "$GODOT_SHA256" "$ZIP" | sha256sum --check --strict
           unzip -q "$ZIP"
           mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
           chmod +x godot
@@ -75,7 +74,7 @@ jobs:
         run: |
           git status --short > render-output/workspace-status.txt
           printf '%s\n' \
-            'Actual Godot 4.7.1 Forward+ rendering on Linux with Mesa software Vulkan.' \
+            'Requested renderer: Godot 4.7.1 Forward+ on Linux with Mesa software Vulkan.' \
             'Not a desktop GPU or Android performance benchmark.' \
             'Fresh captures, when successful, are under review/. Baseline/ images are older.' \
             'No Blender regeneration, editable-scene save, or tracked baseline replacement.' \
@@ -84,7 +83,7 @@ jobs:
           echo 'Download the godot-linux-review artifact for images and diagnostic logs. Consult runner-report.json: an uploaded artifact alone does not establish a passing review.' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload images and diagnostic evidence even on failure
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: godot-linux-review-${{ github.run_number }}
           path: render-output/
