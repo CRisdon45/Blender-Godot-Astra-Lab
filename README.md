@@ -1,136 +1,89 @@
 # Blender–Godot Astra Lab
 
-A backyard courtyard study authored in Blender and rendered in Godot. The visual target is a supplied architectural illustration: warm limestone and timber, a turquoise pool, twin waterfalls, fire bowls, a furnished pergola, and desert planting.
+A backyard courtyard study authored in Blender and rendered in Godot. The target is a clean architectural illustration: warm limestone and timber, a turquoise pool, twin sheers, fire bowls, a furnished pergola, and readable planting.
 
-**Godot is the final rendering target.** This is a working first style study, not a finished match to the reference. Vegetation, furniture, water realism, and composition still need refinement.
+**Godot is the final rendering target. This remains a draft visual study, not an approved reference match or an Android performance benchmark.**
 
-> The navigation, water-interaction, and acceptance-gate continuations are **Technical only** pending a desktop Godot run.
-> Version/GPU validation below describes the existing baseline, not a new validation of this branch.
+## New: anime-inspired foliage study
 
-![Existing baseline Godot viewport](godot/captures/godot_courtyard.png)
+Seven broadleaf trees and five flowering shrub mounds now use authored three-dimensional crowns, curved tapered branches, small foliage brushes and grouped shading. The complete tree does not billboard. Only its small brush elements face the camera around fixed 3D centers.
 
-## Open and run
+![Actual Godot render of the rebuilt courtyard foliage](docs/previews/anime-courtyard.png)
 
-1. Use **Godot 4.7.1 or newer**. The project was validated with 4.7.1 and the Forward+ Vulkan renderer on an NVIDIA RTX 3070 Ti Laptop GPU.
-2. Import `godot/project.godot` into Godot and allow the assets to import.
-3. Open `godot/courtyard_editable.tscn` to inspect or edit the scene.
-4. Press **F6** to run that scene or **F5** to run the project.
+[Tree close-up](docs/previews/anime-trees.png) · [Shrub close-up](docs/previews/anime-shrubs.png) · [Technique, primary tutorial sources and limits](docs/ANIME_FOLIAGE.md)
 
-The saved scene contains the meshes, lights, camera, and material overrides. Blender is not required to run it. The illustration contour effect requires Forward+; the mobile Compatibility setting is not the validated visual target.
+The generated GLB, original atlas, editable Blender source and these actual screenshots are **committed to this branch**, not available only as expiring CI artifacts. Asset publication commit: `cf4f899014f9740490352d7e6141a7e56d53d4b9`.
+
+### Open the new foliage scene
+
+Use **Godot 4.7.1 with Forward+**, import `godot/project.godot`, then open **`godot/courtyard_anime.tscn` and press F6**. Blender is not needed just to run the committed scene. From a terminal after resource import:
+
+```sh
+godot --path godot --scene res://courtyard_anime.tscn
+```
+
+**F5 still runs the original saved courtyard** so the reference remains available. `godot/courtyard.tscn` builds the original GLB-based scene; `godot/courtyard_editable.tscn` is the original saved scene. No baseline image or original authoring asset was overwritten.
+
+### What actually ran
+
+Linux review [33948853127](https://github.com/CRisdon45/Blender-Godot-Astra-Lab/actions/runs/33948853127) built source commit `297af30a2d611dbf4437fcafba34770a5be3e731` with **Blender 5.2.1 LTS** and rendered with **Godot 4.7.1 / Forward+ / software Vulkan**.
+
+- Blender build and independent GLB stream validation passed.
+- Godot capture completed without logged capture errors: **20 actual PNGs**, comprising four matched before/after views and twelve isolated-tree orbit angles.
+- All **12 foliage surfaces and 14,300 card triangles** passed the imported card-center checks. A second local GLB check passed; maximum reconstructed-center error was approximately 0.0000011 scene units.
+- All original `.blend`, GLB, saved-scene and tracked baseline-image hashes were preserved.
+- **111 existing Python tests passed in that Linux run. 117 tests passed locally** after adding six focused source regressions. Source tests are not artistic acceptance.
+
+**The overall rendering workflow is still diagnostic, not green:** editor import continues to report the existing popup-parenting errors. Those errors are retained in `runner-report.json` and `import.log`; they were not filtered out. The separate publication job only published the inspected, hash-pinned artifact and did not waive capture or geometry failures. Its success is not a clean import/production approval.
+
+The first foliage run found a script-initialization error. The next run produced bad texture-coordinate/color data and visibly square cards; the geometry check rejected it. Custom-data-layer writing and UV selection were corrected, exported attributes were checked independently, and the screenshots above are from the subsequent passing capture, not those failed attempts.
+
+These are generic broadleaf / flowering-mound studies. Species-specific architecture, wind, LOD transitions, editable-sun linkage, target-device performance and final art approval remain unfinished. The Blender file is editable and includes the packed atlas, but the live per-brush camera-facing transform is implemented in Godot, not in Blender's material preview.
+
+## Controls
 
 | Control | Action |
 | --- | --- |
-| Right mouse drag | Orbit without crossing the camera poles |
-| Mouse wheel | Zoom, clamped to a 2–45 unit orbit distance |
+| Right mouse drag | Orbit with pole limits |
+| Mouse wheel | Bounded zoom |
 | R | Reset the reference camera |
-| I | Toggle both the contours and paper finish |
-| W | Toggle falling water and its pool impact response together |
-| 1–6 | Reference, left, right, elevated, close, and reverse review views |
-| F12 | Save a new capture and manifest under `user://reviews` |
+| I | Toggle contours and illustration finish |
+| W | Toggle falling water and its pool impact response |
+| 1–6 | Reference, left, right, elevated, close and reverse views |
+| F12 | Save a capture and metadata under `user://reviews` |
 
-## Files
+Some inherited camera presets have foreground obstructions. The foliage capture harness uses separate review compositions.
 
-| Path | Purpose |
-| --- | --- |
-| `pool_godot_source.blend` | Refined Blender authoring scene used for the Godot export |
-| `pool_recreation.blend` | Earlier Blender scene used as the export script's starting point |
-| `build_scene.py` | Generate the original scene and Blender preview |
-| `refine_scene.py` | Reapply the Blender camera and lighting refinement |
-| `export_godot.py` | Refine geometry, correct normals, consolidate material groups, and export portable assets |
-| `godot/assets/backyard.glb` | Blender geometry in portable glTF form |
-| `godot/assets/*_grain.png` | Generated seamless material detail maps |
-| `godot/courtyard.gd` | Build the Godot lighting and material setup and save the editable scene |
-| `godot/courtyard_editable.tscn` | Ready-to-edit and ready-to-run Godot scene |
-| `godot/navigation.gd` | Shared camera controls, viewport capture, and water binding |
-| `godot/water_interaction.gd` | Geometry-derived sheet contact spans, shared water clock, and flow state |
-| `godot/shaders/` | Architectural materials, water, spillways, flames, contours, and paper grain |
-| `godot/captures/godot_courtyard.png` | Actual Godot viewport capture |
-| `pool_recreation.png` | Earlier Blender preview, not the final renderer target |
+## Author and rebuild the foliage study
 
-All required assets are included. There are no downloaded asset packs, external textures, or Python dependencies beyond Blender's bundled Python/NumPy. Godot regenerates its `.godot` cache; it is intentionally not tracked. Generated Blender backups and runtime logs are also excluded.
-
-## Rebuild
-
-Tested with **Blender 5.2.1 LTS**. Run these commands from the repository root, substituting full executable paths if Blender and Godot are not on `PATH`:
+From the repository root, using Blender 5.2.1 and Godot 4.7.1:
 
 ```sh
-blender --background --python build_scene.py
-blender --background --python export_godot.py
-godot --headless --path godot --editor --import
-godot --path godot --scene res://courtyard.tscn -- --save-editable --capture
+blender --background --factory-startup --python-exit-code 1 --python tools/build_anime_foliage.py
+python tools/check_foliage_glb.py godot/assets/anime/courtyard_anime.glb
+godot --headless --audio-driver Dummy --path godot --editor --import
+godot --path godot --scene res://courtyard_anime.tscn
 ```
 
-The final command needs a graphics-capable desktop. It builds the Godot setup, replaces `godot/courtyard_editable.tscn`, and captures two frames before exiting. The export script also replaces `pool_godot_source.blend` and the GLB. Preserve manual scene edits before regenerating those files.
+This writes `authoring/courtyard_anime.blend` and `godot/assets/anime/`. The original `pool_godot_source.blend` is read-only input. See [the foliage notes](docs/ANIME_FOLIAGE.md) for the export contract and primary inspiration. No downloaded artist asset pack or runtime AI service is required.
 
-To capture the saved scene independently (capture completeness is not visual acceptance):
-
-```sh
-godot --path godot -- --capture
-```
-
-The water, spillways, fire, and foliage use animated shaders. They are stylized effects, not fluid or combustion simulations. Dimensions and obscured areas were inferred from one image. The source reference image is not included in this repository.
-
-## Review continuation
-
-Both scene entry points now share `godot/navigation.gd`. Captures no longer overwrite
-the tracked baseline PNG. Every capture creates a unique output directory and a JSON
-manifest with camera, image dimensions, engine, and draw-call information. Failed
-image/manifest writes stop batch capture with exit code 1 instead of reporting success.
-
-With **Python 3.10+** and the Godot editor binary installed, run from the repository root:
+## Original scene acceptance runner
 
 ```sh
 python -m unittest discover -s tests -v
 python tools/review.py --godot "PATH_TO_GODOT_EXECUTABLE" --scene both
 ```
 
-On Windows, use the Godot `_console.exe` binary so process output can be captured.
-The runner verifies the repository's documented Godot 4.7.1 minimum, imports assets
-**before** testing, then runs navigation, water geometry, and real-scene binding tests.
-The real-scene test exercises the W handler, material clocks, visibility, camera controls,
-and moving the imported sheets outside the pool and restoring them. It does not save scenes.
+On Windows, use the Godot `_console.exe` executable. This original-scene runner imports assets, runs navigation/water/real-scene tests, then requests six views with illustration and water toggles: 24 images per entry point, 48 for `both`. `--tests-only`, `--water on`, `--water off` and `--output` are supported. It does not regenerate Blender geometry or overwrite baseline captures.
 
-By default, each selected scene gets **24 PNGs**: six views, illustration on/off, and
-water flow on/off. `--scene both` selects the saved scene and GLB builder (**48 PNGs**).
-`--water on` or `--water off` selects the original 12-image single-flow review scope.
-`--tests-only` imports and runs all selected runtime tests without graphics captures.
+The separate `.github/workflows/anime-foliage-review.yml` builds and captures the foliage study. Both workflows record failures rather than trusting exit zero. PNG checks validate actual compressed image data and checksums. Neither source checks nor capture completeness establish artistic acceptance. Original saved-scene shutdown diagnostics from the earlier Linux review are not resolved by this foliage pass.
 
-The runner checks complete PNG chunks/CRCs, zlib data and scanline lengths, not just
-headers. It requires error-free water metadata with exactly two distinct contact spans,
-correct flow states, and matching camera poses. This gate targets the unchanged twin-sheer
-courtyard, not arbitrary redesigned scenes. Missing Godot, test failures, corrupt captures,
-and incomplete metadata produce a failed report rather than a success summary.
+See [acceptance gate notes](docs/ACCEPTANCE_GATE.md), [navigation/review history](docs/REVIEW_PASS.md), [water interaction notes](docs/WATER_INTERACTION_PASS.md), and [foliage notes](docs/ANIME_FOLIAGE.md).
 
-Logs, Git revision, engine version, stage results and reports go under `.review-output/`.
-Override with `--output "ABSOLUTE_OUTPUT_PATH"`. No Blender regeneration, editable-scene
-replacement, baseline replacement, CI dispatch or paid coding agent is involved.
+## Original baseline and full regeneration
 
-**111 Python tests passed** in the acceptance-gate continuation: all 48 earlier tests
-plus 63 new regressions. They use source checks and synthetic fixtures/process outputs.
-**Godot parsing/runtime tests, actual scene loading, shader compilation and new graphics
-captures remain unrun here.** Godot/Blender were not installed and the engine download
-attempt did not succeed. No new render or visual improvement is claimed.
+[Original Godot baseline](godot/captures/godot_courtyard.png) · [Earlier Blender preview](pool_recreation.png)
 
-The camera views are repeatable, but animation remains live. Captures are **not
-pixel-deterministic**. Capture integrity is not visual acceptance, animation proof or
-Android performance evidence. See [acceptance gate notes](docs/ACCEPTANCE_GATE.md)
-for current commands and limits; [review pass notes](docs/REVIEW_PASS.md) describe the
-historical 12-image/navigation-only runner.
+`build_scene.py`, `refine_scene.py` and `export_godot.py` are the original reconstruction pipeline. Running that pipeline or using `--save-editable` can replace original authoring/export/saved-scene files, so preserve manual edits before doing a full regeneration. The foliage build does not require those destructive steps.
 
-## Water / sheer interaction continuation
-
-The new water pass derives full-width impact spans from the falling-sheet geometry,
-adds localized foam/ripple highlights and normal response, and shares the water clock
-and flow switch with the sheets and glints. **W** toggles that response; `--water-off`
-starts it disabled for comparison. Per-image capture metadata records the water state.
-This is a stylized surface response, not fluid simulation or measured pool depth.
-
-The 14 water source/interface checks and the earlier 34 review tests were all rerun
-successfully in the acceptance-gate continuation. The current runner includes the
-water runtime suite automatically after import; no separate water command is needed.
-Runtime and visual acceptance still require an actual Godot run.
-
-See [water pass notes](docs/WATER_INTERACTION_PASS.md) for the contact-band edge case,
-supported geometry, limitations, and the saved-scene/builder acceptance checks.
-Blender assets, scene geometry, lighting, vegetation, and the tracked baseline remain
-unchanged by this pass. The PR remains a draft.
+The original layout and obscured areas were inferred from a supplied image. The source reference image is not bundled. Water, flames and foliage shading are stylized representations, not fluid, combustion or botanical simulations. Software-renderer timings are not evidence of desktop-GPU or Android performance.
