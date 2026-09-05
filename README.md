@@ -4,7 +4,7 @@ A backyard courtyard study authored in Blender and rendered in Godot. The visual
 
 **Godot is the final rendering target.** This is a working first style study, not a finished match to the reference. Vegetation, furniture, water realism, and composition still need refinement.
 
-> The navigation/review and water-interaction continuations are **Technical only** pending a desktop Godot run.
+> The navigation, water-interaction, and acceptance-gate continuations are **Technical only** pending a desktop Godot run.
 > Version/GPU validation below describes the existing baseline, not a new validation of this branch.
 
 ![Existing baseline Godot viewport](godot/captures/godot_courtyard.png)
@@ -81,23 +81,41 @@ With **Python 3.10+** and the Godot editor binary installed, run from the reposi
 
 ```sh
 python -m unittest discover -s tests -v
-python tools/review.py --godot "PATH_TO_GODOT_EXECUTABLE"
-python tools/review.py --godot "PATH_TO_GODOT_EXECUTABLE" --scene builder
+python tools/review.py --godot "PATH_TO_GODOT_EXECUTABLE" --scene both
 ```
 
 On Windows, use the Godot `_console.exe` binary so process output can be captured.
-The runner executes the Godot navigation tests, imports assets, then captures six
-camera positions with illustration on/off (12 PNGs). It records logs, the Git revision,
-and a completeness report under `.review-output/`. It does not rebuild Blender assets,
-regenerate the editable scene, or modify the baseline. Override output with
-`--output "ABSOLUTE_OUTPUT_PATH"`; use `--tests-only` for just the headless navigation tests.
+The runner verifies the repository's documented Godot 4.7.1 minimum, imports assets
+**before** testing, then runs navigation, water geometry, and real-scene binding tests.
+The real-scene test exercises the W handler, material clocks, visibility, camera controls,
+and moving the imported sheets outside the pool and restoring them. It does not save scenes.
 
-The 34 Python tests passed during the earlier navigation/review continuation. The new Godot tests and graphics
-capture remain **unrun** in that environment because Godot/Blender are not installed.
-The camera views are repeatable, but shaders still use live animation time. These
-captures are **not pixel-deterministic**, and the runner does not judge visual quality,
-prove animation, or establish Android performance. See [the pass notes](docs/REVIEW_PASS.md)
-for scope, limitations, and the next visual work.
+By default, each selected scene gets **24 PNGs**: six views, illustration on/off, and
+water flow on/off. `--scene both` selects the saved scene and GLB builder (**48 PNGs**).
+`--water on` or `--water off` selects the original 12-image single-flow review scope.
+`--tests-only` imports and runs all selected runtime tests without graphics captures.
+
+The runner checks complete PNG chunks/CRCs, zlib data and scanline lengths, not just
+headers. It requires error-free water metadata with exactly two distinct contact spans,
+correct flow states, and matching camera poses. This gate targets the unchanged twin-sheer
+courtyard, not arbitrary redesigned scenes. Missing Godot, test failures, corrupt captures,
+and incomplete metadata produce a failed report rather than a success summary.
+
+Logs, Git revision, engine version, stage results and reports go under `.review-output/`.
+Override with `--output "ABSOLUTE_OUTPUT_PATH"`. No Blender regeneration, editable-scene
+replacement, baseline replacement, CI dispatch or paid coding agent is involved.
+
+**111 Python tests passed** in the acceptance-gate continuation: all 48 earlier tests
+plus 63 new regressions. They use source checks and synthetic fixtures/process outputs.
+**Godot parsing/runtime tests, actual scene loading, shader compilation and new graphics
+captures remain unrun here.** Godot/Blender were not installed and the engine download
+attempt did not succeed. No new render or visual improvement is claimed.
+
+The camera views are repeatable, but animation remains live. Captures are **not
+pixel-deterministic**. Capture integrity is not visual acceptance, animation proof or
+Android performance evidence. See [acceptance gate notes](docs/ACCEPTANCE_GATE.md)
+for current commands and limits; [review pass notes](docs/REVIEW_PASS.md) describe the
+historical 12-image/navigation-only runner.
 
 ## Water / sheer interaction continuation
 
@@ -107,14 +125,10 @@ and flow switch with the sheets and glints. **W** toggles that response; `--wate
 starts it disabled for comparison. Per-image capture metadata records the water state.
 This is a stylized surface response, not fluid simulation or measured pool depth.
 
-The **14 new source/interface checks passed**. The earlier 34-test suite was not rerun
-in this pass, and Godot parsing, the new runtime tests, actual scene binding, rendering,
-and GPU performance remain **unrun**. No new screenshot or visual acceptance is claimed.
-Run the water tests separately in addition to the existing review runner:
-
-```sh
-godot --headless --path godot --script res://tests/test_water_interaction.gd
-```
+The 14 water source/interface checks and the earlier 34 review tests were all rerun
+successfully in the acceptance-gate continuation. The current runner includes the
+water runtime suite automatically after import; no separate water command is needed.
+Runtime and visual acceptance still require an actual Godot run.
 
 See [water pass notes](docs/WATER_INTERACTION_PASS.md) for the contact-band edge case,
 supported geometry, limitations, and the saved-scene/builder acceptance checks.

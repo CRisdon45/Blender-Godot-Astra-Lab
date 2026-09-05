@@ -10,7 +10,7 @@ const MIN_PITCH := 0.034906585  # 2 degrees; stay above the orbit target.
 const MAX_PITCH := 1.483529864  # 85 degrees; never cross the camera pole.
 const ORBIT_SENSITIVITY := 0.004
 
-var water = WaterInteraction.new()
+var water: WaterInteraction = WaterInteraction.new()
 
 var camera: Camera3D
 var target := Vector3(0, 1.8, -3)
