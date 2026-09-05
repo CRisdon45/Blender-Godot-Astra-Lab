@@ -88,3 +88,19 @@ After water's core visual issues, study masonry/coping/tile hierarchy, restraine
 wood and powder-coated metal, furniture/fabric, gravel/turf, architecture-aware
 outlines and lighting. Each material family needs its own references and actual
 runtime comparison. Keep water independently adjustable throughout.
+
+## September 5 canopy research extension
+
+The separate `work/plant-canopy-art-study` branch adds a primary-source foliage
+research ledger in [CANOPY_RESEARCH.md](CANOPY_RESEARCH.md). Kids With Sticks /
+Rogue Spirit, the Airborn artist explanations, Pontus Karlsson's written shader
+explanation, Blender custom-normal documentation and Godot's mobile/performance
+references informed an original opaque-core plus edge-spray experiment. Video
+listings were recorded as leads where full playback was unavailable. No external
+tutorial asset, texture or shader snippet was redistributed.
+
+[CANOPY_ART_REVIEW.md](CANOPY_ART_REVIEW.md) records three completed Blender/Godot
+VM runs, matched image comparisons, repeatability checks, geometric/draw-call
+tradeoffs and the explicit decision **not to approve the current artwork**. The
+same plant placement/cache/budget runtime supports the experiment and retains the
+baseline. These plant studies do not change courtyard or water scene behavior.
