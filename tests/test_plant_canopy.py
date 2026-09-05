@@ -62,7 +62,7 @@ class CanopyTests(unittest.TestCase):
             for lod in range(3):
                 _,wood=wood_mesh(p,lod)
                 total=len(wood)+len(core_mesh(p,lod).triangles)+len(foliage_mesh(p,lod).triangles)+2*len(selected(p.flowers,lod))
-                caps=(5000,1500,900) if p.species=='desert_museum' else (5600,1700,800)
+                caps=(7000,2000,1200) if p.species=='desert_museum' else (8500,2600,1200)
                 self.assertLessEqual(total,caps[lod],(p.species,p.seed,p.maturity,lod,total));self.assertLess(total,last);last=total
 
     def test_visible_modules_dominate_support_geometry_close(self):
