@@ -1,6 +1,5 @@
 shader_type spatial;
-// Opaque canopy: grouped illustrated shadow shapes, not a smooth plastic sphere.
-// The paint mask mainly disrupts tone boundaries; flat lit areas remain restrained.
+// Recessed opaque support canopy. It closes accidental holes but must not become the visible plant.
 render_mode specular_disabled, ambient_light_disabled;
 uniform sampler2D paint_mask : repeat_enable, filter_linear_mipmap;
 uniform vec3 sun_direction = vec3(-0.314, 0.743, 0.589);
@@ -19,7 +18,7 @@ void fragment() {
     value += (marks.r - 0.5) * 0.32 + (marks.g - 0.5) * transition * 0.12;
     vec3 paint = mix(shadow_color.rgb, middle_color.rgb, smoothstep(0.38, 0.46, value));
     paint = mix(paint, light_color.rgb, smoothstep(0.67, 0.74, value));
-    paint *= 1.0 + (marks.r - 0.5) * 0.045 + (marks.g - 0.5) * 0.055;
+    paint *= 0.92 + (marks.r - 0.5) * 0.035 + (marks.g - 0.5) * 0.040;
     NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
     ALBEDO = paint;
     EMISSION = paint * 0.86;
