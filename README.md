@@ -4,6 +4,31 @@ A backyard courtyard study authored in Blender and rendered in Godot. The target
 
 **Godot is the final rendering target. This remains a draft visual study, not an approved reference match or an Android performance benchmark.**
 
+## New: hero-water optical study (not final visual approval)
+
+The project direction is now recorded in [AGENTS.md](AGENTS.md): tutorial-led,
+clean illustrated environments, with water held to a separate and higher visual
+standard. [Research ledger](docs/STYLE_DIRECTION_AND_WATER.md).
+
+Open **`godot/courtyard_hero_water.tscn` and press F6** for the opt-in water study.
+W toggles feature flow; N toggles the lighting study. The original F5 entry point
+and the foliage scene remain available and unchanged as scene entry points.
+
+![Actual Godot optical water study, not final art approval](docs/previews/hero-water-day.png)
+
+[Matched before view](docs/previews/hero-water-before.png) ·
+[Sheer close-up](docs/previews/hero-water-sheer.png) ·
+[Night-lighting study](docs/previews/hero-water-night.png) ·
+[Full evidence, known issues and next artistic targets](docs/HERO_WATER_REVIEW.md)
+
+The inspected refinement run produced **28 actual 1200 x 900 images**. All **130
+Python tests**, actual-script preflight and capture runtime contracts passed.
+**The workflow is still diagnostic:** the known editor popup-parenting errors and
+seven leaked Texture RIDs at renderer shutdown remain recorded. No Android or
+GPU performance approval is implied. The new view has clearer depth and calmer
+optics, but still needs richer water light patterns, less repetitive reflection
+distortion and better sheet detail. It is deliberately not the new default.
+
 ## New: anime-inspired foliage study
 
 Seven broadleaf trees and five flowering shrub mounds now use authored three-dimensional crowns, curved tapered branches, small foliage brushes and grouped shading. The complete tree does not billboard. Only its small brush elements face the camera around fixed 3D centers.

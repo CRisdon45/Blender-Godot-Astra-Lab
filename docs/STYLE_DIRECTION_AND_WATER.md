@@ -1,100 +1,90 @@
 # Project direction: illustrated environments, hero water
 
-Owner direction, September 5, 2026: continue the approved anime-foliage approach
-through the entire project. Research artist tutorials for each material family,
-translate the useful technique into the real-time engine, and judge actual frames.
-**Water is the star and has a higher, separate acceptance standard.** It must not
-be flattened by a universal toon preset or disguised by illustrative noise.
+Owner direction, September 5, 2026: extend the approved anime-foliage approach
+through the whole project, studying artist tutorials for each material family.
+**Water is the star and has a separate, higher acceptance standard.** Do not
+flatten it with a universal toon preset or hide it under illustrative noise.
 
 ## Working method
 
-1. Study a relevant artist's process and inspect examples before changing a look.
-2. Identify what actually produces the effect: geometry, normals, shading,
-   material marks, lighting, or composition. Do not substitute a giant post filter.
-3. Implement an isolated, reversible real-time study with explicit controls.
-4. Render matched before/after views, close-ups and moving-camera evidence.
-5. Promote only after visual review and device evidence; passing code is not art approval.
+Study a relevant artist's process, identify what creates the result, implement an
+isolated real-time study, and inspect matched actual Godot views before promotion.
+Use geometry, grouped normals, selective material marks and lighting deliberately;
+a full-screen filter is not a substitute for appropriate materials.
 
-Keep architectural precision and full plant volume. Prioritize clear silhouettes,
-large coherent light/shadow groups, restrained warm ink and selective material
-marks. Avoid photographic texture noise, repeated tiny foliage edges, black
-outlines on everything, universal grain, and fogging/blur as a shortcut.
-There is no runtime AI dependency. AI is only a development aid.
+Keep architectural precision, full plant volume, clear silhouettes, broad coherent
+shadow groups and restrained warm ink. Avoid photographic texture noise, repeated
+tiny foliage edges, fine stripes everywhere, universal heavy grain and blur as a
+shortcut. No runtime AI dependencies. Standing implementation guidance is also in
+[AGENTS.md](../AGENTS.md).
 
-## Research ledger
+## Primary research ledger
 
-These sources were inspected for ideas, not treated as production-ready packages.
-No third-party tutorial image, paid texture, or asset is copied into the runtime.
-The hero-water code is an original bounded study, not a port of a donor shader.
+The following sources informed the studies. No third-party preview image, paid
+asset, texture pack or tutorial project is copied into this runtime. The water
+implementation is an original bounded study, not a claim to have ported a donor
+shader or reproduced its full solver.
 
-| Aspect | Primary reference | Technique or lesson | Disposition |
-| --- | --- | --- | --- |
-| Pool optics | Malido, *Absorption Based Stylized Water*: https://godotshaders.com/shader/absorption-based-stylized-water/ | Depth-dependent transmission, refracted receiver sampling, reject foreground/edge samples; screen-space reflection has visibility limits | Adapted conceptually; no SSR ray-march dependency |
-| Underwater light | binbun, *Water with Caustics*: https://godotshaders.com/shader/water-with-caustics/ | Receiver-space caustics and separate refraction/depth controls | Adapted conceptually; this study uses a shared analytic ripple field and bounded focusing approximation |
-| Pool-quality benchmark | Evan Wallace, *WebGL Water*: https://madebyevan.com/webgl-water/ | Refraction/reflection, caustics and interaction must work together in a pool, not just form a pretty flat pattern | Benchmark only; not claiming this study reproduces its solver |
-| Engine depth conventions | Godot, *Advanced post-processing*: https://docs.godotengine.org/en/stable/tutorials/shaders/advanced_postprocessing.html | Inverse projection of reverse-Z depth; different Compatibility NDC convention | Implemented explicitly; Forward+ is the actual capture target |
-| Environment materials | ALLO, *Anime in Blender Tutorial*: https://www.blendernation.com/2022/09/03/anime-in-blender-tutorial/ | Artist-authored toon materials that belong together in an anime environment | Next donor study for walls, coping, metal and furniture; no claim that tutorial video was fully viewed |
-| Environment lighting | ALLO, *Anime Classroom Environment*: https://www.blendernation.com/2022/03/30/anime-classroom-environment/ | Integrated material, prop and lighting treatment rather than one generic shader | Research queue; do not import classroom proportions/materials into landscape design |
+| Source | Useful principle | Treatment here |
+| --- | --- | --- |
+| [Malido: Absorption Based Stylized Water](https://godotshaders.com/shader/absorption-based-stylized-water/) | Depth-dependent transmission, refracted receiver sampling, foreground and viewport guards | Adapted conceptually. No SSR ray-march dependency. |
+| [binbun: Water with Caustics](https://godotshaders.com/shader/water-with-caustics/) | Underwater receiver-space light patterns and separate optical controls | Shared analytic ripple phase/spectrum and a bounded focusing approximation, not copied shader code. |
+| [Evan Wallace: WebGL Water](https://madebyevan.com/webgl-water/) | Reflections, refraction, caustics and interaction must work together in a pool | Quality benchmark only; its solver is not implemented. |
+| [Godot: Advanced post-processing](https://docs.godotengine.org/en/stable/tutorials/shaders/advanced_postprocessing.html) | Reverse-Z depth reconstruction, different Compatibility NDC convention | Explicit inverse-projection paths. Only Forward+ has actual capture evidence. |
+| [Godot: Screen-reading shaders](https://docs.godotengine.org/en/stable/tutorials/shaders/screen-reading_shaders.html) | Opaque/transparent screen-copy ordering | Omit the old spatial screen copy that overwrites transparent water; retain the later canvas ink pass. |
+| [Godot: ReflectionProbe](https://docs.godotengine.org/en/4.5/classes/class_reflectionprobe.html) | Real engine class, capture versus reflection masks and update behavior | Local box-projected, once-updated probe excludes water; this is not a planar reflection. |
+| [ALLO: Anime in Blender Tutorial](https://www.blendernation.com/2022/09/03/anime-in-blender-tutorial/) | Coherent stylized environment materials | Research queue for walls, coping, metal and furniture; not claiming the whole video was viewed. |
+| [ALLO: Anime Classroom Environment](https://www.blendernation.com/2022/03/30/anime-classroom-environment/) | Integrated prop, material and lighting treatment | Research queue, not a classroom asset/proportion transplant. |
+| [mclelun: Anime Background Paint Over 3D Render](https://www.mclelun.com/2015/10/paint-over-3d-render.html) | Soft diffuse backgrounds, simple sunlight/ambient relationships, selective painted highlights instead of flat cartoon shading | Adopt material/light principles, not a camera-specific paint-over in place of movable 3D. |
+| [SouthernShotty: Blender Stylized Wood Texture](https://www.blendernation.com/2020/05/12/blender-stylized-wood-texture/) | Painted base color and control of how grain is used in a scene | Restrained timber-grain study queued. Written creator introduction read; no whole-video viewing claim. |
+| [Kristof Dedene: anime style caustics and sparkle FX](https://kdedene.gumroad.com/l/wTxJK) | Additional artist reference for water highlight language | Creator listing located only. No package purchased/downloaded or tutorial asset used. |
 
-The Godot Shaders pages describe their code snippets as CC0, not their preview
-images/assets. Attribution is retained here even though their code was not copied.
+The Godot Shaders pages mark their code snippets CC0, not the images/videos/assets
+in their previews. Attribution is retained even though their code was not copied.
 
-## Hero water study 01
+## Opt-in water study
 
-Open `godot/courtyard_hero_water.tscn`, then F6. Original F5/main and
-`courtyard_anime.tscn` stay unchanged. W toggles flow, N toggles the lighting study.
+Open `godot/courtyard_hero_water.tscn`, then F6. W toggles feature flow, N toggles
+study lighting. Original F5 and the foliage-scene entry point remain available.
 
-- Existing geometry-derived sheet contacts and shared water clock are retained.
-- The old water box renders only its upper surface. Screen depth reads the actual
-  basin/shelf behind it instead of using the old world-Z color gradient.
-- Beer-Lambert transmission absorbs red more quickly than green/blue; foreground
-  and viewport-edge rejection bound screen-space refraction.
-- Already-lit screen color enters through emission to avoid a second diffuse-light
-  pass. Dielectric specular remains for sky/local-probe/sun reflections. The
-  reflection probe excludes the pool, captures once, and is dirtied for lighting changes.
-- Underwater highlights are on the opaque basin receiver, illuminated/shadowed by
-  scene lighting. Their simplified focusing Jacobian comes from the same analytic
-  wave spectrum as surface normals. They are not a photon or fluid simulation.
-- Removed the old pool-wide fine horizontal highlight pattern in this opt-in shader.
-  Sheet highlights use softer moving ribbons and localized aeration; legacy glint
-  rods are hidden only in this study.
-- The old spatial full-screen contour copy would overwrite transparent water with
-  the pre-water screen. It is omitted here; the later canvas ink pass remains,
-  with reduced grain. This is not the final depth-aware illustration compositor.
+The study keeps geometry-derived sheet contacts and the shared clock, but replaces
+the flat surface-pattern treatment with measured receiver depth, Beer-Lambert
+transmission, guarded refraction, dielectric specular and a local reflection probe.
+The original water box renders only its top. Already-lit scene color enters via
+emission rather than receiving a second diffuse-light pass.
 
-## Evidence and explicit limits
+Receiver caustics are affected by actual scene lighting/shadows, not added as
+self-luminous paint. They share ripple phase/spectrum with surface normals, but
+the surface shading amplitude is independently art-directed. This is not an exact
+optical, photon or fluid solver. Softer transparent sheet shading and localized
+impact response replace the old bright glint rods in this study only.
 
-`godot/tests/capture_hero_water.gd` requests 20 genuine Godot images: four matched
-before/after poses, flow-off, measured-depth diagnostic, two night-lighting studies,
-and eight fixed-camera water phases. Every record stores pose, size and water
-state. Python checks are source/math checks only. Godot logs, PNG validation and
-runtime assertions remain necessary. Consult the run's `runner-report.json` for
-actual status; requested images are not a claim that a run completed.
+Painted foliage now has an illumination multiplier with a default of 1, preserving
+the approved daytime behavior. Only the hero scene dims it at night and restores
+it for daytime. Study pool lights affect the basin/water, not the whole yard.
 
-Preserved geometry exposes an existing limitation: the source shelf is about
-5.25 cm under the waterline and the flat basin is about 95.25 cm deep. That is a
-lookdev fixture, not a production pool-depth standard. This pass does not silently
-change those dimensions. Shelf-depth, finish-color and deep-bowl witnesses are
-required before judging the water across real projects.
+## Evidence, limitations and next steps
 
-This study is not final water approval. Screen refraction sees only opaque objects
-already in the frame. A local box-projected reflection probe is not an exact planar
-reflection and does not continuously reflect every animated element. Day caustics
-are disabled in the night study; physically coupled underwater-light caustics,
-credible nighttime fire illumination, adaptive quality and Android performance
-remain separate acceptance work. Four-direction analytic ripples are not a fluid
-simulation. The original real-scene binding still supports one upright rectangular
-pool and at most four contact spans. General pool shapes/features are not added.
+[Actual water review](HERO_WATER_REVIEW.md) records the inspected run, failed first
+attempt, 28-image capture set, 130 Python tests, import errors, renderer shutdown
+warning and the remaining visual shortcomings. Source tests and complete PNGs are
+not artistic approval or target-device performance evidence.
 
-## Required future witnesses
+Water still needs more organic reflected distortion, luminous but controlled
+receiver caustics, more credible sheers and full moving-camera review. Refraction
+sees only opaque geometry already in the frame. A box-projected probe is not an
+exact dynamic planar reflection; reflected brush cards remain tied to the main
+camera. Four-direction analytic ripples are not fluid simulation. The binding
+currently supports one upright rectangular pool and at most four contact spans.
 
-Water: true shelf/steps/deep-end visibility; blue and white plaster; low/grazing and
-high views; clear water without candy stripes; reflections that survive orbit;
-soft full-width sheer contact; flow-off with ambient motion retained; pool light
-on/off; multiple feature types; Android GPU cost and frame pacing. The water must
-look excellent in motion, not just one curated still.
+Preserved source geometry has a shelf about 5.25 cm below water and a flat basin
+about 95.25 cm deep. Those are look-development fixture limitations, not design
+standards. Use calibrated shelf/step/deep-end fixtures and multiple plaster colors
+before judging real-project depth behavior. Day caustics are disabled at night;
+underwater-light caustics, true fixture/fire illumination and device costs remain
+separate work. Eight sampled phases are not smooth live-performance proof.
 
-Other scene families, in order: masonry/coping/tile hierarchy, powder-coated metal
-and timber grain, fabric/furniture, gravel/turf, architecture-aware outlines,
-lighting and restrained atmosphere. Each gets its own tutorial ledger and matched
-runtime witness. Water remains separately adjustable throughout.
+After water's core visual issues, study masonry/coping/tile hierarchy, restrained
+wood and powder-coated metal, furniture/fabric, gravel/turf, architecture-aware
+outlines and lighting. Each material family needs its own references and actual
+runtime comparison. Keep water independently adjustable throughout.
