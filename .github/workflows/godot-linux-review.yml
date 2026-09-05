@@ -30,11 +30,12 @@ jobs:
           persist-credentials: false
       - name: Preserve source identity and existing reference images
         run: |
-          mkdir -p render-output/baseline
+          mkdir -p render-output/baseline render-output/source
           git rev-parse HEAD > render-output/source-commit.txt
           cp godot/captures/godot_courtyard.png render-output/baseline/
           cp pool_recreation.png render-output/baseline/
           printf '%s\n' 'Baseline images predate the current water/navigation work.' > render-output/baseline/README.txt
+          git ls-files -z '*.gd' '*.gdshader' '*.py' '*.md' '*.yml' 'godot/project.godot' '.gitignore' | tar --null -T - -cf render-output/source/source-text.tar
       - name: Install software Vulkan and virtual display
         run: |
           sudo apt-get update -qq
@@ -63,12 +64,50 @@ jobs:
           set -o pipefail
           python3 -m unittest discover -s tests -v 2>&1 | tee render-output/python-tests.log
       - name: Capture the saved courtyard with the real Forward+ renderer
+        id: review
         run: |
           set -o pipefail
           xvfb-run -a -s '-screen 0 1600x1200x24' bash -c '
             vulkaninfo --summary > render-output/vulkan-info.txt 2>&1
             python3 tools/review.py --godot godot --scene editable --water on --timeout 600 --output "$GITHUB_WORKSPACE/render-output/review"
           ' 2>&1 | tee render-output/review-console.log
+      - name: Diagnose failed engine gate without declaring success
+        if: failure() && steps.review.outcome == 'failure'
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+          output = Path('render-output/diagnostics')
+          output.mkdir(parents=True, exist_ok=True)
+          results = []
+          commands = [
+              (str(p.relative_to('godot')).replace('/', '_'),
+               ['godot', '--headless', '--path', 'godot', '--check-only', '--script',
+                'res://' + str(p.relative_to('godot'))])
+              for p in sorted(Path('godot').rglob('*.gd'))
+          ]
+          commands += [
+              ('runtime-' + name, ['godot', '--headless', '--path', 'godot', '--script',
+                                 'res://tests/' + name])
+              for name in ('test_navigation.gd', 'test_water_interaction.gd', 'test_scene_water.gd')
+          ]
+          for name, command in commands:
+              try:
+                  proc = subprocess.run(command, capture_output=True, text=True, timeout=35)
+                  text = proc.stdout + '\n' + proc.stderr
+                  code = proc.returncode
+              except subprocess.TimeoutExpired as exc:
+                  def decode(value):
+                      return value.decode('utf-8', 'replace') if isinstance(value, bytes) else value or ''
+                  text = decode(exc.stdout) + decode(exc.stderr) + '\nDIAGNOSTIC_TIMEOUT\n'
+                  code = 124
+              (output / (name + '.log')).write_text(text)
+              results.append({'name': name, 'command': command, 'exit_code': code})
+              print(name, 'exit', code)
+              print(text[-10000:])
+          (output / 'results.json').write_text(json.dumps(results, indent=2))
+          PY
       - name: Record final workspace state and scope
         if: always()
         run: |
@@ -77,6 +116,7 @@ jobs:
             'Requested renderer: Godot 4.7.1 Forward+ on Linux with Mesa software Vulkan.' \
             'Not a desktop GPU or Android performance benchmark.' \
             'Fresh captures, when successful, are under review/. Baseline/ images are older.' \
+            'Diagnostics never override a failed review gate.' \
             'No Blender regeneration, editable-scene save, or tracked baseline replacement.' \
             > render-output/README.txt
           echo '## Godot Linux visual review' >> "$GITHUB_STEP_SUMMARY"
