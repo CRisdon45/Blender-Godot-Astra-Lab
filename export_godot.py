@@ -149,4 +149,3 @@ for key,(v,f,normals) in groups.items():
 with open(os.path.join(ASSETS,'palette.json'),'w') as f:json.dump(palette,f,indent=2)
 bpy.ops.export_scene.gltf(filepath=os.path.join(ASSETS,'backyard.glb'),export_format='GLB',export_apply=True,export_cameras=False,export_lights=False)
 print('GODOT_EXPORT_OK',flush=True)
-

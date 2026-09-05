@@ -30,4 +30,3 @@ void fragment(){
  ROUGHNESS=kind==4 ? 0.52 : 0.88;
  SPECULAR=kind==4 ? 0.35 : 0.17;
 }
-

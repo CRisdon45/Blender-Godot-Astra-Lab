@@ -16,4 +16,3 @@ void fragment(){
  c+=grain*grain_strength;
  COLOR=vec4(c,1.0);
 }
-

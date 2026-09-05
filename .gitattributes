@@ -8,4 +8,3 @@
 *.png binary
 # Generated scene contains large embedded mesh arrays.
 godot/courtyard_editable.tscn -diff
-

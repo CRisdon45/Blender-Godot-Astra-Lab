@@ -239,5 +239,3 @@ sun.rotation_euler=(math.radians(25),math.radians(-30),math.radians(-110)); sun.
 bpy.data.objects['Terrace ivory roof'].hide_render=True
 bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT,'pool_recreation.blend'))
 bpy.ops.render.render(write_still=True)
-
-

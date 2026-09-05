@@ -6,4 +6,3 @@ void vertex(){
  VERTEX.x+=sin(TIME*5.0+p.x*13.0+p.y*5.0)*h*0.024;
 }
 void fragment(){ALBEDO=mix(vec3(1.0,0.92,0.35),vec3(1.0,0.30,0.012),h); EMISSION=ALBEDO*0.4;}
-

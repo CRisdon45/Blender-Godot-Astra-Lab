@@ -1,4 +1,4 @@
-# Blender–Godot Astra Lab
+# Blenderâ€“Godot Astra Lab
 
 A backyard courtyard study authored in Blender and rendered in Godot. The visual target is a supplied architectural illustration: warm limestone and timber, a turquoise pool, twin waterfalls, fire bowls, a furnished pergola, and desert planting.
 
@@ -63,4 +63,3 @@ godot --path godot -- --capture
 ```
 
 The water, spillways, fire, and foliage use animated shaders. They are stylized effects, not fluid or combustion simulations. Dimensions and obscured areas were inferred from one image. The source reference image is not included in this repository.
-

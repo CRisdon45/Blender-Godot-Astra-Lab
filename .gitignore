@@ -16,4 +16,3 @@ Thumbs.db
 # Keep the reviewed Godot preview; ignore ad-hoc captures.
 godot/captures/*
 !godot/captures/godot_courtyard.png
-

@@ -157,5 +157,3 @@ func save_editable_scene() -> void:
 func assign_owner(node: Node, root: Node) -> void:
 	node.owner=root
 	for child in node.get_children():assign_owner(child,root)
-
-

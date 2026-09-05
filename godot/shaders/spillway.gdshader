@@ -9,4 +9,3 @@ void fragment(){
  ALBEDO=mix(vec3(0.16,0.53,0.68),vec3(0.86,0.97,1.0),streak*0.82+fine*0.1);
  ROUGHNESS=0.18; SPECULAR=0.7; EMISSION=vec3(0.15,0.24,0.26)*streak;
 }
-

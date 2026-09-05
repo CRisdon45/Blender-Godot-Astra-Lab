@@ -4,4 +4,3 @@
 
 [node name="Courtyard" type="Node3D"]
 script = ExtResource("1")
-
