@@ -1,5 +1,7 @@
 extends Node3D
-## Shared by the saved scene and the generator. No geometry or shader changes.
+## Shared navigation, capture and water binding for the saved and generated scenes.
+
+const WaterInteraction = preload("res://water_interaction.gd")
 
 const VIEW_NAMES = ["reference", "left", "right", "elevated", "close", "reverse"]
 const MIN_DISTANCE := 2.0
@@ -7,6 +9,8 @@ const MAX_DISTANCE := 45.0
 const MIN_PITCH := 0.034906585  # 2 degrees; stay above the orbit target.
 const MAX_PITCH := 1.483529864  # 85 degrees; never cross the camera pole.
 const ORBIT_SENSITIVITY := 0.004
+
+var water = WaterInteraction.new()
 
 var camera: Camera3D
 var target := Vector3(0, 1.8, -3)
@@ -27,11 +31,26 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	reference_transform = camera.transform
+	var result := water.setup(self)
+	if result != OK:
+		push_error("WATER_SETUP_FAILED: " + str(water.snapshot()))
+		set_process(false)
+		get_tree().quit(1)
+		return
 	var args := OS.get_cmdline_user_args()
+	water.set_flow(not "--water-off" in args)
+	print("WATER_READY ", JSON.stringify(water.snapshot()))
 	if "--review" in args:
 		capture_session("review")
 	elif "--capture" in args:
 		capture_session("capture")
+
+
+func _process(delta: float) -> void:
+	if water.advance(delta) != OK:
+		push_error("WATER_UPDATE_FAILED: " + str(water.snapshot()))
+		set_process(false)
+		get_tree().quit(1)
 
 
 static func bounded_offset(offset: Vector3, motion: Vector2 = Vector2.ZERO) -> Vector3:
@@ -90,6 +109,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			reset_camera()
 		elif event.keycode == KEY_I:
 			set_illustration(not _overlay.visible)
+		elif event.keycode == KEY_W:
+			water.set_flow(not water.flow_enabled)
 		elif event.keycode == KEY_F12:
 			capture_session("manual")
 		elif event.keycode >= KEY_1 and event.keycode <= KEY_6:
@@ -154,6 +175,7 @@ func _save_frame(directory: String, filename: String, records: Array) -> Error:
 		"camera_position": [camera.position.x, camera.position.y, camera.position.z],
 		"camera_rotation": [camera.rotation.x, camera.rotation.y, camera.rotation.z],
 		"camera_fov": camera.fov, "ticks_usec": Time.get_ticks_usec(),
+		"water": water.snapshot(),
 		"draw_calls": RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 	})
 	return OK
