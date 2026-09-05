@@ -1,6 +1,6 @@
 shader_type spatial;
-// Opaque interior surface: no alpha sampling/discard, screen textures or ray marching.
-// Original analytical proxy normals and packed painted masks; not tutorial assets.
+// Opaque canopy: grouped illustrated shadow shapes, not a smooth plastic sphere.
+// The paint mask mainly disrupts tone boundaries; flat lit areas remain restrained.
 render_mode specular_disabled, ambient_light_disabled;
 uniform sampler2D paint_mask : repeat_enable, filter_linear_mipmap;
 uniform vec3 sun_direction = vec3(-0.314, 0.743, 0.589);
@@ -15,11 +15,11 @@ void fragment() {
     vec2 marks = texture(paint_mask, UV).rg;
     vec3 n = normalize(crown_normal);
     float value = dot(n, normalize(sun_direction)) * 0.5 + 0.5;
-    float transition = 1.0 - smoothstep(0.10, 0.30, abs(value - 0.53));
-    value += (marks.r - 0.5) * 0.38 + (marks.g - 0.5) * (0.10 + transition * 0.16);
-    vec3 paint = mix(shadow_color.rgb, middle_color.rgb, smoothstep(0.30, 0.54, value));
-    paint = mix(paint, light_color.rgb, smoothstep(0.69, 0.87, value));
-    paint *= 1.0 + (marks.r - 0.5) * 0.19 + (marks.g - 0.5) * 0.28;
+    float transition = 1.0 - smoothstep(0.07, 0.22, min(abs(value - 0.43), abs(value - 0.70)));
+    value += (marks.r - 0.5) * 0.32 + (marks.g - 0.5) * transition * 0.12;
+    vec3 paint = mix(shadow_color.rgb, middle_color.rgb, smoothstep(0.38, 0.46, value));
+    paint = mix(paint, light_color.rgb, smoothstep(0.67, 0.74, value));
+    paint *= 1.0 + (marks.r - 0.5) * 0.045 + (marks.g - 0.5) * 0.055;
     NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
     ALBEDO = paint;
     EMISSION = paint * 0.86;

@@ -1,5 +1,6 @@
 shader_type spatial;
-// Small, fixed 3D centers. Only each spray faces the camera, never the whole plant.
+// Small fixed 3D centers. Only each spray faces the camera, never the whole plant.
+// Match the opaque core's tonal thresholds so cards do not read as separate stickers.
 render_mode cull_disabled, specular_disabled, ambient_light_disabled;
 uniform sampler2D brush_atlas : repeat_disable, filter_linear_mipmap;
 uniform vec3 sun_direction = vec3(-0.314, 0.743, 0.589);
@@ -30,8 +31,8 @@ void fragment() {
     if (brush.a < 0.42) { discard; }
     vec3 n = normalize(crown_normal);
     float value = dot(n, normalize(sun_direction)) * 0.5 + 0.5;
-    vec3 paint = mix(shadow_color.rgb, middle_color.rgb, smoothstep(0.30, 0.54, value));
-    paint = mix(paint, light_color.rgb, smoothstep(0.69, 0.87, value));
+    vec3 paint = mix(shadow_color.rgb, middle_color.rgb, smoothstep(0.38, 0.46, value));
+    paint = mix(paint, light_color.rgb, smoothstep(0.67, 0.74, value));
     NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
     ALBEDO = paint;
     EMISSION = paint * 0.86;
