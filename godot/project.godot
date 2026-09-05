@@ -1,0 +1,24 @@
+config_version=5
+
+[application]
+config/name="Courtyard — Architectural Study"
+run/main_scene="res://courtyard_editable.tscn"
+
+[display]
+window/size/viewport_width=1600
+window/size/viewport_height=1200
+window/size/window_width_override=1200
+window/size/window_height_override=900
+window/stretch/mode="canvas_items"
+
+[rendering]
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="gl_compatibility"
+anti_aliasing/quality/msaa_3d=2
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.63,0.81,0.94,1)
+
+
+
+
+

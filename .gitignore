@@ -1,0 +1,19 @@
+# Godot regenerates its imported resources and editor state locally.
+.godot/
+.tmp/
+*.log
+
+# Blender automatic backups.
+*.blend[0-9]
+*.blend[0-9][0-9]
+
+# Python and operating system files.
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# Keep the reviewed Godot preview; ignore ad-hoc captures.
+godot/captures/*
+!godot/captures/godot_courtyard.png
+

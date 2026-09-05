@@ -1,0 +1,11 @@
+* text=auto
+*.py text eol=lf
+*.gd text eol=lf
+*.gdshader text eol=lf
+*.md text eol=lf
+*.blend binary
+*.glb binary
+*.png binary
+# Generated scene contains large embedded mesh arrays.
+godot/courtyard_editable.tscn -diff
+
