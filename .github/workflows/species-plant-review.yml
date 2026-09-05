@@ -1,0 +1,106 @@
+name: Species plant Android-profile witness
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/species-android-plant-lab]
+    paths:
+      - .github/workflows/species-plant-review.yml
+      - tools/species_lab_core.py
+      - tools/build_species_lab.py
+      - tools/check_species_assets.py
+      - plant_lab/**
+      - tests/test_species_lab.py
+permissions:
+  contents: read
+concurrency:
+  group: species-plant-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+      LP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install verified engines and software display
+        run: |
+          set -euo pipefail
+          mkdir -p species-output "$RUNNER_TEMP/engines" "$RUNNER_TEMP/xdg"
+          chmod 700 "$RUNNER_TEMP/xdg"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/xdg" >> "$GITHUB_ENV"
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth libvulkan1 mesa-vulkan-drivers libxrender1 libxi6 libxxf86vm1 libxfixes3 libxkbcommon0 unzip
+          echo "VK_ICD_FILENAMES=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)" >> "$GITHUB_ENV"
+          cd "$RUNNER_TEMP/engines"
+          curl -fL --retry 2 --max-time 180 https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip -o godot.zip
+          echo 'c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip' | sha256sum --check --strict
+          unzip -q godot.zip
+          mv Godot_v4.7.1-stable_linux.x86_64 godot
+          chmod +x godot
+          BASE=https://download.blender.org/release/Blender5.2
+          curl -fL --retry 2 --max-time 240 "$BASE/blender-5.2.1-linux-x64.tar.xz" -o blender-5.2.1-linux-x64.tar.xz
+          curl -fL --retry 2 --max-time 60 "$BASE/blender-5.2.1.sha256" -o blender.sha256
+          grep ' blender-5.2.1-linux-x64.tar.xz$' blender.sha256 | sha256sum --check --strict
+          tar -xf blender-5.2.1-linux-x64.tar.xz
+          echo "$RUNNER_TEMP/engines" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/engines/blender-5.2.1-linux-x64" >> "$GITHUB_PATH"
+      - name: Test species compiler and generate actual Blender assets
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > species-output/source-commit.txt
+          python3 -m unittest discover -s tests -p test_species_lab.py -v 2>&1 | tee species-output/python-tests.log
+          blender --background --factory-startup --python-exit-code 1 --python tools/build_species_lab.py 2>&1 | tee species-output/blender.log
+          grep -q SPECIES_BLENDER_BUILD_OK species-output/blender.log
+          python3 tools/check_species_assets.py plant_lab/assets > species-output/glb-contract.json
+      - name: Import isolated project and capture actual Mobile renderer
+        run: |
+          set -euo pipefail
+          timeout 240 godot --headless --audio-driver Dummy --path plant_lab --rendering-method mobile --editor --import 2>&1 | tee species-output/import.log
+          xvfb-run -a -s '-screen 0 1280x800x24' timeout 600 godot --audio-driver Dummy --path plant_lab --rendering-method mobile -- --capture="$GITHUB_WORKSPACE/species-output/images" 2>&1 | tee species-output/capture.log
+          grep -q SPECIES_GODOT_CAPTURE_DONE species-output/capture.log
+          python3 - <<'PY'
+          import json, re, struct, zlib
+          from pathlib import Path
+          root=Path('species-output')
+          report=json.loads((root/'images/capture-report.json').read_text())
+          assert report['renderer']=='mobile', report
+          assert len(report['images'])==17 and not report['errors'], report
+          for entry in report['images']:
+              raw=(root/'images'/entry['file']).read_bytes()
+              assert raw[:8]==b'\x89PNG\r\n\x1a\n'
+              offset=8; compressed=b''
+              while offset<len(raw):
+                  n=struct.unpack_from('>I',raw,offset)[0]
+                  kind=raw[offset+4:offset+8]; data=raw[offset+8:offset+8+n]
+                  crc=struct.unpack_from('>I',raw,offset+8+n)[0]
+                  assert zlib.crc32(kind+data)&0xffffffff==crc
+                  if kind==b'IDAT': compressed+=data
+                  offset+=n+12
+              assert zlib.decompress(compressed)
+          for name in ('import','capture'):
+              log=(root/(name+'.log')).read_text()
+              assert not re.search(r'SCRIPT ERROR:|SHADER ERROR:|Shader compilation failed|Parse Error:',log), log
+          print('ACTUAL_MOBILE_CAPTURE_CONTRACT_OK: not Android device performance approval')
+          PY
+      - name: Package editable sources, runtime project and unfiltered diagnostics
+        if: always()
+        run: |
+          mkdir -p species-output/bundle/tools species-output/bundle/tests species-output/bundle/docs
+          cp -r plant_lab species-output/bundle/
+          rm -rf species-output/bundle/plant_lab/.godot
+          cp tools/{species_lab_core,build_species_lab,check_species_assets}.py species-output/bundle/tools/
+          cp tests/test_species_lab.py species-output/bundle/tests/
+          cp docs/SPECIES_PLANT_LAB.md species-output/bundle/docs/ 2>/dev/null || true
+          cp -r authoring/species_lab species-output/bundle/authoring 2>/dev/null || true
+          git status --short > species-output/worktree-status.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: species-plant-review-${{ github.run_number }}
+          path: species-output/
+          if-no-files-found: error
+          retention-days: 14

@@ -1,0 +1,24 @@
+; Isolated, opt-in Android-oriented plant study. Never changes courtyard settings.
+config_version=5
+[application]
+config/name="Species Plant Lab - Android study"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "Mobile")
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=800
+window/stretch/mode="canvas_items"
+[rendering]
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+renderer/rendering_method.web="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/vram_compression/import_etc2_astc=true
+scaling_3d/scale=0.8
+anti_aliasing/quality/msaa_3d=1
+lights_and_shadows/directional_shadow/size=2048
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
+shading/overrides/force_vertex_shading=false
+shading/overrides/force_vertex_shading.mobile=false
+[environment]
+defaults/default_clear_color=Color(0.72, 0.82, 0.83, 1)
