@@ -1,0 +1,71 @@
+name: Planar pool reflection and light study
+# Revision 1: actual mirrored scene, clipped HDR controls and matched previous-water views.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/courtyard-review-pass]
+    paths: [.github/workflows/water-reflection-review.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-reflection-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GODOT_VERSION: 4.7.1
+      GODOT_SHA256: c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+      LP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Prepare bounded software Vulkan review
+        run: |
+          mkdir -p reflection-output
+          git rev-parse HEAD > reflection-output/source-commit.txt
+          sha256sum godot/assets/anime/courtyard_anime.glb godot/courtyard_editable.tscn godot/shaders/water.gdshader godot/shaders/hero_water.gdshader godot/courtyard_hero_water.gd > reflection-output/preserved.sha256
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth libvulkan1 mesa-vulkan-drivers libxrender1 libxi6 libxxf86vm1 libxfixes3 libxkbcommon0 unzip
+          ICD="$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)"
+          test -n "$ICD"
+          echo "VK_ICD_FILENAMES=$ICD" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/xdg-runtime" "$RUNNER_TEMP/engines"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/xdg-runtime" >> "$GITHUB_ENV"
+          cd "$RUNNER_TEMP/engines"
+          ZIP="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl --fail --location --retry 2 --max-time 180 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/$ZIP" -o "$ZIP"
+          printf '%s  %s\n' "$GODOT_SHA256" "$ZIP" | sha256sum --check --strict
+          unzip -q "$ZIP"
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          echo "$RUNNER_TEMP/engines" >> "$GITHUB_PATH"
+      - name: Python source and math regressions
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tests -v 2>&1 | tee reflection-output/python-tests.log
+      - name: Import, preflight, compare and validate actual water views
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1200x24' python3 -m tools.run_water_reflection_review --output reflection-output
+      - name: Package evidence without replacing baselines
+        if: always()
+        run: |
+          mkdir -p reflection-output/source
+          git ls-files -z '*.gd' '*.gdshader' '*.gdshaderinc' '*.py' '*.md' '*.yml' '*.tscn' 'godot/project.godot' | tar --exclude=godot/courtyard_editable.tscn --null -T - -cf reflection-output/source/source.tar
+          sha256sum --check --strict reflection-output/preserved.sha256 > reflection-output/preserved-check.log
+          git diff --exit-code > reflection-output/tracked-source-diff.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: water-reflection-review-${{ github.run_number }}
+          path: reflection-output/
+          if-no-files-found: error
+          retention-days: 7
