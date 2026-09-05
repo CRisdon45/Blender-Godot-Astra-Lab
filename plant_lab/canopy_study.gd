@@ -70,7 +70,10 @@ func _material(species: String, component: String) -> ShaderMaterial:
 	var profile: Dictionary = manifest.profiles[species]
 	var palette: Array = profile.flowers if component == "flower" else profile.leaves
 	for index in range(3):
-		mat.set_shader_parameter(["shadow_color", "middle_color", "light_color"][index], _as_color(palette[index]))
+		var tone: Color = _as_color(palette[index])
+		if species == "texas_sage" and component == "leaf" and index == 0:
+			tone = tone.lerp(_as_color(palette[1]), 0.48)
+		mat.set_shader_parameter(["shadow_color", "middle_color", "light_color"][index], tone)
 	mat.set_shader_parameter("sun_direction", sun_vector)
 	if component in ["core", "leaf"]:
 		mat.set_shader_parameter("paint_mask", load("res://assets/canopy/%s_paint_mask.png" % species))
