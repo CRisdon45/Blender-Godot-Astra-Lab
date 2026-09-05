@@ -170,6 +170,13 @@ func _run() -> void:
 	pool_materials.clear()
 	spill_nodes.clear()
 	sheets.clear()
+	# Drop the PackedScene's mesh/material ownership and allow deferred renderer
+	# teardown to finish before reporting completion and exiting the test process.
+	packed = null
+	instance = null
+	scene = null
+	await process_frame
+	await process_frame
 	if failures == 0:
 		print("SCENE_WATER_TESTS_OK ", JSON.stringify({
 			"scene": path, "checks": checks, "impact_count": 2, "graphics_validated": false,
