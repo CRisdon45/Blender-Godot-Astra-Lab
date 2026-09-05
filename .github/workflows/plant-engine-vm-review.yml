@@ -1,0 +1,166 @@
+name: Plant foundation VM build and Mobile-renderer review
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/plant-engine-vm-validation]
+    paths:
+      - .github/workflows/plant-engine-vm-review.yml
+      - tools/plant_engine/**
+      - tools/species_lab_core.py
+      - tools/build_species_lab.py
+      - tools/check_species_assets.py
+      - tools/compile_plant_catalog.py
+      - tools/make_lod_contract.py
+      - plant_lab/**
+      - schemas/plant_recipe.schema.json
+      - tests/test_plant_*.py
+      - tests/test_species_*.py
+permissions:
+  contents: read
+concurrency:
+  group: plant-foundation-vm-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-test-render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+      LP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install verified Blender, Godot and software Vulkan
+        run: |
+          set -euo pipefail
+          mkdir -p foundation-output "$RUNNER_TEMP/engines" "$RUNNER_TEMP/xdg"
+          chmod 700 "$RUNNER_TEMP/xdg"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/xdg" >> "$GITHUB_ENV"
+          git rev-parse HEAD > foundation-output/source-commit.txt
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth libvulkan1 mesa-vulkan-drivers libxrender1 libxi6 libxxf86vm1 libxfixes3 libxkbcommon0 unzip python3-jsonschema python3-pil
+          echo "VK_ICD_FILENAMES=$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)" >> "$GITHUB_ENV"
+          cd "$RUNNER_TEMP/engines"
+          curl -fL --retry 2 --max-time 180 https://github.com/godotengine/godot-builds/releases/download/4.7.1-stable/Godot_v4.7.1-stable_linux.x86_64.zip -o godot.zip
+          echo 'c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba  godot.zip' | sha256sum --check --strict
+          unzip -q godot.zip
+          mv Godot_v4.7.1-stable_linux.x86_64 godot
+          chmod +x godot
+          BASE=https://download.blender.org/release/Blender5.2
+          curl -fL --retry 2 --max-time 240 "$BASE/blender-5.2.1-linux-x64.tar.xz" -o blender-5.2.1-linux-x64.tar.xz
+          curl -fL --retry 2 --max-time 60 "$BASE/blender-5.2.1.sha256" -o blender.sha256
+          grep ' blender-5.2.1-linux-x64.tar.xz$' blender.sha256 | sha256sum --check --strict
+          tar -xf blender-5.2.1-linux-x64.tar.xz
+          echo "$RUNNER_TEMP/engines" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/engines/blender-5.2.1-linux-x64" >> "$GITHUB_PATH"
+      - name: Compile real Blender models and validate the complete foundation
+        id: build
+        run: |
+          set -euo pipefail
+          godot --version > foundation-output/godot-version.txt
+          blender --version > foundation-output/blender-version.txt
+          /usr/bin/python3 tools/make_lod_contract.py
+          blender --background --factory-startup --python-exit-code 1 --python tools/build_species_lab.py 2>&1 | tee foundation-output/blender.log
+          grep -q SPECIES_BLENDER_BUILD_OK foundation-output/blender.log
+          grep -q PLANT_FOUNDATION_CATALOG_OK foundation-output/blender.log
+          /usr/bin/python3 - <<'PY' 2>&1 | tee foundation-output/python-tests.log
+          import json, pathlib, unittest
+          loader=unittest.TestLoader()
+          suite=unittest.TestSuite([loader.discover('tests',pattern='test_species_*.py'),loader.discover('tests',pattern='test_plant_*.py')])
+          result=unittest.TextTestRunner(verbosity=2).run(suite)
+          report={'tests':result.testsRun,'failures':len(result.failures),'errors':len(result.errors),'skipped':len(result.skipped),'passed':result.wasSuccessful() and not result.skipped}
+          pathlib.Path('foundation-output/python-report.json').write_text(json.dumps(report,indent=2))
+          assert report['passed'], report
+          PY
+          /usr/bin/python3 tools/check_species_assets.py plant_lab/assets > foundation-output/glb-contract.json
+          cp plant_lab/engine_data/catalog.json foundation-output/catalog.json
+      - name: Import new Godot foundation scene
+        id: import
+        run: |
+          set -euo pipefail
+          timeout 240 godot --headless --audio-driver Dummy --path plant_lab --rendering-method mobile --editor --import 2>&1 | tee foundation-output/import.log
+          /usr/bin/python3 - <<'PY'
+          from pathlib import Path
+          import re
+          log=Path('foundation-output/import.log').read_text()
+          assert not re.search(r'SCRIPT ERROR:|SHADER ERROR:|Shader compilation failed|Parse Error:',log),log
+          files=list(Path('plant_lab/assets').glob('*.glb.import'))
+          assert len(files)==36
+          for path in files:
+              text=path.read_text()
+              assert 'meshes/generate_lods=false' in text,path
+              assert 'meshes/create_shadow_meshes=false' in text,path
+          for path in Path('plant_lab/assets').glob('*.png.import'):
+              assert 'mipmaps/generate=true' in path.read_text(),path
+          print('FOUNDATION_IMPORT_CONTRACT_OK')
+          PY
+      - name: Execute Godot identity, streaming, growth and budget tests
+        id: smoke
+        run: |
+          set -euo pipefail
+          timeout 180 godot --headless --audio-driver Dummy --path plant_lab --script res://engine/tests/plant_runtime_smoke.gd 2>&1 | tee foundation-output/smoke.log
+          /usr/bin/python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          log=Path('foundation-output/smoke.log').read_text()
+          assert not re.search(r'SCRIPT ERROR:|SHADER ERROR:|Shader compilation failed|Parse Error:',log),log
+          line=next(line for line in log.splitlines() if line.startswith('PLANT_FOUNDATION_SMOKE '))
+          report=json.loads(line.split(' ',1)[1])
+          Path('foundation-output/smoke-report.json').write_text(json.dumps(report,indent=2))
+          assert report['passed'] and report['godot_runtime_executed'] and not report['failures'],report
+          PY
+      - name: Render and capture actual Mobile-renderer viewpoints
+        id: capture
+        if: ${{ !cancelled() && steps.import.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          xvfb-run -a -s '-screen 0 1280x800x24' timeout 600 godot --audio-driver Dummy --path plant_lab --rendering-method mobile res://engine_lab.tscn -- --capture="$GITHUB_WORKSPACE/foundation-output/images" 2>&1 | tee foundation-output/capture.log
+          /usr/bin/python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          from PIL import Image,ImageStat
+          root=Path('foundation-output')
+          log=(root/'capture.log').read_text()
+          assert 'SPECIES_GODOT_CAPTURE_DONE' in log,log
+          assert not re.search(r'SCRIPT ERROR:|SHADER ERROR:|Shader compilation failed|Parse Error:',log),log
+          report=json.loads((root/'images/capture-report.json').read_text())
+          assert report['renderer']=='mobile' and len(report['images'])==17 and not report['errors'],report
+          for entry in report['images']:
+              path=root/'images'/entry['file']
+              with Image.open(path) as image:
+                  image.verify()
+              with Image.open(path) as image:
+                  assert image.size==(1280,800),(path,image.size)
+                  assert max(ImageStat.Stat(image.convert('RGB')).stddev)>3,(path,'blank frame')
+          print('FOUNDATION_ACTUAL_MOBILE_CAPTURE_OK: software Vulkan, NOT Android GPU certification')
+          PY
+      - name: Package generated project and unfiltered evidence
+        if: always()
+        run: |
+          mkdir -p foundation-output/bundle/{tools,tests,docs,schemas,authoring}
+          cp -r plant_lab foundation-output/bundle/
+          rm -rf foundation-output/bundle/plant_lab/.godot
+          cp -r tools/plant_engine foundation-output/bundle/tools/
+          cp tools/{species_lab_core,build_species_lab,check_species_assets,compile_plant_catalog,make_lod_contract}.py foundation-output/bundle/tools/
+          cp tests/test_species_*.py tests/test_plant_*.py foundation-output/bundle/tests/
+          cp schemas/plant_recipe.schema.json foundation-output/bundle/schemas/
+          cp docs/PLANT_ENGINE_FOUNDATION.md foundation-output/bundle/docs/
+          cp START_HERE.md foundation-output/bundle/
+          cp -r authoring/species_lab foundation-output/bundle/authoring/ 2>/dev/null || true
+          find foundation-output/bundle -type d -name __pycache__ -prune -exec rm -rf {} +
+          git status --short > foundation-output/worktree-status.txt
+          /usr/bin/python3 - <<'PY'
+          import json,os,platform
+          from pathlib import Path
+          out=Path('foundation-output')
+          value={'source_commit':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'run_attempt':os.environ['GITHUB_RUN_ATTEMPT'],'platform':platform.platform(),'renderer_requested':'mobile','software_renderer':True,'android_device_tested':False,'art_approved':False,'calendar_growth_calibrated':False}
+          (out/'run-provenance.json').write_text(json.dumps(value,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: plant-foundation-vm-${{ github.run_number }}-${{ github.run_attempt }}
+          path: foundation-output/
+          if-no-files-found: error
+          retention-days: 7

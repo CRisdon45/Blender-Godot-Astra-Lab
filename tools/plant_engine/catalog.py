@@ -1,0 +1,189 @@
+"""Audit existing Blender artifacts, then publish a content-addressed runtime catalog.
+
+No mesh is generated here. Assets are adopted only after source/graph parity and
+independent GLB checks. The original Blender manifest and every GLB remain intact.
+The catalog is published last, atomically; a failed audit preserves the old catalog.
+"""
+from __future__ import annotations
+from dataclasses import asdict
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import tempfile
+from .recipe import canonical_bytes, content_hash, load_recipes, parse_json
+from .topology import PlantBlueprint
+
+CATALOG_SCHEMA = 'plant-catalog/1'
+COMPILER_VERSION = 'plant-foundation/0.1.0'
+SEEDS = (41, 73)
+
+
+def sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def safe_file(root: Path, relative: str) -> Path:
+    if (not isinstance(relative, str) or not relative or '\\' in relative or ':' in relative
+            or relative.startswith('/') or any(p in ('', '.', '..') for p in relative.split('/'))):
+        raise ValueError(f'Unsafe relative path: {relative!r}')
+    candidate = root / relative
+    try:
+        candidate.resolve().relative_to(root.resolve())
+    except ValueError as exc:
+        raise ValueError('Path escapes project root') from exc
+    return candidate
+
+
+def atomic_write(path: Path, data: bytes) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists() and path.read_bytes() == data:
+        return
+    name = None
+    try:
+        with tempfile.NamedTemporaryFile(prefix='.' + path.name, dir=path.parent, delete=False) as stream:
+            name = stream.name
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(name, path)
+    finally:
+        if name and os.path.exists(name):
+            os.unlink(name)
+
+
+def artifact_key(*, recipe_hash: str, source_hash: str, seed: int, stage: int,
+                 lod: int, mesh_sha256: str, shader_hash: str) -> str:
+    from .recipe import validate_seed
+    validate_seed(seed)
+    if stage not in (0, 1, 2) or type(stage) is not int or lod not in (0, 1, 2) or type(lod) is not int:
+        raise ValueError('Invalid stage or LOD')
+    for value in (recipe_hash, source_hash, mesh_sha256, shader_hash):
+        if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value):
+            raise ValueError('Invalid content hash')
+    return content_hash({'compiler': COMPILER_VERSION, 'recipe': recipe_hash, 'source': source_hash,
+                         'seed': seed, 'stage': stage, 'lod': lod, 'mesh': mesh_sha256,
+                         'shader': shader_hash})
+
+
+def build_catalog(root: Path, verify_glb: bool = True) -> dict:
+    from species_lab_core import compile_plant, metrics
+    from check_species_assets import check
+    root = root.resolve()
+    project = root / 'plant_lab'
+    assets = project / 'assets'
+    source_manifest_path = assets / 'manifest.json'
+    source_manifest = parse_json(source_manifest_path.read_text(encoding='utf-8'))
+    if source_manifest.get('schema') != 'species-witness/1':
+        raise ValueError('Unsupported Blender witness manifest')
+    recipes = load_recipes(project / 'recipes')
+    expected = {(r, seed, stage, lod) for r in recipes for seed in SEEDS
+                for stage in range(3) for lod in range(3)}
+    actual: dict[tuple, dict] = {}
+    for entry in source_manifest['assets']:
+        identity = (entry['species'], entry['seed'], entry['stage'], entry['lod'])
+        if identity in actual or identity not in expected:
+            raise ValueError(f'Unexpected or duplicate Blender asset: {identity}')
+        actual[identity] = entry
+    if set(actual) != expected:
+        raise ValueError('Incomplete Blender asset matrix')
+    compiler_sources = sorted((root / 'tools' / 'plant_engine').glob('*.py'))
+    compiler_sources += [root / 'tools' / 'species_lab_core.py', root / 'tools' / 'build_species_lab.py',
+                         root / 'tools' / 'check_species_assets.py']
+    source_files = {str(p.relative_to(root)).replace('\\', '/'): sha256_file(p) for p in compiler_sources}
+    source_hash = content_hash(source_files)
+    shader_files = {p.name: sha256_file(p) for p in sorted((project / 'shaders').glob('*.gdshader'))}
+    atlas_files = {p.name: sha256_file(p) for p in sorted(assets.glob('*_atlas.png'))}
+    if len(atlas_files) != len(recipes) * 2:
+        raise ValueError('Expected one leaf and one flower atlas per species')
+    shader_hash = content_hash({'shaders': shader_files, 'atlases': atlas_files})
+    payloads: dict[str, bytes] = {}
+    variants = []
+    species_info = {}
+    stats = {'assets_checked': 0, 'source_plants_compared': 0, 'topology_stages': 0}
+    for species, recipe in recipes.items():
+        data = recipe.data
+        if source_manifest['profiles'].get(species) != data['profile']:
+            raise ValueError(f'Recipe profile differs from baked asset provenance: {species}; rebuild in Blender')
+        species_info[species] = {'recipe_sha256': recipe.digest, 'recipe_path': f'recipes/{species}.json',
+                                'profile': data['profile'], 'family': data['family'],
+                                'signature': data['signature'], 'growth': data['growth'],
+                                'approval': data['approval']}
+        for seed in SEEDS:
+            blueprint = PlantBlueprint.create(recipe, seed)
+            for stage, maturity in enumerate((0.0, .5, 1.0)):
+                plant = compile_plant(species, seed, maturity, recipe=recipe)
+                key = f'{species}_s{seed}_g{stage}'
+                frozen = parse_json((assets / (key + '.json')).read_text(encoding='utf-8'))
+                if json.loads(canonical_bytes(asdict(plant))) != frozen:
+                    raise ValueError(f'Geometry recipe no longer matches baked source: {key}; rebuild in Blender')
+                stats['source_plants_compared'] += 1
+                topology = blueprint.evaluate(maturity)
+                payloads[f'{key}.topology.json'] = canonical_bytes(topology) + b'\n'
+                stats['topology_stages'] += 1
+                levels = []
+                for lod in range(3):
+                    entry = actual[(species, seed, stage, lod)]
+                    path = safe_file(assets, entry['file'])
+                    if path.suffix != '.glb' or path.name != f'{key}_lod{lod}.glb':
+                        raise ValueError('Unexpected model filename')
+                    measured = metrics(plant, lod, recipe=recipe)
+                    for field in ('total_triangles', 'wood_triangles', 'leaf_cards', 'flower_cards', 'safe_aabb_z_up'):
+                        if json.loads(canonical_bytes(measured[field])) != entry[field]:
+                            raise ValueError(f'Baked geometry metric drift: {key}/{lod}/{field}')
+                    if measured['total_triangles'] > data['render']['lods'][lod]['triangle_cap']:
+                        raise ValueError(f'Triangle budget exceeded: {key}/{lod}')
+                    if sha256_file(path) != entry['sha256']:
+                        raise ValueError(f'Corrupt or stale mesh: {path.name}')
+                    if verify_glb:
+                        check(path, entry)
+                    stats['assets_checked'] += 1
+                    low, high = entry['safe_aabb_z_up']
+                    # Blender Z-up -> glTF/Godot Y-up: (x, y, z) -> (x, z, -y).
+                    minimum = [low[0], low[2], -high[1]]
+                    maximum = [high[0], high[2], -low[1]]
+                    level_key = artifact_key(recipe_hash=recipe.digest, source_hash=source_hash,
+                                              seed=seed, stage=stage, lod=lod, mesh_sha256=entry['sha256'],
+                                              shader_hash=shader_hash)
+                    levels.append({'lod': lod, 'asset_key': level_key, 'path': f'assets/{path.name}',
+                                   'sha256': entry['sha256'], 'byte_size': path.stat().st_size,
+                                   'triangles': {'wood': entry['wood_triangles'], 'leaf': 2*entry['leaf_cards'],
+                                                 'flower': 2*entry['flower_cards'], 'total': entry['total_triangles']},
+                                   'render_aabb_y_up': {'min': minimum, 'max': maximum}})
+                variants.append({'key': key, 'species': species, 'seed': seed, 'stage': stage,
+                                 'maturity': maturity, 'blueprint_id': blueprint.id,
+                                 'design_envelope': recipe.envelope(maturity),
+                                 'topology_file': f'{key}.topology.json',
+                                 'topology_sha256': hashlib.sha256(payloads[f'{key}.topology.json']).hexdigest(),
+                                 'lods': levels})
+    generation = content_hash({'compiler': COMPILER_VERSION, 'source': source_hash, 'shaders': shader_hash,
+                               'recipe_hashes': {k: v.digest for k, v in recipes.items()},
+                               'models': [v['lods'] for v in variants]})
+    generation_dir = f'engine_data/{generation[:24]}'
+    for variant in variants:
+        variant['topology_path'] = f"{generation_dir}/{variant.pop('topology_file')}"
+    catalog = {'schema': CATALOG_SCHEMA, 'compiler_version': COMPILER_VERSION,
+               'generation': generation, 'units': 'metres', 'render_coordinates': 'y_up',
+               'growth_domain': 'illustrative_maturity_0_to_1',
+               'provenance': {'mode': 'audited_blender_artifacts_no_mesh_regeneration',
+                              'source_manifest_sha256': sha256_file(source_manifest_path),
+                              'blender_version': source_manifest.get('blender_version'),
+                              'baked_source_sha256': source_manifest.get('source_sha256', {}),
+                              'foundation_source_sha256': source_files, 'shader_sha256': shader_files,
+                              'atlas_sha256': atlas_files},
+               'approval': {'art': False, 'android_device': False, 'calendar_growth': False, 'production': False},
+               'species': species_info, 'variants': variants,
+               'policy': {'near_enter': .30, 'near_exit': .24, 'far_enter': .08, 'far_exit': .11,
+                          'cell_size_m': 8.0, 'primary_triangle_target': 140000,
+                          'max_loaded_assets': 36, 'max_concurrent_loads': 4,
+                          'finalize_assets_per_frame': 2,
+                          'far_shadow_policy': 'off_legacy_study',
+                          'budget_is_gpu_guarantee': False},
+               'validation': {**stats, 'independent_glb_check': verify_glb, 'baseline_geometry_preserved': True,
+                              'godot_runtime_executed_this_build': False, 'tablet_tested': False}}
+    # Nothing is published until all matrix/provenance/budget/geometry checks succeed.
+    for filename, payload in payloads.items():
+        atomic_write(project / generation_dir / filename, payload)
+    atomic_write(project / 'engine_data' / 'catalog.json', canonical_bytes(catalog) + b'\n')
+    return catalog

@@ -8,7 +8,7 @@ import bpy
 import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(Path(__file__).resolve().parent))
-from species_lab_core import PROFILES, compile_plant, cards_for_lod, wood_mesh, metrics
+from species_lab_core import PROFILES, RECIPES, compile_plant, cards_for_lod, wood_mesh, metrics
 OUT=ROOT/'plant_lab/assets'; OUT.mkdir(parents=True,exist_ok=True)
 AUTHOR=ROOT/'authoring/species_lab'; AUTHOR.mkdir(parents=True,exist_ok=True)
 bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(use_global=False)
@@ -26,7 +26,7 @@ def atlas(species:str, flower:bool=False):
                 dx,dy=xx-cx,yy-cy
                 theta=np.arctan2(dy,dx); rad=np.sqrt(dx*dx+dy*dy)
                 mask |= rad < .11+.027*np.cos(5*theta+k*.4)
-        elif species=='desert_museum':
+        elif RECIPES[species].data['family']=='open_vase_tree':
             angle=(-.52,-.18,.24,.57)[k]
             sx=.5+(xx-.5)*math.cos(angle)+(yy-.5)*math.sin(angle)
             sy=.5-(xx-.5)*math.sin(angle)+(yy-.5)*math.cos(angle)
@@ -79,9 +79,9 @@ def make_mesh(name,verts,faces,mat):
     for p in mesh.polygons:p.use_smooth=True
     return obj
 
-def make_cards(name,cards,lod,mat):
+def make_cards(name,cards,lod,mat,recipe):
     verts=[];faces=[];normals=[];uv=[];sizes=[];colors=[];preview=[]
-    inflate=(1.0,1.27,1.6)[lod]
+    inflate=recipe.data['render']['lods'][lod]['card_inflate']
     for c in cards:
         w,h=[x*inflate for x in c.size];offset=len(verts)
         for x,z in ((0,0),(1,0),(1,1),(0,1)):
@@ -109,6 +109,7 @@ manifest={'schema':'species-witness/1','generator_version':'0.2.0','units':'metr
           'render_status':'pending actual Godot capture','android_device_tested':False,
           'profiles':PROFILES,'assets':[],'blender_version':bpy.app.version_string}
 for species,profile in PROFILES.items():
+    recipe=RECIPES[species]
     leaf_atlas=atlas(species);flower_atlas=atlas(species,True)
     mats=[material(f'{species}_wood',profile['wood'][1]),material(f'{species}_leaf',profile['leaves'][1],leaf_atlas),material(f'{species}_flower',profile['flowers'][1],flower_atlas)]
     runtime_mats=[material(f'{species}_{key}',profile[palette][1]) for key,palette in [('wood','wood'),('leaf','leaves'),('flower','flowers')]]
@@ -120,7 +121,7 @@ for species,profile in PROFILES.items():
             for lod in range(3):
                 bpy.ops.object.select_all(action='DESELECT')
                 verts,faces=wood_mesh(plant,lod)
-                objects=[make_mesh('Wood',verts,faces,mats[0]),make_cards('Leaves',cards_for_lod(plant.cards,lod),lod,mats[1]),make_cards('Flowers',cards_for_lod(plant.flowers,lod),lod,mats[2])]
+                objects=[make_mesh('Wood',verts,faces,mats[0]),make_cards('Leaves',cards_for_lod(plant.cards,lod,recipe=recipe),lod,mats[1],recipe),make_cards('Flowers',cards_for_lod(plant.flowers,lod,recipe=recipe),lod,mats[2],recipe)]
                 for i,obj in enumerate(objects):
                     obj.select_set(True);obj.data.materials[0]=runtime_mats[i]
                 bpy.context.view_layer.objects.active=objects[0]
@@ -139,3 +140,8 @@ for species,profile in PROFILES.items():
 manifest['source_sha256']={name:hashlib.sha256((ROOT/'tools'/name).read_bytes()).hexdigest() for name in ('species_lab_core.py','build_species_lab.py')}
 (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print('SPECIES_BLENDER_BUILD_OK '+json.dumps({'assets':len(manifest['assets']),'authoring_files':12}))
+
+# Publish a runtime catalog only after complete independent artifact validation.
+from plant_engine.catalog import build_catalog
+foundation_catalog = build_catalog(ROOT)
+print('PLANT_FOUNDATION_CATALOG_OK '+foundation_catalog['generation'])
