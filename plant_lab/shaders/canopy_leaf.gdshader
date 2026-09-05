@@ -1,7 +1,8 @@
 shader_type spatial;
 // Opaque visible foliage. Broad color blocks communicate volume without photoreal detail.
-// Top/bottom cues use compiled group normals; no alpha, screen texture, or per-frame noise.
-render_mode specular_disabled, ambient_light_disabled;
+// Brush silhouettes are geometry; cull-disabled makes the small fixed 3D strokes readable
+// from either side without alpha discard or camera-facing billboarding.
+render_mode cull_disabled, specular_disabled, ambient_light_disabled;
 uniform sampler2D paint_mask : repeat_enable, filter_linear_mipmap;
 uniform vec3 sun_direction = vec3(-0.314, 0.743, 0.589);
 uniform vec4 shadow_color : source_color;
