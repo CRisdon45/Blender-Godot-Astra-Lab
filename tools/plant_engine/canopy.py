@@ -14,7 +14,7 @@ from species_lab_core import (Plant, Lobe, Card, compile_plant, bezier, add,
                               sub, mul, mix, unit, dot, cross, rng_for)
 from .coverage import select_coverage
 
-VERSION = 'canopy-study/3.2'
+VERSION = 'canopy-study/3.3'
 UP = (0.0, 0.0, 1.0)
 X = (1.0, 0.0, 0.0)
 Y = (0.0, 1.0, 0.0)
@@ -198,7 +198,7 @@ def _surface_selection(plant: Plant, lod: int):
     groups={}
     for card in plant.cards:groups.setdefault(card.lobe_id,[]).append(card)
     tree=plant.species=='desert_museum'
-    stride=(2,4,8)[lod] if tree else (1,2,4)[lod]
+    stride=(2,3,6)[lod] if tree else (1,2,3)[lod]
     result=[]
     for values in groups.values():
         result.extend(select_coverage(values,stride))
@@ -211,12 +211,12 @@ def foliage_mesh(plant: Plant, lod: int) -> Surface:
     out=Surface([],[],[],[])
     lookup={l.id:l for l in plant.lobes}
     tree=plant.species=='desert_museum'
-    scale=(1.15,1.42,1.74)[lod] if tree else (1.30,1.50,1.80)[lod]
+    scale=(1.15,1.28,1.48)[lod] if tree else (1.30,1.60,1.72)[lod]
     for card in _surface_selection(plant,lod):
         lobe=lookup[card.lobe_id]
         spin=rng_for(plant.seed,'brush:'+card.id).uniform(-math.pi,math.pi)
         _append_surface(out,_brush_polygon(card,lobe,plant.species,scale,spin,False))
-        if not tree and lod<2 and int(card.rank*1000003.0)%3==0:
+        if not tree and lod<2 and ((lod == 0 and int(card.rank*1000003.0)%3 == 0) or (lod == 1 and int(card.rank*1000003.0)%2 == 0)):
             _append_surface(out,_brush_polygon(card,lobe,plant.species,scale*.92,spin+1.17,True))
     return out
 
