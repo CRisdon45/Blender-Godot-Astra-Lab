@@ -8,6 +8,7 @@ var painted_foliage: Array[ShaderMaterial] = []
 var probe: ReflectionProbe
 var pool_lights: Array[OmniLight3D] = []
 var night_mode := false
+var water_recipe := "clear"
 
 func _ready() -> void:
 	super._ready()
@@ -47,6 +48,7 @@ func _ready() -> void:
 		lamp.light_energy = 0.0
 		add_child(lamp)
 		pool_lights.append(lamp)
+	set_recipe("clear")
 	set_illustration(true)
 	set_water_phase(2.0)
 	print("HERO_WATER_READY ",JSON.stringify(water.snapshot()))
@@ -57,6 +59,9 @@ func configure_receivers(node: Node) -> void:
 		var label := String(mesh.name).replace("_"," ")
 		if label.begins_with("Waterfall silver highlights"):
 			mesh.visible=false # Remove the old bright rods/splash geometry, not the sheets.
+			for entry in water._spill_nodes:
+				if entry.node == mesh:
+					entry.visible = false # Preserve removal even when launched with --water-off.
 		for surface in range(mesh.mesh.get_surface_count()):
 			var active := mesh.get_active_material(surface) as ShaderMaterial
 			if active != null and active.shader == FOLIAGE_SHADER:
@@ -91,6 +96,27 @@ func set_illustration(enabled: bool) -> void:
 	var post := _overlay.get_child(0).material as ShaderMaterial
 	post.set_shader_parameter("grain_strength",0.004)
 	post.set_shader_parameter("line_strength",0.16)
+
+func set_recipe(recipe: String) -> void:
+	if recipe not in ["clear","calm","previous"]:
+		push_error("UNKNOWN_WATER_RECIPE: "+recipe)
+		return
+	water_recipe=recipe
+	water._pool_material.set_shader_parameter("debug_view",0)
+	var previous: bool=recipe=="previous"
+	var surface: float=1.0 if previous else (0.18 if recipe=="calm" else 0.35)
+	water._pool_material.set_shader_parameter("surface_strength",surface)
+	water._pool_material.set_shader_parameter("absorption_per_metre",Vector3(0.85,0.20,0.095) if previous else Vector3(0.62,0.125,0.055))
+	water._pool_material.set_shader_parameter("in_scatter",Color(0.035,0.43,0.52,1.0) if previous else Color(0.025,0.39,0.55,1.0))
+	for material in basin_materials:
+		material.set_shader_parameter("plaster",Color(0.54,0.79,0.76,1.0) if previous else Color(0.62,0.78,0.80,1.0))
+		material.set_shader_parameter("caustic_strength",2.3 if previous else 1.8)
+
+func study_snapshot() -> Dictionary:
+	return {"recipe":water_recipe,"night":night_mode,
+		"surface_strength":water._pool_material.get_shader_parameter("surface_strength"),
+		"absorption_per_metre":str(water._pool_material.get_shader_parameter("absorption_per_metre")),
+		"debug_view":water._pool_material.get_shader_parameter("debug_view")}
 
 func set_night(enabled: bool) -> void:
 	night_mode=enabled

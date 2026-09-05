@@ -1,5 +1,5 @@
 name: Hero pool water visual study
-# Revision 2: real ReflectionProbe class, fail-fast preflight and explicit night control.
+# Revision 3: calmer optics, clearer water, unobstructed low angle and component diagnostics.
 
 on:
   workflow_dispatch:
@@ -87,7 +87,7 @@ jobs:
                   try: review.validate_png(out/'images'/item['file'])
                   except Exception as exc: errors.append({'stage':'png','error':str(exc)})
               if data.get('errors'): errors.append({'stage':'contracts','error':data['errors']})
-          if count!=20: errors.append({'stage':'capture_count','error':count})
+          if count!=28: errors.append({'stage':'capture_count','error':count})
           report={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
                   'images':count,'png_files_written':len(list((out/'images').glob('*.png'))),'errors':errors,'visual_acceptance':'pending_user_review',
                   'performance_certified':False,'status':'diagnostic' if errors else 'captured'}

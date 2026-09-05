@@ -79,4 +79,21 @@ class HeroWaterContracts(unittest.TestCase):
         self.assertIn('scene.has_method("set_illustration")',capture)
         self.assertIn('get_shader_parameter("impact_count")',capture)
 
+    def test_art_controls_and_component_views(self):
+        shader=(ROOT/'godot/shaders/hero_water.gdshader').read_text()
+        self.assertIn('uniform float surface_strength = 0.35',shader)
+        for mode in (2,3,4):
+            self.assertIn('debug_view=='+str(mode),shader)
+        capture=(ROOT/'godot/tests/capture_hero_water.gd').read_text()
+        self.assertIn('diagnostic-receiver-no-caustics',capture)
+        self.assertIn('"expected_images":28',capture)
+        self.assertIn('scene.study_snapshot()',capture)
+
+    def test_recipe_restoration_is_explicit(self):
+        text=(ROOT/'godot/tests/capture_hero_water.gd').read_text()
+        self.assertIn('scene.set_recipe("clear")',text)
+        hero=(ROOT/'godot/courtyard_hero_water.gd').read_text()
+        self.assertIn('entry.visible = false',hero)
+        self.assertIn('recipe not in ["clear","calm","previous"]',hero)
+
 if __name__=='__main__': unittest.main()

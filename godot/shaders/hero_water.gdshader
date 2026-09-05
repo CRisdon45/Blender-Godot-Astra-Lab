@@ -4,15 +4,16 @@ render_mode cull_back, depth_draw_never;
 uniform sampler2D scene_color : hint_screen_texture, repeat_disable, filter_linear_mipmap;
 uniform sampler2D scene_depth : hint_depth_texture, repeat_disable, filter_nearest;
 // Optical coefficients, not color swatches: do NOT apply sRGB decoding.
-uniform vec3 absorption_per_metre = vec3(0.85, 0.20, 0.095);
-uniform vec4 in_scatter : source_color = vec4(0.035,0.43,0.52,1.0);
+uniform vec3 absorption_per_metre = vec3(0.62, 0.125, 0.055);
+uniform vec4 in_scatter : source_color = vec4(0.025,0.39,0.55,1.0);
+uniform float surface_strength = 0.35; // Art-directed shading strength, independent of receiver focus.
 uniform float scatter_illumination = 1.0;
 uniform float water_time = 0.0;
 uniform float water_level = 0.3225;
 uniform float flow_strength = 1.0;
 uniform int impact_count = 0;
 uniform vec4 impact_segments[4];
-uniform int debug_view = 0; // 1 = measured receiver depth (diagnostic only).
+uniform int debug_view = 0; // 1 depth, 2 transmitted, 3 reflected, 4 raw opaque receiver.
 varying vec3 world_position;
 varying vec3 face_normal;
 
@@ -34,7 +35,7 @@ void fragment() {
 	// The legacy asset is a thin closed box. Render only its top, not two
 	// refracting layers and four artificial blue side walls.
 	if (face_normal.y < 0.8) { discard; }
-	vec2 slope = pool_slope(world_position.xz,water_time);
+	vec2 slope = pool_slope(world_position.xz,water_time)*surface_strength;
 	float foam = 0.0;
 	for (int i=0;i<4;i++) {
 		if (i>=impact_count) { break; }
@@ -81,5 +82,12 @@ void fragment() {
 		ALBEDO=vec3(0.0);
 		EMISSION=mix(vec3(0.95,0.74,0.26),vec3(0.06,0.20,0.65),clamp((water_level-receiver_world.y)/1.0,0.0,1.0));
 		SPECULAR=0.0;
+	} else if (debug_view==2) {
+		ALBEDO=vec3(0.0); EMISSION=transmitted; SPECULAR=0.0; ROUGHNESS=1.0;
+	} else if (debug_view==3) {
+		ALBEDO=vec3(0.0); EMISSION=vec3(0.0);
+	} else if (debug_view==4) {
+		ALBEDO=vec3(0.0); EMISSION=textureLod(scene_color,SCREEN_UV,0.0).rgb;
+		SPECULAR=0.0; ROUGHNESS=1.0;
 	}
 }

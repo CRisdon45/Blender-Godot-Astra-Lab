@@ -30,7 +30,8 @@ func capture(scene, label: String, position: Vector3, aim: Vector3, seconds: flo
 		return
 	images.append({"file":label+".png","camera":[position.x,position.y,position.z],
 		"aim":[aim.x,aim.y,aim.z],"width":image.get_width(),"height":image.get_height(),
-		"water":scene.water.snapshot()})
+		"water":scene.water.snapshot(),
+		"study":scene.study_snapshot() if scene.has_method("study_snapshot") else {}})
 	print("HERO_FRAME ",label)
 
 func check(condition: bool,message: String) -> void:
@@ -49,8 +50,9 @@ func run() -> void:
 	var poses: Array = [
 		["courtyard",Vector3(4,3.3,10),Vector3(0,1.8,-3)],
 		["pool",Vector3(2.4,2.7,4.8),Vector3(0,0.65,-2.7)],
-		["grazing",Vector3(3.6,1.05,2.2),Vector3(-1.5,0.4,-4.2)],
+		["grazing",Vector3(-3.3,1.1,2.2),Vector3(0,0.45,-4.3)],
 		["shelf",Vector3(4.6,4.8,3.9),Vector3(0,0.05,-0.6)],
+		["sheer",Vector3(-3.8,1.8,-1.2),Vector3(-2.65,0.75,-4.7)],
 	]
 	for version in ["before","after"]:
 		var path: String="res://courtyard_anime.tscn" if version=="before" else "res://courtyard_hero_water.tscn"
@@ -87,6 +89,19 @@ func run() -> void:
 			scene.water._pool_material.set_shader_parameter("debug_view",1)
 			await capture(scene,"diagnostic-depth",poses[3][1],poses[3][2])
 			scene.water._pool_material.set_shader_parameter("debug_view",0)
+			for recipe in ["previous","calm"]:
+				scene.set_recipe(recipe)
+				await capture(scene,"variant-"+recipe,poses[1][1],poses[1][2])
+			scene.set_recipe("clear")
+			for diagnostic in [[2,"transmission"],[3,"reflection"],[4,"receiver"]]:
+				scene.water._pool_material.set_shader_parameter("debug_view",diagnostic[0])
+				await capture(scene,"diagnostic-"+diagnostic[1],poses[1][1],poses[1][2])
+			for material in scene.basin_materials:
+				material.set_shader_parameter("caustic_daylight",0.0)
+			await capture(scene,"diagnostic-receiver-no-caustics",poses[1][1],poses[1][2])
+			scene.water._pool_material.set_shader_parameter("debug_view",0)
+			for material in scene.basin_materials:
+				material.set_shader_parameter("caustic_daylight",1.0)
 			scene.set_night(true)
 			for material in scene.painted_foliage:
 				check(is_equal_approx(float(material.get_shader_parameter("paint_illumination")),0.1),"Foliage retained daylight at night")
@@ -106,8 +121,10 @@ func run() -> void:
 				check(is_equal_approx(float(material.get_shader_parameter("water_time")),scene.water.water_time),"Receiver phase out of sync")
 		scene.queue_free()
 		await frames(4)
+	await frames(8)
+	await RenderingServer.frame_post_draw
 	var report: Dictionary={"images":images,"errors":errors,"engine":Engine.get_version_info(),
-		"renderer":"Forward+ / Linux software Vulkan","expected_images":20,
+		"renderer":"Forward+ / Linux software Vulkan","expected_images":28,
 		"visual_acceptance":"pending_user_review","performance_certified":false}
 	var file := FileAccess.open(output.path_join("hero-water-review.json"),FileAccess.WRITE)
 	if file==null:
@@ -117,4 +134,4 @@ func run() -> void:
 	file.store_string(JSON.stringify(report,"\t"))
 	file.close()
 	print("HERO_REVIEW_DONE ",JSON.stringify({"images":images.size(),"errors":errors}))
-	quit(0 if errors.is_empty() and images.size()==20 else 1)
+	quit(0 if errors.is_empty() and images.size()==28 else 1)

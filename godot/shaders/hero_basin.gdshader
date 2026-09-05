@@ -1,10 +1,11 @@
 shader_type spatial;
 render_mode cull_disabled;
 #include "res://shaders/hero_water_common.gdshaderinc"
+uniform float caustic_strength = 1.8;
 uniform float caustic_daylight = 1.0;
 uniform float water_time = 0.0;
 uniform float water_level = 0.3225;
-uniform vec4 plaster : source_color = vec4(0.54,0.79,0.76,1.0);
+uniform vec4 plaster : source_color = vec4(0.62,0.78,0.80,1.0);
 varying vec3 world_position;
 varying float focus;
 void vertex() { world_position=(MODEL_MATRIX*vec4(VERTEX,1.0)).xyz; }
@@ -24,5 +25,5 @@ void fragment() {
 void light() {
 	float diffuse=max(dot(NORMAL,LIGHT),0.0);
 	// Receiver light, not luminous white paint: shadows and lights control it.
-	DIFFUSE_LIGHT += ALBEDO*LIGHT_COLOR*ATTENUATION*diffuse*(1.0+focus*2.3)/PI;
+	DIFFUSE_LIGHT += ALBEDO*LIGHT_COLOR*ATTENUATION*diffuse*(1.0+focus*caustic_strength)/PI;
 }
