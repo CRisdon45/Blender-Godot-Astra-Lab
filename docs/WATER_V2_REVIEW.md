@@ -57,3 +57,22 @@ The runner records every import/capture error and shutdown warning as diagnostic
 No automatic baseline replacement, main merge, final art or Android approval.
 
 Initial status: implemented; runtime/art assessment pending the bounded Linux run.
+
+
+## First actual run and correction
+Run 33972481550 at `a9ff728` produced 22 full-scene images plus the real reflection
+buffer, and all script contracts passed. Independent pixel inspection found the
+planar/probe comparison was **identical inside the water**. The old reflection
+probe was overriding the new RADIANCE source; the raw reflection image alone was
+not evidence that the water used it. Godot issue 80665 describes the same override
+ordering limitation: https://github.com/godotengine/godot/issues/80665 .
+
+The refinement sets the probe's reflection mask to zero in planar mode and restores
+its water layer only in the explicit fallback mode. Actual water-region image
+differences are now a required capture assertion, not an informal check. The
+receiver pattern is smaller, dimmer and broken into uneven arcs after the first
+frames exposed overly bright large cells on the back pool wall.
+
+The first run also proved that using an Xvfb display during import did NOT resolve
+the existing popup-parenting errors. It still reported seven leaked texture RIDs
+at capture shutdown. These are kept as workflow failures. No cleanliness claim.

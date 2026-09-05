@@ -1,4 +1,29 @@
 extends "res://tests/capture_hero_water.gd"
+var reflection_pixels: Dictionary={}
+
+func compare_reflection_pixels() -> void:
+    var planar:=Image.load_from_file(output.path_join("after-pool.png"))
+    var fallback:=Image.load_from_file(output.path_join("diagnostic-probe-fallback.png"))
+    if planar==null or fallback==null or planar.get_size()!=fallback.get_size():
+        check(false,"Reflection pixel comparison missing same-size real images")
+        return
+    var total: float=0.0
+    var changed: int=0
+    var count: int=0
+    # Interior water only, away from flames, foliage and the chair silhouettes.
+    for y in range(15):
+        for x in range(40):
+            var px: int=int(planar.get_width()*(0.18+float(x)*0.22/40.0))
+            var py: int=int(planar.get_height()*(0.55+float(y)*0.09/15.0))
+            var a: Color=planar.get_pixel(px,py)
+            var b: Color=fallback.get_pixel(px,py)
+            var delta: float=(absf(a.r-b.r)+absf(a.g-b.g)+absf(a.b-b.b))/3.0
+            total+=delta
+            changed+=1 if delta>1.0/255.0 else 0
+            count+=1
+    reflection_pixels={"samples":count,"mean_absolute_rgb_delta":total/count,"changed_fraction":float(changed)/count}
+    check(total/count>0.5/255.0 and float(changed)/count>0.05,"Planar reflection had no measurable effect in actual water pixels")
+
 ## Compare preserved previous water to the new opt-in study with identical poses and phase.
 func run() -> void:
     for arg in OS.get_cmdline_user_args():
@@ -40,6 +65,7 @@ func run() -> void:
             check(scene.reflection_camera.cull_mask==4,"Reflection layer isolation failed")
             check((scene.water._pool.layers&4)==0,"Recursive water reflection")
             check(int(scene.water._pool_material.get_shader_parameter("impact_count"))==2,"Shader swap lost contacts")
+            check(scene.probe.reflection_mask==0,"Probe overrides planar radiance")
             check(scene.reflection_objects>10,"Reflected scene incomplete")
             check(is_equal_approx(scene.reflection_camera.global_position.y+scene.camera.global_position.y,2.0*scene.water.snapshot().water_level),"Camera not mirrored about measured water")
             check(scene.reflection_view.size.x<=768,"Unbounded reflection resolution")
@@ -56,9 +82,12 @@ func run() -> void:
             for material in scene.basin_materials:
                 material.set_shader_parameter("caustic_daylight",1.0)
             scene.water._pool_material.set_shader_parameter("debug_view",0)
-            scene.water._pool_material.set_shader_parameter("planar_enabled",false)
+            scene.set_planar_enabled(false)
             await capture(scene,"diagnostic-probe-fallback",poses[0][1],poses[0][2])
-            scene.water._pool_material.set_shader_parameter("planar_enabled",true)
+            check(scene.probe.reflection_mask==2,"Fallback probe not restored")
+            compare_reflection_pixels()
+            scene.set_planar_enabled(true)
+            check(scene.probe.reflection_mask==0,"Planar mode did not re-isolate probe")
             scene.set_night(true)
             await frames(8)
             await capture(scene,"night-pool",poses[0][1],poses[0][2])
@@ -78,7 +107,7 @@ func run() -> void:
         await frames(8)
     await frames(8)
     var report: Dictionary={"images":images,"errors":errors,"engine":Engine.get_version_info(),
-        "expected_images":22,"extra_image":"planar-source.png","renderer":"Forward+ / software Vulkan",
+        "expected_images":22,"reflection_pixel_comparison":reflection_pixels,"extra_image":"planar-source.png","renderer":"Forward+ / software Vulkan",
         "visual_acceptance":"pending_user_review","performance_certified":false}
     var file:=FileAccess.open(output.path_join("water-v2-review.json"),FileAccess.WRITE)
     if file==null:

@@ -45,10 +45,10 @@ func _ready() -> void:
             reflection_environment.tonemap_mode=Environment.TONE_MAPPER_LINEAR
             reflection_camera.environment=reflection_environment
     water._pool_material.set_shader_parameter("planar_color",reflection_view.get_texture())
-    water._pool_material.set_shader_parameter("planar_enabled",true)
+    set_planar_enabled(true)
     set_recipe("clear")
     for material in basin_materials:
-        material.set_shader_parameter("caustic_strength",1.65)
+        material.set_shader_parameter("caustic_strength",0.72)
     sync_reflection()
     set_water_phase(2.0)
     print("WATER_V2_READY ",reflection_objects)
@@ -124,6 +124,12 @@ func sync_reflection() -> void:
         material.set_shader_parameter("foliage_right",camera.global_basis.x.normalized())
         material.set_shader_parameter("foliage_up",camera.global_basis.y.normalized())
 
+func set_planar_enabled(enabled: bool) -> void:
+    # Actual paired frames exposed the engine's probe overriding RADIANCE.
+    # Isolate the probe when planar is selected, restore it only for fallback.
+    probe.reflection_mask=0 if enabled else 2
+    water._pool_material.set_shader_parameter("planar_enabled",enabled)
+
 func _process(delta: float) -> void:
     super._process(delta)
     sync_reflection()
@@ -142,7 +148,9 @@ func set_night(enabled: bool) -> void:
 
 func study_snapshot() -> Dictionary:
     var state: Dictionary=super.study_snapshot()
-    state["version"]="v2-planar-receiver"
+    state["version"]="v2-planar-receiver-refined"
+    state["planar_enabled"]=water._pool_material.get_shader_parameter("planar_enabled")
+    state["probe_reflection_mask"]=probe.reflection_mask
     state["reflection_objects"]=reflection_objects
     state["reflection_size"]=str(reflection_view.size) if reflection_view!=null else "unbound"
     state["reflection_mask"]=reflection_camera.cull_mask if reflection_camera!=null else 0

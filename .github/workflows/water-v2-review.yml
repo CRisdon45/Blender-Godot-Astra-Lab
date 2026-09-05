@@ -1,5 +1,5 @@
 name: Water V2 planar reflection study
-# Bounded opt-in comparison; import/shutdown errors remain failures.
+# Refined run: probe isolation and actual reflection pixel regression; diagnostics remain failures.
 
 on:
   workflow_dispatch:

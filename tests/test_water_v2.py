@@ -83,3 +83,17 @@ class WaterV2Contracts(unittest.TestCase):
                       'diagnostic-receiver-no-caustics','diagnostic-probe-fallback',
                       'planar-source.png','scene=null','expected_images":22'):
             self.assertIn(token,text)
+
+
+class WaterV2ImageGuards(unittest.TestCase):
+    def test_probe_cannot_override_planar_radiance(self):
+        text=source('godot/courtyard_water_v2.gd')
+        self.assertIn('probe.reflection_mask=0 if enabled else 2',text)
+        self.assertIn('set_planar_enabled(true)',text)
+
+    def test_capture_cannot_accept_inactive_planar_shader(self):
+        text=source('godot/tests/capture_water_v2.gd')
+        for token in ('Image.load_from_file','get_pixel(px,py)','compare_reflection_pixels()',
+                      'mean_absolute_rgb_delta','Planar reflection had no measurable effect',
+                      'probe.reflection_mask==0','probe.reflection_mask==2'):
+            self.assertIn(token,text)
