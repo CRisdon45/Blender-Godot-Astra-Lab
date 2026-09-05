@@ -1,0 +1,228 @@
+{
+  "schema": 1,
+  "source_sha256": "195141146cfb578f64c6badc3acff6acc01e417f8bc78230598617eb39e9e174",
+  "blender": "5.2.1 LTS",
+  "removed_objects": [
+    "Climbing green stems",
+    "Coral blossom clusters",
+    "Dense broadleaf tree",
+    "Dense broadleaf tree.001",
+    "Dense broadleaf tree.002",
+    "Dense broadleaf tree.003",
+    "Dense broadleaf tree.004",
+    "Dense broadleaf tree.005",
+    "Dense broadleaf tree.006",
+    "Tree branch",
+    "Tree branch.001",
+    "Tree branch.002",
+    "Tree branch.003",
+    "Tree branch.004",
+    "Tree branch.005",
+    "Tree branch.006",
+    "Tree branch.007",
+    "Tree branch.008",
+    "Tree branch.009",
+    "Tree branch.010",
+    "Tree branch.011",
+    "Tree branch.012",
+    "Tree branch.013",
+    "Tree branch.014",
+    "Tree branch.015",
+    "Tree branch.016",
+    "Tree branch.017",
+    "Tree branch.018",
+    "Tree branch.019",
+    "Tree branch.020",
+    "Tree branch.021",
+    "Tree branch.022",
+    "Tree branch.023",
+    "Tree branch.024",
+    "Tree branch.025",
+    "Tree branch.026",
+    "Tree branch.027",
+    "Tree branch.028",
+    "Tree branch.029",
+    "Tree branch.030",
+    "Tree branch.031",
+    "Tree branch.032",
+    "Tree branch.033",
+    "Tree branch.034",
+    "Tree branch.035",
+    "Tree branch.036",
+    "Tree branch.037",
+    "Tree branch.038",
+    "Tree branch.039",
+    "Tree branch.040",
+    "Tree branch.041",
+    "Tree branch.042",
+    "Tree branch.043",
+    "Tree branch.044",
+    "Tree branch.045",
+    "Tree branch.046",
+    "Tree branch.047",
+    "Tree branch.048",
+    "Tree branch.049",
+    "Tree branch.050",
+    "Tree branch.051",
+    "Tree branch.052",
+    "Tree branch.053",
+    "Tree branch.054",
+    "Tree branch.055",
+    "Tree branch.056",
+    "Tree branch.057",
+    "Tree branch.058",
+    "Tree branch.059",
+    "Tree branch.060",
+    "Tree branch.061",
+    "Tree branch.062",
+    "Tree branch.063",
+    "Tree branch.064",
+    "Tree branch.065",
+    "Tree branch.066",
+    "Tree branch.067",
+    "Tree branch.068",
+    "Tree branch.069",
+    "Tree trunk",
+    "Tree trunk.001",
+    "Tree trunk.002",
+    "Tree trunk.003",
+    "Tree trunk.004",
+    "Tree trunk.005",
+    "Tree trunk.006"
+  ],
+  "plants": [
+    {
+      "name": "Anime tree 0 crown",
+      "cards": 850,
+      "origin": [
+        -10.0,
+        13.220991134643555,
+        0.0
+      ],
+      "scale": 1.1999999775606043
+    },
+    {
+      "name": "Anime tree 1 crown",
+      "cards": 850,
+      "origin": [
+        -7.0,
+        12.262777328491211,
+        0.0
+      ],
+      "scale": 1.15000002524432
+    },
+    {
+      "name": "Anime tree 2 crown",
+      "cards": 850,
+      "origin": [
+        -3.0,
+        13.307587623596191,
+        0.0
+      ],
+      "scale": 1.0499999803655289
+    },
+    {
+      "name": "Anime tree 3 crown",
+      "cards": 850,
+      "origin": [
+        0.6000000238418579,
+        13.547979354858398,
+        0.0
+      ],
+      "scale": 0.950000005609849
+    },
+    {
+      "name": "Anime tree 4 crown",
+      "cards": 850,
+      "origin": [
+        4.0,
+        12.418661117553711,
+        0.0
+      ],
+      "scale": 1.1000000028049244
+    },
+    {
+      "name": "Anime tree 5 crown",
+      "cards": 850,
+      "origin": [
+        8.0,
+        13.854701042175293,
+        0.0
+      ],
+      "scale": 1.1999999775606043
+    },
+    {
+      "name": "Anime tree 6 crown",
+      "cards": 850,
+      "origin": [
+        11.0,
+        13.044373512268066,
+        0.0
+      ],
+      "scale": 1.25
+    },
+    {
+      "name": "Anime shrub 0",
+      "cards": 240,
+      "origin": [
+        -7.699999809265137,
+        9.579999923706055,
+        0.27000001072883606
+      ],
+      "scale": 1.48
+    },
+    {
+      "name": "Anime shrub 1",
+      "cards": 240,
+      "origin": [
+        -4.800000190734863,
+        9.539999961853027,
+        0.27000001072883606
+      ],
+      "scale": 1.65
+    },
+    {
+      "name": "Anime shrub 2",
+      "cards": 240,
+      "origin": [
+        -1.399999976158142,
+        9.579999923706055,
+        0.27000001072883606
+      ],
+      "scale": 1.47
+    },
+    {
+      "name": "Anime shrub 3",
+      "cards": 240,
+      "origin": [
+        1.7999999523162842,
+        9.5600004196167,
+        0.27000001072883606
+      ],
+      "scale": 1.6
+    },
+    {
+      "name": "Anime shrub 4",
+      "cards": 240,
+      "origin": [
+        7.599999904632568,
+        9.5600004196167,
+        0.27000001072883606
+      ],
+      "scale": 1.44
+    }
+  ],
+  "tree_count": 7,
+  "shrub_count": 5,
+  "total_brush_cards": 7150,
+  "whole_plant_billboarding": false,
+  "camera_facing_element": "individual small brush",
+  "wind": false,
+  "lod": false,
+  "species_certified": false,
+  "visual_acceptance": "pending",
+  "limitations": [
+    "generic broadleaf and flowering mound studies, not species assets",
+    "art-directed foliage lighting; not a botanical or scattering simulation"
+  ]
+}

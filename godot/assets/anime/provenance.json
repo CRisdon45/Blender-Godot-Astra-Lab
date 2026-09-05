@@ -1,0 +1,20 @@
+{
+  "artifact_id": 9964198692,
+  "artifact_sha256": "a461fc4ec995fb8af346686526b865ccdde2714f291336af5594c77ecc515b2a",
+  "rendered_source_commit": "297af30a2d611dbf4437fcafba34770a5be3e731",
+  "render_report": {
+    "source_commit": "297af30a2d611dbf4437fcafba34770a5be3e731",
+    "images": 20,
+    "errors": [
+      {
+        "stage": "import",
+        "error": "Godot stage failed (exit 0); see /home/runner/work/Blender-Godot-Astra-Lab/Blender-Godot-Astra-Lab/foliage-output/import.log"
+      }
+    ],
+    "visual_acceptance": "not_approved",
+    "status": "diagnostic_captures",
+    "device_performance_certified": false
+  },
+  "artistic_acceptance": false,
+  "main_modified": false
+}
