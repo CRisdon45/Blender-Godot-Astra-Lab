@@ -171,17 +171,30 @@ def crown(name, origin, scale, lobes, count, brush, seed):
             cards += 1
     obj = mesh(name, vertices, faces, leaf)
     data = obj.data
-    uvs = data.uv_layers.new(name='UVMap')
-    sizes = data.uv_layers.new(name='BrushSize')
-    cols = data.color_attributes.new(name='BrushData', type='FLOAT_COLOR', domain='CORNER')
-    for loop in data.loops:
-        i=loop.vertex_index
-        uvs.data[loop.index].uv=uv[i]
-        sizes.data[loop.index].uv=uv2[i]
-        cols.data[loop.index].color=colors[i]
+    # Allocate every custom-data layer before obtaining RNA layer handles.
+    # Adding a layer can invalidate handles returned by earlier .new() calls.
+    data.uv_layers.new(name='UVMap')
+    data.uv_layers.new(name='BrushSize')
+    data.color_attributes.new(name='BrushData', type='FLOAT_COLOR', domain='CORNER')
     for poly in data.polygons: poly.use_smooth=True
     if hasattr(data, 'use_auto_smooth'): data.use_auto_smooth=True
     data.normals_split_custom_set_from_vertices(normals)
+    data.uv_layers.active_index = 0
+    data.uv_layers['UVMap'].active_render = True
+    for loop in data.loops:
+        i=loop.vertex_index
+        data.uv_layers['UVMap'].data[loop.index].uv=uv[i]
+        data.uv_layers['BrushSize'].data[loop.index].uv=uv2[i]
+        data.color_attributes['BrushData'].data[loop.index].color=colors[i]
+    # Read back by name, not through cached handles, before allowing export.
+    for loop in data.loops:
+        i=loop.vertex_index
+        actual_uv=data.uv_layers['UVMap'].data[loop.index].uv
+        actual_size=data.uv_layers['BrushSize'].data[loop.index].uv
+        actual_color=data.color_attributes['BrushData'].data[loop.index].color
+        assert max(abs(a-b) for a,b in zip(actual_uv,uv[i])) < 1e-5
+        assert max(abs(a-b) for a,b in zip(actual_size,uv2[i])) < 1e-5
+        assert max(abs(a-b) for a,b in zip(actual_color,colors[i])) < 1e-5
     stats.append({'name':name,'cards':cards,'origin':list(origin),'scale':scale})
 
 
