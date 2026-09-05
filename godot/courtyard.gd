@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://navigation.gd"
 
 const ARCH=preload("res://shaders/architectural.gdshader")
 const WATER=preload("res://shaders/water.gdshader")
@@ -6,13 +6,6 @@ const SPILL=preload("res://shaders/spillway.gdshader")
 const FIRE=preload("res://shaders/flame.gdshader")
 const GRAIN=preload("res://assets/stone_grain.png")
 const WOOD=preload("res://assets/wood_grain.png")
-var camera: Camera3D
-var ink: ColorRect
-var elapsed := 0.0
-var capturing := false
-var target := Vector3(0,1.8,-3)
-var origin := Vector3(4,3.3,10)
-var dragging := false
 var material_count := 0
 var mesh_count := 0
 
@@ -52,7 +45,8 @@ func _ready() -> void:
 	var fill=DirectionalLight3D.new(); add_child(fill)
 	fill.rotation_degrees=Vector3(-35,145,0); fill.light_color=Color("dfeefe"); fill.light_energy=0.12
 	camera=Camera3D.new(); camera.name="Reference camera"; add_child(camera)
-	camera.fov=55; camera.near=0.08; camera.far=150; reset_camera(); camera.current=true
+	camera.fov=55; camera.near=0.08; camera.far=150
+	camera.position=Vector3(4,3.3,10); camera.look_at(target); camera.current=true
 	var contour=MeshInstance3D.new(); contour.name="Fine architectural contours"
 	var quad=QuadMesh.new(); quad.size=Vector2(2,2); contour.mesh=quad
 	var contour_mat=ShaderMaterial.new(); contour_mat.shader=preload("res://shaders/contours.gdshader")
@@ -60,13 +54,17 @@ func _ready() -> void:
 	contour.cast_shadow=GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	camera.add_child(contour); contour.position.z=-1
 	var layer=CanvasLayer.new(); layer.name="Illustration finish"; add_child(layer)
-	ink=ColorRect.new(); ink.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ink.mouse_filter=Control.MOUSE_FILTER_IGNORE
+	var ink=ColorRect.new(); ink.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT); ink.mouse_filter=Control.MOUSE_FILTER_IGNORE
 	var post=ShaderMaterial.new(); post.shader=preload("res://shaders/illustration.gdshader"); ink.material=post; layer.add_child(ink)
 	print("SCENE_READY meshes=",mesh_count," materials=",material_count)
-	if "--save-editable" in OS.get_cmdline_user_args():save_editable_scene()
-	if "--capture" in OS.get_cmdline_user_args():
-		capturing=true
-		capture_after_frames()
+	if "--save-editable" in OS.get_cmdline_user_args():
+		var result := save_editable_scene()
+		if result != OK:
+			push_error("EDITABLE_SCENE_SAVE_FAILED: %d" % result)
+			get_tree().quit(1)
+			return
+	# Both entry points use the same navigation, capture and error handling.
+	super._ready()
 
 func apply_materials(node: Node) -> void:
 	if node is MeshInstance3D:
@@ -106,42 +104,7 @@ func apply_materials(node: Node) -> void:
 			mi.set_surface_override_material(surface,mat); material_count+=1
 	for child in node.get_children():apply_materials(child)
 
-func reset_camera() -> void:
-	camera.position=origin
-	camera.look_at(target)
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed:
-		if event.keycode==KEY_R:reset_camera()
-		if event.keycode==KEY_I:ink.visible=not ink.visible
-		if event.keycode==KEY_F12:capture_image("res://captures/manual.png")
-	if event is InputEventMouseButton:
-		if event.button_index==MOUSE_BUTTON_RIGHT:dragging=event.pressed
-		if event.button_index==MOUSE_BUTTON_WHEEL_UP:camera.position=target+(camera.position-target)*0.94
-		if event.button_index==MOUSE_BUTTON_WHEEL_DOWN:camera.position=target+(camera.position-target)*1.06
-	if event is InputEventMouseMotion and dragging:
-		var offset=camera.position-target
-		offset=offset.rotated(Vector3.UP,-event.relative.x*0.004)
-		offset=offset.rotated(camera.global_basis.x,-event.relative.y*0.004)
-		camera.position=target+offset; camera.look_at(target)
-
-func capture_after_frames() -> void:
-	for i in range(40):await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	capture_image("res://captures/godot_courtyard.png")
-	for i in range(40):await get_tree().process_frame
-	await RenderingServer.frame_post_draw
-	capture_image("res://captures/godot_animation_check.png")
-	print("RENDER_STATS objects=",RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME)," draws=",RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME))
-	print("CAPTURE_OK")
-	get_tree().quit()
-
-func capture_image(path: String) -> void:
-	var img=get_viewport().get_texture().get_image()
-	var result=img.save_png(path)
-	print("Saved ",path," result=",result)
-
-func save_editable_scene() -> void:
+func save_editable_scene() -> Error:
 	var root=Node3D.new(); root.name="Courtyard"
 	for child in get_children():
 		var copied=child.duplicate()
@@ -153,6 +116,7 @@ func save_editable_scene() -> void:
 	if result==OK:result=ResourceSaver.save(packed,"res://courtyard_editable.tscn")
 	print("EDITABLE_SCENE_SAVED result=",result)
 	root.free()
+	return result
 
 func assign_owner(node: Node, root: Node) -> void:
 	node.owner=root
