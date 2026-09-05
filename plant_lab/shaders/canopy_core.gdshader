@@ -16,10 +16,10 @@ void fragment() {
     vec3 n = normalize(crown_normal);
     float value = dot(n, normalize(sun_direction)) * 0.5 + 0.5;
     float transition = 1.0 - smoothstep(0.10, 0.30, abs(value - 0.53));
-    value += (marks.r - 0.5) * 0.16 + marks.g * transition * 0.035;
+    value += (marks.r - 0.5) * 0.38 + (marks.g - 0.5) * (0.10 + transition * 0.16);
     vec3 paint = mix(shadow_color.rgb, middle_color.rgb, smoothstep(0.30, 0.54, value));
     paint = mix(paint, light_color.rgb, smoothstep(0.69, 0.87, value));
-    paint *= 1.0 + (marks.r - 0.5) * 0.055;
+    paint *= 1.0 + (marks.r - 0.5) * 0.19 + (marks.g - 0.5) * 0.28;
     NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
     ALBEDO = paint;
     EMISSION = paint * 0.86;

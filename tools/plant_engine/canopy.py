@@ -1,4 +1,4 @@
-"""Canopy-study/1: original, offline art direction over the existing species grammar.
+"""Original offline canopy art direction over the existing species grammar.
 
 Opaque interior masses plus sparse edge sprays, inspired by documented Airborn /
 Rogue Spirit workflows. No imported tutorial assets or code. Normal transfer is
@@ -12,7 +12,7 @@ from species_lab_core import (Plant, Branch, Lobe, Card, compile_plant, bezier, 
                               sub, mul, mix, unit, dot, cross, rng_for, RECIPES)
 from .coverage import select_coverage
 
-VERSION = 'canopy-study/1'
+VERSION = 'canopy-study/1.1'
 
 
 def compose(species: str, seed: int, maturity: float) -> Plant:
@@ -68,7 +68,7 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
         branches[old.id] = old
     plant.lobes=lobes
     plant.cards=[]; plant.flowers=[]
-    count=48 if tree else 48
+    count=48
     for lobe in lobes:
         phase=rng_for(seed,lobe.id).random()*math.tau
         for index in range(count):
@@ -82,7 +82,7 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
                 continue
             local=unit(tuple(direction[k]/lobe.radii[k] for k in range(3)))
             global_n=unit(sub(center,(0,0,h*(.64 if tree else .44))))
-            n=unit(add(mul(local,.55 if tree else .24),mul(global_n,.45 if tree else .76)))
+            n=unit(add(mul(local,.55 if tree else .48),mul(global_n,.45 if tree else .52)))
             size=(.14+.16*maturity) if tree else (.085+.065*maturity)
             size*=rnd.uniform(.85,1.18)
             plant.cards.append(Card(f'{lobe.id}/spray:{index}',lobe.id,center,n,
@@ -115,7 +115,7 @@ def _surface(center, radii, rings, sides, phase=0.0, shrink=1.0):
     verts=[]; norms=[]; uvs=[]
     def point(theta,phi):
         d=(math.sin(phi)*math.cos(theta),math.sin(phi)*math.sin(theta),math.cos(phi))
-        wave=1+.025*math.sin(3*theta+phase)*math.sin(phi)**2+.018*math.cos(5*theta-phi+phase)*math.sin(phi)
+        wave=1+.070*math.sin(3*theta+phase)*math.sin(phi)**2+.035*math.cos(5*theta-phi+phase)*math.sin(phi)
         p=add(center,tuple(d[k]*radii[k]*wave*shrink for k in range(3)))
         n=unit(tuple(d[k]/radii[k] for k in range(3)))
         return p,n
@@ -146,13 +146,13 @@ def core_mesh(plant: Plant, lod: int) -> Surface:
         sides=(8,6,5)[lod] if tree else (10,8,6)[lod]
         part=_surface(lobe.center,lobe.radii,rings,sides,
                       rng_for(plant.seed,lobe.id).random()*math.tau,
-                      .78 if tree else .965)
+                      .94 if tree else .965)
         start=len(out.vertices)
         out.vertices.extend(part.vertices)
         out.triangles.extend(tuple(i+start for i in face) for face in part.triangles)
         for p,n in zip(part.vertices,part.normals):
             overall=unit(sub(p,(0,0,plant.height*(.64 if tree else .44))))
-            out.normals.append(unit(add(mul(n,.55 if tree else .24),mul(overall,.45 if tree else .76))))
+            out.normals.append(unit(add(mul(n,.55 if tree else .48),mul(overall,.45 if tree else .52))))
         out.uv.extend(part.uv)
     return out
 

@@ -56,15 +56,26 @@ def textures(species):
     save_image(species+'_flower_atlas',flower)
     y,x=np.mgrid[0:256,0:512]/np.array([255,511])[:,None,None]
     rng=np.random.default_rng(610 if species=='desert_museum' else 620)
-    wash=np.full_like(x,.5); marks=np.zeros_like(x)
-    for index in range(55):
-        cx,cy=rng.random(2);rx=rng.uniform(.025,.080);ry=rng.uniform(.020,.09)
+    # Surface-painted patches and clustered marks, not alpha cards or normal maps.
+    wash=np.full_like(x,.5); marks=np.full_like(x,.5)
+    for index in range(48):
+        cx,cy=rng.random(2);rx=rng.uniform(.035,.10);ry=rng.uniform(.04,.13)
         d=((x-cx)/rx)**2+((y-cy)/ry)**2
-        wash+=np.exp(-d*2)*rng.uniform(-.18,.18)
-    for index in range(160):
-        cx,cy=rng.random(2);rx=rng.uniform(.003,.009);ry=rng.uniform(.005,.016)
-        d=((x-cx)/rx)**2+((y-cy)/ry)**2
-        marks=np.maximum(marks,np.clip(1-d,0,1))
+        coverage=np.clip((1-d)*4,0,1)
+        value=rng.uniform(.15,.85)
+        wash=wash*(1-coverage)+value*coverage
+    for index in range(75):
+        cx,cy=rng.random(2);a=rng.uniform(-math.pi,math.pi)
+        value=rng.uniform(.10,.28) if index%2 else rng.uniform(.73,.92)
+        for j in range(3):
+            along=(j-1)*.012
+            px=cx+math.cos(a)*along;py=cy+math.sin(a)*along
+            dx=x-px;dy=y-py
+            u=dx*math.cos(a)+dy*math.sin(a)
+            v=-dx*math.sin(a)+dy*math.cos(a)
+            d=(u/.012)**2+(v/.017)**2
+            coverage=np.clip((1-d)*3,0,1)
+            marks=marks*(1-coverage)+value*coverage
     paint=np.stack([np.clip(wash,0,1),marks,np.full_like(x,.5),np.ones_like(x)],axis=-1)
     save_image(species+'_paint_mask',paint)
 
@@ -108,8 +119,9 @@ def cards_obj(name,cards,lod,mat):
 
 def main():
     baseline=json.loads((ROOT/'plant_lab/engine_data/catalog.json').read_text())
-    source_files=[Path(__file__),ROOT/'tools/plant_engine/canopy.py',ROOT/'tools/check_canopy_assets.py']
-    source_hash=content_hash({p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in source_files})
+    source_files=[Path(__file__),ROOT/'tools/plant_engine/canopy.py',ROOT/'tools/check_canopy_assets.py',
+                  ROOT/'tools/species_lab_core.py',ROOT/'tools/plant_engine/coverage.py',ROOT/'tools/plant_engine/recipe.py']
+    source_hash=content_hash({str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest() for p in source_files})
     for species in RECIPES:textures(species)
     shader_hash=content_hash({p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in
                             list((ROOT/'plant_lab/shaders').glob('canopy*'))+list(OUT.glob('*.png'))})
@@ -155,7 +167,7 @@ def main():
                         bpy.ops.wm.save_as_mainfile(filepath=str(AUTHOR/(key+'.blend')));authoring_count+=1
                 entries.append({'key':key,'species':species,'seed':seed,'stage':stage,'maturity':maturity,
                     'components':['wood','core','leaf','flower'],
-                    'blueprint_id':content_hash({'style':VERSION,'source':source_hash,'species':species,'seed':seed}),
+                    'blueprint_id':content_hash({'style':VERSION,'source':source_hash,'recipe':recipe.digest,'species':species,'seed':seed}),
                     'design_envelope':recipe.envelope(maturity),'topology_path':'assets/canopy/'+topology_path.name,
                     'topology_sha256':hashlib.sha256(topology_path.read_bytes()).hexdigest(),'lods':lods})
     catalog={**baseline,'schema':'plant-catalog/2','compiler_version':VERSION,'variants':entries,
