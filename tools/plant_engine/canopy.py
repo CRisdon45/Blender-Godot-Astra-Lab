@@ -1,6 +1,6 @@
 """Original offline large/medium/small foliage art direction over the species grammar.
 
-Canopy-study/2.1 keeps a deeply recessed opaque support volume, builds the visible
+Canopy-study/2.2 keeps a deeply recessed opaque support volume, builds the visible
 crown from branch-oriented scalloped foliage modules, and adds a restrained layer
 of tiny species-signature geometry at close/medium detail. Flowers remain sparse
 cutout brushes. No third-party tutorial assets/code are included. Normals and all
@@ -14,14 +14,13 @@ from species_lab_core import (Plant, Lobe, Card, compile_plant, bezier, add,
                               sub, mul, mix, unit, dot, cross, rng_for)
 from .coverage import select_coverage
 
-VERSION = 'canopy-study/2.1'
+VERSION = 'canopy-study/2.2'
 UP = (0.0, 0.0, 1.0)
 X = (1.0, 0.0, 0.0)
 Y = (0.0, 1.0, 0.0)
 
 
 def compose(species: str, seed: int, maturity: float) -> Plant:
-    """Recompose the proven connected branch graph into a species-directed crown."""
     plant = compile_plant(species, seed, maturity)
     h, w = plant.height, plant.spread
     tree = species == 'desert_museum'
@@ -51,7 +50,7 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
                           add(origin,(delta[0]*.16,delta[1]*.16,delta[2]*.49)),
                           add(origin,(delta[0]*.66,delta[1]*.70,delta[2]*.87)),end]
             old.radius = root.radius*.49
-            radii = (w*.145,w*.110,h*.090) if tree else (w*.285,w*.28,h*.33)
+            radii = (w*.158,w*.126,h*.098) if tree else (w*.285,w*.28,h*.33)
             if not tree and i==6: radii=(w*.29,w*.30,h*.33)
             lobes.append(Lobe(old.id,old.id,end,radii))
         else:
@@ -63,7 +62,7 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
                 base = bezier(parent.points,min(.99,old.attach_t+.15))
                 end = add(base,(math.cos(angle)*radial,math.sin(angle)*radial,h*rnd.uniform(.025,.11)))
                 end = (end[0],end[1],min(end[2],h*.91))
-                radii = (w*rnd.uniform(.100,.130),w*rnd.uniform(.080,.108),h*rnd.uniform(.060,.090))
+                radii = (w*rnd.uniform(.108,.140),w*rnd.uniform(.088,.118),h*rnd.uniform(.066,.096))
                 lobes.append(Lobe(old.id,old.id,end,radii))
             else:
                 end = (math.cos(angle)*w*.25,math.sin(angle)*w*.25,h*(.40+.17*j))
@@ -205,7 +204,7 @@ def _module_centers(plant: Plant, lobe: Lobe, lod: int):
         (-.10, -.30, .18, .68),
         (.27, .13, -.18, .62),
     ]
-    keep=(4,3,2)[lod] if tree else (5,3,2)[lod]
+    keep=(2,2,2)[lod] if tree else (3,3,2)[lod]
     forward,right=_frame_for_lobe(plant,lobe)
     result=[]
     for index,(a,b,c,scale) in enumerate(pattern[:keep]):
@@ -215,13 +214,13 @@ def _module_centers(plant: Plant, lobe: Lobe, lod: int):
         center=add(lobe.center,offset)
         mf,mr=_rotate_frame(forward,right,rnd.uniform(-.38,.38))
         if tree:
-            radii=(lobe.radii[0]*(.50*scale)*rnd.uniform(.92,1.08),
-                   lobe.radii[1]*(.34*scale)*rnd.uniform(.90,1.10),
-                   lobe.radii[2]*(.50*scale)*rnd.uniform(.90,1.10))
-        else:
             radii=(lobe.radii[0]*(.43*scale)*rnd.uniform(.92,1.08),
-                   lobe.radii[1]*(.43*scale)*rnd.uniform(.92,1.08),
-                   lobe.radii[2]*(.45*scale)*rnd.uniform(.92,1.08))
+                   lobe.radii[1]*(.28*scale)*rnd.uniform(.90,1.10),
+                   lobe.radii[2]*(.43*scale)*rnd.uniform(.90,1.10))
+        else:
+            radii=(lobe.radii[0]*(.45*scale)*rnd.uniform(.92,1.08),
+                   lobe.radii[1]*(.44*scale)*rnd.uniform(.92,1.08),
+                   lobe.radii[2]*(.46*scale)*rnd.uniform(.92,1.08))
         result.append((center,radii,rnd.random()*math.tau,(mf,mr,UP),index))
     return result
 
@@ -229,17 +228,19 @@ def _module_centers(plant: Plant, lobe: Lobe, lod: int):
 def _cluster_module(plant: Plant, lobe: Lobe, center, radii, phase, basis, module_index, lod):
     out=Surface([],[],[],[])
     tree=plant.species=='desert_museum'
-    sub_pattern=[(0,0,0,1.0),(.32,-.18,.17,.58),(-.27,.22,-.12,.54)]
-    sub_count=(3,2,1)[lod]
+    sub_pattern=[(0,0,0,1.0),(.32,-.18,.17,.60)]
+    sub_count=(1,1,1)[lod] if tree else (2,2,1)[lod]
     forward,right,up=basis
+    normal_center=center if tree else mix(lobe.center,center,.68)
     for sub_index,(a,b,c,scale) in enumerate(sub_pattern[:sub_count]):
         rnd=rng_for(plant.seed,f'clump:{lobe.id}:{module_index}:{sub_index}')
         offset=add(add(mul(forward,a*radii[0]),mul(right,b*radii[1])),mul(up,c*radii[2]))
         sub_center=add(center,offset)
         sub_r=(radii[0]*scale*rnd.uniform(.92,1.08),radii[1]*scale*rnd.uniform(.90,1.10),radii[2]*scale*rnd.uniform(.90,1.10))
-        part=_ellipsoid(sub_center,sub_r,2,(5 if lod<2 else 4),phase+sub_index*1.7,1.0,
-                        lobe.center,.58 if tree else .48,basis)
-        _append_surface(out,part)
+        rings=2 if lod>0 else 3
+        sides=(6 if lod==0 else (5 if lod==1 else 4))
+        _append_surface(out,_ellipsoid(sub_center,sub_r,rings,sides,phase+sub_index*1.7,1.0,
+                        normal_center,.62 if tree else .58,basis))
     return out
 
 
@@ -250,27 +251,42 @@ def _signature_detail(plant: Plant, lobe: Lobe, lod: int) -> Surface:
     tree=plant.species=='desert_museum'
     forward,right=_frame_for_lobe(plant,lobe)
     if tree:
-        sprigs=2 if lod==0 else 1
-        for s in range(sprigs):
-            rnd=rng_for(plant.seed,f'sprig:{lobe.id}:{s}')
-            sf,sr=_rotate_frame(forward,right,rnd.uniform(-.55,.55))
-            origin=add(lobe.center,add(mul(sf,lobe.radii[0]*(.34+.16*s)),
-                                       add(mul(sr,lobe.radii[1]*(-.26+.44*s)),mul(UP,lobe.radii[2]*.22))))
-            spray_length=max(.055,plant.height*.018)
-            for j in range(4):
-                t=(j-1.5)/3
-                center=add(origin,mul(sf,t*spray_length*.85))
-                leaf_axis=unit(add(sf,mul(sr,(-1 if j%2 else 1)*.55)))
-                _append_surface(out,_tetra_leaf(center,leaf_axis,sr,spray_length*.55,spray_length*.18,lobe.center))
+        sprigs=4 if lod==0 else 3
+        pairs=3 if lod==0 else 2
+        phase=rng_for(plant.seed,'sprig-phase:'+lobe.id).random()*math.tau
+        for sidx in range(sprigs):
+            rnd=rng_for(plant.seed,f'sprig:{lobe.id}:{sidx}')
+            angle=sidx*2.39996323+phase+rnd.uniform(-.16,.16)
+            radial=.64+rnd.uniform(-.08,.08)
+            sf,sr=_rotate_frame(forward,right,angle)
+            origin=add(lobe.center,add(mul(sf,lobe.radii[0]*radial),
+                                       add(mul(sr,lobe.radii[1]*rnd.uniform(-.18,.18)),
+                                           mul(UP,lobe.radii[2]*rnd.uniform(-.35,.48)))))
+            axis,_=_rotate_frame(forward,right,rnd.uniform(-.65,.65))
+            side=unit(cross(UP,axis))
+            spray_length=max(.075,plant.height*.020)
+            for pair in range(pairs):
+                t=-.32+pair*(.64/max(pairs-1,1))
+                base=add(origin,mul(axis,t*spray_length))
+                for sign in (-1,1):
+                    leaf_axis=unit(add(axis,mul(side,sign*.72)))
+                    center=add(base,mul(side,sign*spray_length*.15))
+                    _append_surface(out,_tetra_leaf(center,leaf_axis,side,
+                                                    spray_length*.48,spray_length*.15,lobe.center))
     else:
-        count=5 if lod==0 else 2
+        count=12 if lod==0 else 4
+        phase=rng_for(plant.seed,'sage-leaf-phase:'+lobe.id).random()*math.tau
         for j in range(count):
             rnd=rng_for(plant.seed,f'sage-leaf:{lobe.id}:{j}')
-            angle=math.tau*(j+.35)/count+rnd.uniform(-.25,.25)
-            sf,sr=_rotate_frame(forward,right,angle)
-            center=add(lobe.center,add(mul(sf,lobe.radii[0]*.70),mul(UP,lobe.radii[2]*rnd.uniform(-.25,.45))))
-            length=max(.035,plant.height*.032)
-            _append_surface(out,_tetra_leaf(center,unit(add(sf,mul(UP,.18))),sr,length,length*.48,lobe.center))
+            z=1-2*(j+.5)/count
+            angle=j*2.39996323+phase
+            ring=math.sqrt(max(0,1-z*z))
+            local=unit(add(add(mul(forward,ring*math.cos(angle)),mul(right,ring*math.sin(angle))),mul(UP,z)))
+            center=add(lobe.center,(local[0]*lobe.radii[0]*.78,local[1]*lobe.radii[1]*.78,local[2]*lobe.radii[2]*.78))
+            side=unit(cross(UP,local)) if abs(dot(local,UP))<.94 else right
+            length=max(.032,plant.height*.030)*rnd.uniform(.85,1.15)
+            _append_surface(out,_tetra_leaf(center,unit(add(local,mul(UP,.15))),side,
+                                                length,length*.50,lobe.center))
     return out
 
 
@@ -284,7 +300,7 @@ def core_mesh(plant: Plant, lod: int) -> Surface:
         sides=(5,4,4)[lod] if tree else (6,5,4)[lod]
         _append_surface(out,_ellipsoid(lobe.center,lobe.radii,rings,sides,
                         rng_for(plant.seed,lobe.id).random()*math.tau,
-                        .46 if tree else .60,
+                        .34 if tree else .50,
                         (0,0,plant.height*(.64 if tree else .44)),
                         .55 if tree else .42,(forward,right,UP)))
     return out
