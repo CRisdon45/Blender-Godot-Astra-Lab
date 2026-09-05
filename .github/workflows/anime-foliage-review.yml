@@ -20,7 +20,7 @@ jobs:
     env:
       GODOT_VERSION: 4.7.1
       GODOT_SHA256: c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba
-      BLENDER_VERSION: 4.5.3
+      BLENDER_VERSION: 5.2.1
       LIBGL_ALWAYS_SOFTWARE: 'true'
       LP_NUM_THREADS: '4'
     steps:
@@ -54,7 +54,7 @@ jobs:
           mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
           chmod +x godot
           ARCHIVE="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
-          BASE="https://download.blender.org/release/Blender4.5"
+          BASE="https://download.blender.org/release/Blender5.2"
           curl --fail --location --retry 2 --max-time 240 "$BASE/$ARCHIVE" -o "$ARCHIVE"
           curl --fail --location --retry 2 --max-time 60 "$BASE/blender-${BLENDER_VERSION}.sha256" -o blender.sha256
           grep " $ARCHIVE$" blender.sha256 | tee "$GITHUB_WORKSPACE/foliage-output/blender-download.sha256" | sha256sum --check --strict
@@ -73,6 +73,7 @@ jobs:
           test -s godot/assets/anime/courtyard_anime.glb
           test -s godot/assets/anime/build_manifest.json
           grep -q 'ANIME_FOLIAGE_BUILD_OK' foliage-output/blender-build.log
+          python3 tools/check_foliage_glb.py godot/assets/anime/courtyard_anime.glb > foliage-output/glb-contract.json
           sha256sum --check --strict foliage-output/preserved-source.sha256
       - name: Import and render before after plus full crown orbit
         run: |
