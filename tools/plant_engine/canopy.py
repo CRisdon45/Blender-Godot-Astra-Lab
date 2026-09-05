@@ -1,6 +1,6 @@
 """LOD0-first species-directed foliage study using opaque 3D brush meshes.
 
-Canopy-study/4 intentionally treats close-view artwork as the acceptance target.
+Canopy-study/4.1 intentionally treats close-view artwork as the acceptance target.
 The connected procedural branch graph remains authoritative. Palo verde foliage is
 placed in branch-local elongated clouds so the crown reads airy and branch-led,
 while Texas sage uses many smaller crossed opaque leaf marks distributed through
@@ -16,14 +16,13 @@ from species_lab_core import (Plant, Lobe, Card, compile_plant, bezier, add,
                               sub, mul, mix, unit, dot, cross, rng_for)
 from .coverage import select_coverage
 
-VERSION = 'canopy-study/4.0-lod0-first'
+VERSION = 'canopy-study/4.1-lod0-density'
 UP = (0.0, 0.0, 1.0)
 X = (1.0, 0.0, 0.0)
 Y = (0.0, 1.0, 0.0)
 
 
 def _branch_frame(branch):
-    """Stable right-handed frame following a branch near its foliage end."""
     tangent = unit(sub(branch.points[-1], branch.points[-2]))
     side = cross(UP, tangent)
     if dot(side, side) < 1e-8:
@@ -68,10 +67,13 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
                           add(origin,(delta[0]*.14,delta[1]*.14,delta[2]*.47)),
                           add(origin,(delta[0]*.64,delta[1]*.70,delta[2]*.86)),end]
             old.radius = root.radius*(.53 if tree else .49)
-            radii = (w*.19,w*.080,h*.070) if tree else (w*.285,w*.28,h*.33)
+            radii = (w*.215,w*.095,h*.078) if tree else (w*.285,w*.28,h*.33)
             if not tree and i==6:
                 radii=(w*.29,w*.30,h*.33)
             lobes.append(Lobe(old.id,old.id,end,radii))
+            if tree:
+                mid = bezier(old.points, .70)
+                lobes.append(Lobe(old.id+':mid', old.id, mid, (w*.145,w*.060,h*.055)))
         else:
             j = int(old.id.split(':')[2])
             leader = parent.points[-1]
@@ -82,10 +84,11 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
                 vertical = h*rnd.uniform(-.010,.115)
                 end = add(base,(math.cos(angle)*radial,math.sin(angle)*radial,vertical))
                 end = (end[0],end[1],min(end[2],h*.91))
-                radii = (w*rnd.uniform(.115,.160),w*rnd.uniform(.050,.082),h*rnd.uniform(.044,.070))
+                radii = (w*rnd.uniform(.135,.185),w*rnd.uniform(.060,.095),h*rnd.uniform(.052,.080))
                 lobes.append(Lobe(old.id,old.id,end,radii))
             else:
                 end = (math.cos(angle)*w*.25,math.sin(angle)*w*.25,h*(.40+.17*j))
+                lobes.append(Lobe(old.id, old.id, end, (w*.185,w*.165,h*.215)))
             old.points = [origin,
                           add(origin,(0,0,h*(.045 if tree else .045))),
                           mix(origin,end,.70),end]
@@ -96,7 +99,7 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
     plant.cards=[]
     plant.flowers=[]
     branch_lookup={b.id:b for b in plant.branches}
-    count = 48 if tree else 72
+    count = 60 if tree else 42
     for lobe in lobes:
         phase=rng_for(seed,lobe.id).random()*math.tau
         if tree:
@@ -114,6 +117,8 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
                            mul(axis1,local_direction[1]*lobe.radii[1]*radial_depth)),
                        mul(axis2,local_direction[2]*lobe.radii[2]*radial_depth))
             center=add(lobe.center,offset)
+            if tree and any(other.id!=lobe.id and sum(((center[k]-other.center[k])/other.radii[k])**2 for k in range(3))<.46 for other in lobes):
+                continue
             local_normal=add(add(mul(axis0,local_direction[0]/max(lobe.radii[0],1e-9)),
                                  mul(axis1,local_direction[1]/max(lobe.radii[1],1e-9))),
                              mul(axis2,local_direction[2]/max(lobe.radii[2],1e-9)))
@@ -121,10 +126,10 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
             broad=unit(sub(center,lobe.center))
             n=unit(add(mul(local_normal,.56 if tree else .44),
                        mul(broad,.44 if tree else .56)))
-            size=(.072+.075*maturity) if tree else (.042+.031*maturity)
+            size=(.115+.125*maturity) if tree else (.066+.050*maturity)
             size*=rnd.uniform(.70,1.28) if tree else rnd.uniform(.78,1.18)
             plant.cards.append(Card(f'{lobe.id}/anchor:{index}',lobe.id,center,n,
-                                    (size,size*(.43 if tree else .94)),rnd.randrange(4),
+                                    (size,size*(.50 if tree else .92)),rnd.randrange(4),
                                     min(1,max(0,center[2]/h)),rnd.random()))
             flower_every = 8 if tree else 7
             if index%flower_every==0 and z>-.22:
@@ -222,7 +227,7 @@ def core_mesh(plant: Plant, lod: int) -> Surface:
     out=Surface([],[],[],[])
     tree=plant.species=='desert_museum'
     for lobe in plant.lobes:
-        scale=(.06,.24,.30)[lod] if tree else (.025,.22,.52)[lod]
+        scale=(.085,.24,.30)[lod] if tree else (.018,.22,.52)[lod]
         radii=(lobe.radii[0]*scale,lobe.radii[1]*scale,lobe.radii[2]*scale)
         _append_surface(out,_support_ellipsoid(lobe.center,radii,4,
                         (0,0,plant.height*(.64 if tree else .44)),
@@ -248,15 +253,13 @@ def foliage_mesh(plant: Plant, lod: int) -> Surface:
     out=Surface([],[],[],[])
     lookup={l.id:l for l in plant.lobes}
     tree=plant.species=='desert_museum'
-    scale=(1.00,1.36,1.65)[lod] if tree else (1.00,1.42,1.70)[lod]
+    scale=(1.00,1.36,1.65)[lod] if tree else (.96,1.42,1.70)[lod]
     for card in _surface_selection(plant,lod):
         lobe=lookup[card.lobe_id]
         spin=rng_for(plant.seed,'brush:'+card.id).uniform(-math.pi,math.pi)
         _append_surface(out,_brush_polygon(card,lobe,plant.species,scale,spin,False))
         if not tree and lod==0:
-            _append_surface(out,_brush_polygon(card,lobe,plant.species,scale*.78,spin+1.11,True))
-            if int(card.rank*1000003.0)%4==0:
-                _append_surface(out,_brush_polygon(card,lobe,plant.species,scale*.60,spin+2.07,True))
+            _append_surface(out,_brush_polygon(card,lobe,plant.species,scale*.76,spin+1.11,True))
         elif not tree and lod==1 and int(card.rank*1000003.0)%2==0:
             _append_surface(out,_brush_polygon(card,lobe,plant.species,scale*.82,spin+1.13,True))
     return out
