@@ -1,4 +1,4 @@
-"""Independent binary GLB audit for opaque-core + brush components.
+"""Independent binary GLB audit for opaque canopy modules plus flower brushes.
 No imports of the generator, Blender, or shader math from the authoring code.
 """
 import hashlib
@@ -49,7 +49,7 @@ def check(path, expected):
         assert all(all(math.isfinite(x) for x in row) for row in vertices+normals)
         assert all(abs(sum(x*x for x in n)-1)<.012 for n in normals)
         assert all(all(low[k]-1e-4<=p[k]<=high[k]+1e-4 for k in range(3)) for p in vertices),'cull bounds'
-        if component in ('leaf','flower'):
+        if component == 'flower':
             uv=stream(attrs['TEXCOORD_0']);size=stream(attrs['TEXCOORD_1']);color=stream(attrs['COLOR_0']);centers=[]
             for p,t,s,c in zip(vertices,uv,size,color):
                 assert all(min(abs(x),abs(x-1))<1e-5 for x in t)
@@ -59,13 +59,13 @@ def check(path, expected):
                 a,b,c=[centers[k] for k in indices[i:i+3]]
                 center_error=max(center_error,math.dist(a,b),math.dist(a,c))
             assert center_error<1e-4,'billboard center reconstruction'
-        if component=='core':
+        if component in ('core','leaf'):
             assert 'TEXCOORD_0' in attrs
             for i in range(0,len(indices),3):
                 a,b,c=[vertices[k] for k in indices[i:i+3]]
                 u=[b[k]-a[k] for k in range(3)];v=[c[k]-a[k] for k in range(3)]
                 cr=[u[1]*v[2]-u[2]*v[1],u[2]*v[0]-u[0]*v[2],u[0]*v[1]-u[1]*v[0]]
-                assert sum(x*x for x in cr)>1e-18,'degenerate core triangle'
+                assert sum(x*x for x in cr)>1e-18,'degenerate opaque foliage triangle'
     assert set(counts)=={'wood','core','leaf','flower'}
     assert sum(counts.values())==expected['triangles']['total']
     return {'file':Path(path).name,'triangles':counts,'center_error':center_error}

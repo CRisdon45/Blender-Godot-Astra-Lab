@@ -14,7 +14,7 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'tools'))
 from species_lab_core import RECIPES, wood_mesh
-from plant_engine.canopy import VERSION, compose, selected, core_mesh, bounds
+from plant_engine.canopy import VERSION, compose, selected, core_mesh, foliage_mesh, bounds
 from plant_engine.recipe import canonical_bytes, content_hash
 from plant_engine.catalog import atomic_write, artifact_key
 from check_canopy_assets import check
@@ -56,7 +56,6 @@ def textures(species):
     save_image(species+'_flower_atlas',flower)
     y,x=np.mgrid[0:256,0:512]/np.array([255,511])[:,None,None]
     rng=np.random.default_rng(610 if species=='desert_museum' else 620)
-    # Surface-painted patches and clustered marks, not alpha cards or normal maps.
     wash=np.full_like(x,.5); marks=np.full_like(x,.5)
     for index in range(48):
         cx,cy=rng.random(2);rx=rng.uniform(.035,.10);ry=rng.uniform(.04,.13)
@@ -71,8 +70,8 @@ def textures(species):
             along=(j-1)*.012
             px=cx+math.cos(a)*along;py=cy+math.sin(a)*along
             dx=x-px;dy=y-py
-            u=dx*math.cos(a)+dy*math.sin(a)
-            v=-dx*math.sin(a)+dy*math.cos(a)
+            u=dx*math.cos(a)+dy*np.sin(a)
+            v=-dx*np.sin(a)+dy*np.cos(a)
             d=(u/.012)**2+(v/.017)**2
             coverage=np.clip((1-d)*3,0,1)
             marks=marks*(1-coverage)+value*coverage
@@ -141,11 +140,12 @@ def main():
                 lods=[]
                 for lod in range(3):
                     bpy.ops.object.select_all(action='SELECT');bpy.ops.object.delete(use_global=False)
-                    verts,faces=wood_mesh(plant,lod);core=core_mesh(plant,lod)
-                    leaves=selected(plant.cards,lod);flowers=selected(plant.flowers,lod)
+                    verts,faces=wood_mesh(plant,lod);core=core_mesh(plant,lod);leaves=foliage_mesh(plant,lod)
+                    flowers=selected(plant.flowers,lod)
                     objects=[mesh_obj('Wood',verts,faces,mats['wood']),
                              mesh_obj('Core',core.vertices,core.triangles,mats['core'],core.normals,core.uv),
-                             cards_obj('Leaves',leaves,lod,mats['leaf']),cards_obj('Flowers',flowers,lod,mats['flower'])]
+                             mesh_obj('Leaves',leaves.vertices,leaves.triangles,mats['leaf'],leaves.normals,leaves.uv),
+                             cards_obj('Flowers',flowers,lod,mats['flower'])]
                     for obj in objects:obj.select_set(True)
                     bpy.context.view_layer.objects.active=objects[0]
                     path=OUT/f'{key}_lod{lod}.glb'
@@ -153,9 +153,9 @@ def main():
                         export_yup=True,export_apply=True,export_normals=True,export_texcoords=True,
                         export_materials='EXPORT',export_cameras=False,export_lights=False,
                         export_vertex_color='NAME',export_vertex_color_name='BrushData',export_all_vertex_colors=False)
-                    counts={'wood':len(faces),'core':len(core.triangles),'leaf':2*len(leaves),'flower':2*len(flowers)}
+                    counts={'wood':len(faces),'core':len(core.triangles),'leaf':len(leaves.triangles),'flower':2*len(flowers)}
                     counts['total']=sum(counts.values())
-                    assert counts['total'] <= ((4200,2100,1300)[lod] if species=='desert_museum' else (2300,1400,900)[lod]),counts
+                    assert counts['total'] <= ((4300,2200,1350)[lod] if species=='desert_museum' else (2500,1500,900)[lod]),counts
                     digest=hashlib.sha256(path.read_bytes()).hexdigest()
                     entry={'lod':lod,'asset_key':artifact_key(recipe_hash=recipe.digest,source_hash=source_hash,
                           shader_hash=shader_hash,mesh_sha256=digest,seed=seed,stage=stage,lod=lod),

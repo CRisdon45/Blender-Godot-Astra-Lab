@@ -65,13 +65,13 @@ func _material(species: String, component: String) -> ShaderMaterial:
 	if material_cache.has(key):
 		return material_cache[key]
 	var mat := ShaderMaterial.new()
-	mat.shader = CORE_SHADER if component == "core" else EDGE_SHADER
+	mat.shader = CORE_SHADER if component in ["core", "leaf"] else EDGE_SHADER
 	var profile: Dictionary = manifest.profiles[species]
 	var palette: Array = profile.flowers if component == "flower" else profile.leaves
 	for index in range(3):
 		mat.set_shader_parameter(["shadow_color", "middle_color", "light_color"][index], _as_color(palette[index]))
 	mat.set_shader_parameter("sun_direction", sun_vector)
-	if component == "core":
+	if component in ["core", "leaf"]:
 		mat.set_shader_parameter("paint_mask", load("res://assets/canopy/%s_paint_mask.png" % species))
 	else:
 		mat.set_shader_parameter("brush_atlas", load("res://assets/canopy/%s_%s_atlas.png" % [species, component]))
