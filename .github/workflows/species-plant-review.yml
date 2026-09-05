@@ -9,7 +9,7 @@ on:
       - tools/build_species_lab.py
       - tools/check_species_assets.py
       - plant_lab/**
-      - tests/test_species_lab.py
+      - tests/test_species_*.py
 permissions:
   contents: read
 concurrency:
@@ -52,7 +52,7 @@ jobs:
         run: |
           set -euo pipefail
           git rev-parse HEAD > species-output/source-commit.txt
-          python3 -m unittest discover -s tests -p test_species_lab.py -v 2>&1 | tee species-output/python-tests.log
+          python3 -m unittest discover -s tests -p 'test_species_*.py' -v 2>&1 | tee species-output/python-tests.log
           blender --background --factory-startup --python-exit-code 1 --python tools/build_species_lab.py 2>&1 | tee species-output/blender.log
           grep -q SPECIES_BLENDER_BUILD_OK species-output/blender.log
           python3 tools/check_species_assets.py plant_lab/assets > species-output/glb-contract.json
@@ -60,6 +60,18 @@ jobs:
         run: |
           set -euo pipefail
           timeout 240 godot --headless --audio-driver Dummy --path plant_lab --rendering-method mobile --editor --import 2>&1 | tee species-output/import.log
+          python3 - <<'PY'
+          from pathlib import Path
+          files=list(Path('plant_lab/assets').glob('*.glb.import'))
+          assert len(files)==36
+          for path in files:
+              text=path.read_text()
+              assert 'meshes/generate_lods=false' in text, path
+              assert 'meshes/create_shadow_meshes=false' in text, path
+          for path in Path('plant_lab/assets').glob('*.png.import'):
+              assert 'mipmaps/generate=true' in path.read_text(), path
+          print('IMPORTED_AUTHORED_LODS_PRESERVED')
+          PY
           xvfb-run -a -s '-screen 0 1280x800x24' timeout 600 godot --audio-driver Dummy --path plant_lab --rendering-method mobile -- --capture="$GITHUB_WORKSPACE/species-output/images" 2>&1 | tee species-output/capture.log
           grep -q SPECIES_GODOT_CAPTURE_DONE species-output/capture.log
           python3 - <<'PY'
@@ -89,13 +101,13 @@ jobs:
       - name: Package editable sources, runtime project and unfiltered diagnostics
         if: always()
         run: |
-          mkdir -p species-output/bundle/tools species-output/bundle/tests species-output/bundle/docs
+          mkdir -p species-output/bundle/{tools,tests,docs,authoring}
           cp -r plant_lab species-output/bundle/
           rm -rf species-output/bundle/plant_lab/.godot
           cp tools/{species_lab_core,build_species_lab,check_species_assets}.py species-output/bundle/tools/
-          cp tests/test_species_lab.py species-output/bundle/tests/
+          cp tests/test_species_*.py species-output/bundle/tests/
           cp docs/SPECIES_PLANT_LAB.md species-output/bundle/docs/ 2>/dev/null || true
-          cp -r authoring/species_lab species-output/bundle/authoring 2>/dev/null || true
+          cp -r authoring/species_lab species-output/bundle/authoring/ 2>/dev/null || true
           git status --short > species-output/worktree-status.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

@@ -22,3 +22,14 @@ shading/overrides/force_vertex_shading=false
 shading/overrides/force_vertex_shading.mobile=false
 [environment]
 defaults/default_clear_color=Color(0.72, 0.82, 0.83, 1)
+[importer_defaults]
+scene={
+"meshes/generate_lods": false,
+"meshes/create_shadow_meshes": false,
+"meshes/ensure_tangents": false,
+"meshes/light_baking": 0,
+"animation/import": false
+}
+texture={
+"mipmaps/generate": true
+}
