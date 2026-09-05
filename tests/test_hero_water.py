@@ -53,8 +53,30 @@ class HeroWaterContracts(unittest.TestCase):
     def test_no_shader_or_contact_simulation_replaced_by_images(self):
         text=(ROOT/'godot/courtyard_hero_water.gd').read_text()
         self.assertIn('super._ready()',text)
-        self.assertIn('ReflectionProbe3D.UPDATE_ONCE',text)
+        self.assertIn('ReflectionProbe.UPDATE_ONCE',text)
         self.assertIn('water._pool.layers = 2',text)
         self.assertIn('probe.cull_mask = 1',text)
+
+    def test_godot_probe_class_and_explicit_rebind(self):
+        text=(ROOT/'godot/courtyard_hero_water.gd').read_text()
+        self.assertNotIn('ReflectionProbe3D',text)
+        self.assertIn('ReflectionProbe.new()',text)
+        self.assertIn('water.rebuild_contacts()',text)
+
+    def test_painted_night_control_preserves_day_default(self):
+        text=(ROOT/'godot/shaders/anime_foliage.gdshader').read_text()
+        self.assertIn('paint_illumination : hint_range(0.0, 2.0) = 1.0',text)
+        self.assertIn('paint * 0.82 * paint_illumination',text)
+        hero=(ROOT/'godot/courtyard_hero_water.gd').read_text()
+        self.assertIn('"paint_illumination",0.10 if enabled else 1.0',hero)
+        self.assertIn('lamp.light_cull_mask = 2',hero)
+
+    def test_runtime_preflight_loads_actual_study(self):
+        text=(ROOT/'godot/tests/test_hero_preflight.gd').read_text()
+        self.assertIn('preload("res://courtyard_hero_water.gd")',text)
+        self.assertIn('preload("res://tests/capture_hero_water.gd")',text)
+        capture=(ROOT/'godot/tests/capture_hero_water.gd').read_text()
+        self.assertIn('scene.has_method("set_illustration")',capture)
+        self.assertIn('get_shader_parameter("impact_count")',capture)
 
 if __name__=='__main__': unittest.main()

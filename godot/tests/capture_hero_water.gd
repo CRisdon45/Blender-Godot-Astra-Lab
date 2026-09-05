@@ -59,6 +59,10 @@ func run() -> void:
 			errors.append("Scene load failed: "+path)
 			continue
 		var scene=packed.instantiate()
+		if not scene.has_method("set_illustration"):
+			errors.append("Scene script failed to load: "+path)
+			scene.free()
+			continue
 		root.add_child(scene)
 		await frames(12)
 		scene.set_process(false)
@@ -69,6 +73,10 @@ func run() -> void:
 		for pose in poses:
 			await capture(scene,version+"-"+pose[0],pose[1],pose[2])
 		if version=="after":
+			check(int(scene.water._pool_material.get_shader_parameter("impact_count"))==2,"Hero material lost contact uniforms")
+			check(scene.painted_foliage.size()==12,"Expected twelve painted foliage materials")
+			check(scene.probe is ReflectionProbe,"Reflection probe missing")
+			check(scene.probe.cull_mask==1 and scene.probe.reflection_mask==2,"Reflection masks wrong")
 			check(scene.basin_materials.size()==1,"Expected one grouped basin receiver")
 			check(scene.water._pool_material.shader.resource_path=="res://shaders/hero_water.gdshader","Optics shader not bound")
 			scene.water.set_flow(false)
@@ -80,10 +88,16 @@ func run() -> void:
 			await capture(scene,"diagnostic-depth",poses[3][1],poses[3][2])
 			scene.water._pool_material.set_shader_parameter("debug_view",0)
 			scene.set_night(true)
+			for material in scene.painted_foliage:
+				check(is_equal_approx(float(material.get_shader_parameter("paint_illumination")),0.1),"Foliage retained daylight at night")
+			for lamp in scene.pool_lights:
+				check(lamp.light_cull_mask==2,"Pool light spills into unrelated yard layers")
 			await frames(12)
 			for index in [0,1]:
 				await capture(scene,"night-"+poses[index][0],poses[index][1],poses[index][2])
 			scene.set_night(false)
+			for material in scene.painted_foliage:
+				check(is_equal_approx(float(material.get_shader_parameter("paint_illumination")),1.0),"Daylight foliage not restored")
 			await frames(12)
 			for step in range(8):
 				await capture(scene,"motion-%02d"%step,poses[1][1],poses[1][2],2.0+step*0.16)

@@ -2,6 +2,8 @@ shader_type spatial;
 // Opaque alpha-cut geometry: stable depth, no blended leaf sorting.
 render_mode cull_disabled, specular_disabled, ambient_light_disabled;
 uniform sampler2D brush_atlas : repeat_disable, filter_linear_mipmap;
+// Default preserves the approved daytime study. Hero lighting can dim painted light.
+uniform float paint_illumination : hint_range(0.0, 2.0) = 1.0;
 uniform vec3 sun_direction = vec3(-0.314, 0.743, 0.589);
 uniform vec4 shadow_color : source_color = vec4(0.18, 0.29, 0.18, 1.0);
 uniform vec4 middle_color : source_color = vec4(0.36, 0.48, 0.23, 1.0);
@@ -37,7 +39,7 @@ void fragment() {
     ROUGHNESS = 1.0;
     SPECULAR = 0.0;
     // Mostly authored paint, with restrained real shadow response. Casts real shadows.
-    EMISSION = paint * 0.82;
+    EMISSION = paint * 0.82 * paint_illumination;
 }
 void light() {
     DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * 0.12;

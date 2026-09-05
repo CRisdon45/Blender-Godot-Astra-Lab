@@ -1,4 +1,5 @@
 name: Hero pool water visual study
+# Revision 2: real ReflectionProbe class, fail-fast preflight and explicit night control.
 
 on:
   workflow_dispatch:
@@ -63,10 +64,14 @@ jobs:
           original=config.read_bytes()
           errors=[]
           stages=[('import',['godot','--headless','--audio-driver','Dummy','--path',str(project),'--editor','--import'],None),
+                  ('preflight',['godot','--headless','--audio-driver','Dummy','--path',str(project),'--script','res://tests/test_hero_preflight.gd'],'HERO_PREFLIGHT_PASSED'),
                   ('capture',['godot','--audio-driver','Dummy','--path',str(project),'--rendering-method','forward_plus','--script','res://tests/capture_hero_water.gd','--','--output='+str(out/'images')],'HERO_REVIEW_DONE ')]
           for name,command,marker in stages:
+              if name=='capture' and any(e['stage']=='preflight' for e in errors):
+                  errors.append({'stage':'capture','error':'Skipped after failed actual-script preflight'})
+                  break
               try:
-                  review.run_stage(command,out/(name+'.log'),480,marker)
+                  review.run_stage(command,out/(name+'.log'),480 if name=='capture' else 180,marker)
               except Exception as exc:
                   errors.append({'stage':name,'error':str(exc)})
               finally:
@@ -84,7 +89,7 @@ jobs:
               if data.get('errors'): errors.append({'stage':'contracts','error':data['errors']})
           if count!=20: errors.append({'stage':'capture_count','error':count})
           report={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
-                  'images':count,'errors':errors,'visual_acceptance':'pending_user_review',
+                  'images':count,'png_files_written':len(list((out/'images').glob('*.png'))),'errors':errors,'visual_acceptance':'pending_user_review',
                   'performance_certified':False,'status':'diagnostic' if errors else 'captured'}
           (out/'runner-report.json').write_text(json.dumps(report,indent=2)+'\n')
           print(json.dumps(report,indent=2))
