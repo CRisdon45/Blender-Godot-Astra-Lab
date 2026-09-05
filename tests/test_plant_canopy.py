@@ -88,9 +88,10 @@ class CanopyTests(unittest.TestCase):
             with self.assertRaises(ValueError):foliage_mesh(self.plants[0],bad)
 
     def test_opaque_shader_has_no_discard_or_alpha(self):
-        code=(Path(__file__).resolve().parents[1]/'plant_lab/shaders/canopy_core.gdshader').read_text()
-        body=code[code.index('render_mode'):]
-        for forbidden in ('discard','ALPHA','SCREEN_TEXTURE','DEPTH_TEXTURE','TIME'):
-            self.assertNotIn(forbidden,body)
+        root=Path(__file__).resolve().parents[1]/'plant_lab/shaders'
+        for name in ('canopy_core.gdshader','canopy_leaf.gdshader'):
+            code=(root/name).read_text(); body=code[code.index('render_mode'):]
+            for forbidden in ('discard','ALPHA','SCREEN_TEXTURE','DEPTH_TEXTURE','TIME'):
+                self.assertNotIn(forbidden,body,name)
 
 if __name__=='__main__':unittest.main()
