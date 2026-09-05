@@ -1,0 +1,26 @@
+{
+  "artifact_id": 9970760035,
+  "artifact_sha256": "32cc172a673f2e60adeb59a3ce758b6776fa9a0afb2f4056f675eb693c0cec30",
+  "rendered_source_commit": "d6f52fc6e6c2dfdee56d76aeb6c2dbcd185a27e5",
+  "render_report": {
+    "source_commit": "d6f52fc6e6c2dfdee56d76aeb6c2dbcd185a27e5",
+    "images": 28,
+    "png_files_written": 28,
+    "errors": [
+      {
+        "stage": "import",
+        "error": "Godot stage failed (exit 0); see /home/runner/work/Blender-Godot-Astra-Lab/Blender-Godot-Astra-Lab/hero-output/import.log"
+      }
+    ],
+    "visual_acceptance": "pending_user_review",
+    "performance_certified": false,
+    "status": "diagnostic"
+  },
+  "capture_runtime_errors": [],
+  "renderer_warnings": [
+    "WARNING: 7 RIDs of type \"Texture\" were leaked."
+  ],
+  "artistic_acceptance": false,
+  "main_modified": false,
+  "device_performance_certified": false
+}
