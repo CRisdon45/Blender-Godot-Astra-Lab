@@ -1,6 +1,7 @@
 extends "res://plant_lab.gd"
 ## Opt-in integration; original main.tscn, courtyard, materials and assets are preserved.
 
+@export var catalog_path: String = "res://engine_data/catalog.json"
 var engine_catalog := PlantCatalog.new()
 var engine_cache := PlantAssetCache.new()
 var engine_runtime := PlantRuntime.new()
@@ -11,7 +12,7 @@ var frame_samples: Array[float] = []
 var foundation_ready: bool = false
 
 func _ready() -> void:
-	if not engine_catalog.open_catalog():
+	if not engine_catalog.open_catalog(catalog_path):
 		push_error("; ".join(engine_catalog.errors))
 		get_tree().quit(2)
 		return
@@ -42,8 +43,6 @@ func _build_hud() -> void:
 func _rebuild() -> void:
 	if not foundation_ready:
 		return
-	# The runtime retains the old rendered scene until its replacement is ready.
-	# Litter remains the inherited bounded flat-ground example, not a new simulation.
 	if is_instance_valid(plant_root):
 		plant_root.free()
 	plant_root = Node3D.new()
@@ -162,8 +161,6 @@ func _export_diagnostics() -> void:
 	print("PLANT_FOUNDATION_DIAGNOSTICS " + JSON.stringify(report))
 
 func _save_frame(folder: String, name: String, images: Array) -> void:
-	# Inherited capture suite must wait for the newly requested scene, not capture
-	# the prior stage while asynchronous preparation is still running.
 	var deadline: int = Time.get_ticks_msec() + 60000
 	while engine_runtime.has_pending and engine_cache.errors.is_empty() and Time.get_ticks_msec() < deadline:
 		await get_tree().process_frame

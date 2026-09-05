@@ -1,10 +1,6 @@
 class_name PlantRuntime
 extends Node3D
-## One active MultiMesh per component/group, not three complete hidden LOD scenes.
-## Bounds and costs describe geometry; design envelopes never change with LOD.
-## Scene preparation is transactional: retain the previous scene until all requested
-## variants are ready. A newer placement request supersedes an older pending request.
-
+## One active MultiMesh per component/group. Transactional preparation retains old plants.
 var catalog: PlantCatalog
 var cache: PlantAssetCache
 var material_provider: Callable
@@ -53,15 +49,12 @@ func set_plants(plants: Array) -> bool:
 				"desired_lod": -1, "active_lod": -1, "fraction": 0.0,
 				"bounds": catalog.bounds_for_variant(variant)}
 		bins[key].plants.append(plant)
-	# Only replace pending state after complete input validation.
 	var keys: Array = bins.keys()
 	keys.sort()
 	pending_groups.clear()
 	for key in keys:
 		var group: Dictionary = bins[key]
 		pending_groups.append(group)
-		# Load distant first for predictable cache ordering, but commit only once all
-		# three representations are ready, avoiding a blank frame during a LOD swap.
 		for level in [2, 1, 0]:
 			cache.request(String(group.variant.lods[level].asset_key))
 	has_pending = true
@@ -80,8 +73,7 @@ func poll_preparation() -> bool:
 	var new_groups: Array = pending_groups
 	pending_groups = []
 	for group in new_groups:
-		# Children are prepared hidden. Their first selected LOD is applied by update_view.
-		for component in ["wood", "leaf", "flower"]:
+		for component in group.variant.get("components", ["wood", "leaf", "flower"]):
 			var node := MultiMeshInstance3D.new()
 			node.name = "Plant_" + String(component)
 			node.multimesh = MultiMesh.new()
@@ -103,8 +95,6 @@ func update_view(camera: Camera3D, bloom: float, forced_lod: int = -1) -> void:
 	if camera == null or catalog == null:
 		return
 	var started: int = Time.get_ticks_usec()
-	# Brush contract/1 does not support a scaled parent. Reject, rather than silently
-	# drifting rendered leaves away from geometry and declared design dimensions.
 	if not global_transform.basis.get_scale().is_equal_approx(Vector3.ONE):
 		if not errors.has("Scaled runtime parent is unsupported"):
 			errors.append("Scaled runtime parent is unsupported")
@@ -119,7 +109,6 @@ func update_view(camera: Camera3D, bloom: float, forced_lod: int = -1) -> void:
 		for plant in group.plants:
 			var world_center: Vector3 = global_transform * (plant.placement * bounds.get_center())
 			var center: Vector3 = inverse_camera * world_center
-			# Use the nearest/most prominent MEMBER, not the average batch center.
 			fraction = maxf(fraction, PlantLodPolicy.projected_fraction(radius, -center.z,
 				absf(projection.y.y), camera.near, camera.projection == Camera3D.PROJECTION_ORTHOGONAL))
 		group.fraction = fraction
@@ -127,7 +116,7 @@ func update_view(camera: Camera3D, bloom: float, forced_lod: int = -1) -> void:
 		var costs: Array[int] = []
 		for level in group.variant.lods:
 			var counts: Dictionary = level.triangles
-			costs.append(int(counts.wood) + int(counts.leaf) + (int(counts.flower) if bloom > 0.0 else 0))
+			costs.append(int(counts.wood) + int(counts.get("core", 0)) + int(counts.leaf) + (int(counts.flower) if bloom > 0.0 else 0))
 		budget_groups.append({"id": group.id, "desired_lod": group.desired_lod,
 			"projected_fraction": fraction, "triangles": costs, "instance_count": group.plants.size(),
 			"protected": forced_lod >= 0 or fraction >= 0.60})
@@ -144,7 +133,6 @@ func update_view(camera: Camera3D, bloom: float, forced_lod: int = -1) -> void:
 func _apply_lod(group: Dictionary, lod: int) -> void:
 	var parts: Array = cache.get_parts(String(group.variant.lods[lod].asset_key))
 	if parts.is_empty():
-		# Keep the previous representation. Never hide a plant on a cache miss.
 		return
 	var combined := AABB()
 	var first: bool = true
@@ -163,7 +151,6 @@ func _apply_lod(group: Dictionary, lod: int) -> void:
 			mm.instance_count = group.plants.size()
 			for index in range(group.plants.size()):
 				mm.set_instance_transform(index, group.plants[index].placement * part.local_transform)
-			# Explicit full-rotation shader-safe bounds, not the original flat brush AABB.
 			mm.custom_aabb = combined
 			node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if lod == 2 or entry.component == "flower" else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 	group.active_lod = lod
@@ -173,15 +160,17 @@ func diagnostics() -> Dictionary:
 	var counts: Array[int] = [0, 0, 0]
 	var plants: int = 0
 	var primary: int = 0
+	var component_nodes: int = 0
 	for group in groups:
 		plants += group.plants.size()
+		component_nodes += group.nodes.size()
 		if int(group.active_lod) >= 0:
 			counts[int(group.active_lod)] += group.plants.size()
 			for entry in group.nodes:
 				if entry.node.visible:
 					primary += int(group.variant.lods[int(group.active_lod)].triangles[entry.component]) * group.plants.size()
 	return {"placements": plants, "spatial_variant_groups": groups.size(), "lod_instances": counts,
-		"active_component_nodes": groups.size() * 3, "estimated_primary_triangles_all_groups": primary,
+		"active_component_nodes": component_nodes, "estimated_primary_triangles_all_groups": primary,
 		"triangle_target": triangle_target, "budget_enabled": budget_enabled,
 		"target_met": primary <= triangle_target, "lod_switches": lod_switches,
 		"preparation_pending": has_pending, "requested_generation": generation,

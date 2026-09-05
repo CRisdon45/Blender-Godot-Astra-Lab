@@ -1,8 +1,6 @@
 class_name PlantAssetCache
 extends RefCounted
-## Bounded asynchronous PackedScene cache. No load()/get-before-ready in camera updates.
-## This study's 36-asset cap is explicit; it is not an unlimited production streaming cache.
-
+## Bounded asynchronous PackedScene cache; supports baseline and opaque-core catalogs.
 var catalog: PlantCatalog
 var ready: Dictionary = {}
 var pending: Dictionary = {}
@@ -51,7 +49,6 @@ func poll() -> bool:
 			failed[key] = true
 			errors.append("Async model load failed: " + path)
 		elif state == ResourceLoader.THREAD_LOAD_LOADED:
-			# Only retrieve after LOADED: load_threaded_get can otherwise block.
 			var packed := ResourceLoader.load_threaded_get(path) as PackedScene
 			pending.erase(key)
 			finalized += 1
@@ -63,9 +60,9 @@ func poll() -> bool:
 			var parts: Array = []
 			_collect_meshes(instance, Transform3D.IDENTITY, parts)
 			instance.free()
-			if not _valid_parts(parts):
+			if not _valid_parts(parts) or parts.size() != (4 if catalog.get_asset(key).triangles.has("core") else 3):
 				failed[key] = true
-				errors.append("Expected separate wood, leaf and flower meshes: " + path)
+				errors.append("Mesh components do not match catalog: " + path)
 				continue
 			ready[key] = parts
 			finalized_total += 1
@@ -83,7 +80,9 @@ func _collect_meshes(node: Node, parent_transform: Transform3D, out: Array) -> v
 		var source: Material = instance.mesh.surface_get_material(0)
 		var label: String = source.resource_name if source != null else String(node.name)
 		var component: String = "wood"
-		if "_leaf" in label:
+		if "_core" in label:
+			component = "core"
+		elif "_leaf" in label:
 			component = "leaf"
 		elif "_flower" in label:
 			component = "flower"
@@ -95,12 +94,11 @@ func _valid_parts(parts: Array) -> bool:
 	var names: Array[String] = []
 	for part in parts:
 		names.append(part.component)
-		# Fixed-center brush/1 assumes unscaled instances, including glTF node transforms.
 		var basis: Basis = part.local_transform.basis
 		if not basis.get_scale().is_equal_approx(Vector3.ONE) or basis.determinant() <= 0.0:
 			return false
 	names.sort()
-	return names == ["flower", "leaf", "wood"]
+	return names == ["flower", "leaf", "wood"] or names == ["core", "flower", "leaf", "wood"]
 
 func get_parts(key: String) -> Array:
 	return ready.get(key, [])
