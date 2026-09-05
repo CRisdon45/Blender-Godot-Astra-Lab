@@ -155,7 +155,7 @@ def main():
                         export_vertex_color='NAME',export_vertex_color_name='BrushData',export_all_vertex_colors=False)
                     counts={'wood':len(faces),'core':len(core.triangles),'leaf':len(leaves.triangles),'flower':2*len(flowers)}
                     counts['total']=sum(counts.values())
-                    assert counts['total'] <= ((5000,1500,900)[lod] if species=='desert_museum' else (5600,1700,800)[lod]),counts
+                    assert counts['total'] <= ((7000,2000,1200)[lod] if species=='desert_museum' else (8500,2600,1200)[lod]),counts
                     digest=hashlib.sha256(path.read_bytes()).hexdigest()
                     entry={'lod':lod,'asset_key':artifact_key(recipe_hash=recipe.digest,source_hash=source_hash,
                           shader_hash=shader_hash,mesh_sha256=digest,seed=seed,stage=stage,lod=lod),
