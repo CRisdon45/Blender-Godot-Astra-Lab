@@ -4,6 +4,7 @@ extends SceneTree
 
 var failures: Array[String] = []
 var checks: int = 0
+var budget_evidence: Array = []
 
 func _initialize() -> void:
 	call_deferred("_run")
@@ -14,7 +15,31 @@ func _check(condition: bool, message: String) -> void:
 		failures.append(message)
 		push_error(message)
 
+func _lod_maps_match(actual: Dictionary, expected: Dictionary) -> bool:
+	# JSON parses numbers as floats. Normalize only validated integral expectations;
+	# do not loosen the production result's integer contract or truncate bad fixtures.
+	if actual.size() != expected.size():
+		return false
+	for key in expected:
+		if not actual.has(key) or not actual[key] is int:
+			return false
+		var value: Variant = expected[key]
+		if not (value is int or value is float) or not is_finite(float(value)):
+			return false
+		if float(value) != floorf(float(value)) or int(value) < 0 or int(value) > 2:
+			return false
+		if actual[key] != int(value):
+			return false
+	return true
+
 func _run() -> void:
+	_check(_lod_maps_match({"a": 1}, {"a": 1.0}), "JSON integral values normalize")
+	_check(not _lod_maps_match({"a": 1}, {"a": 1.5}), "Fractional expected LOD rejected")
+	_check(not _lod_maps_match({"a": 0}, {"a": 1.0}), "Wrong actual LOD rejected")
+	_check(not _lod_maps_match({"a": 1.0}, {"a": 1.0}), "Actual LOD must remain integer")
+	_check(not _lod_maps_match({"a": 1}, {"b": 1.0}), "Wrong group identity rejected")
+	_check(not _lod_maps_match({"a": 1}, {"a": 1.0, "b": 2.0}), "Missing group rejected")
+	_check(not _lod_maps_match({"a": 1, "b": 2}, {"a": 1.0}), "Extra group rejected")
 	var file := FileAccess.open("res://engine/tests/lod_contract.json", FileAccess.READ)
 	if file == null:
 		_check(false, "LOD contract fixture missing")
@@ -30,7 +55,8 @@ func _run() -> void:
 		_check(is_equal_approx(actual, float(value.expected)), "Camera projection parity")
 	for value in fixture.budget_cases:
 		var result: Dictionary = PlantLodPolicy.allocate_budget(value.groups, int(value.target))
-		_check(result.lods == value.expected.lods, "Budget LOD parity")
+		budget_evidence.append({"actual": result, "expected": value.expected})
+		_check(_lod_maps_match(result.lods, value.expected.lods), "Budget LOD parity: " + JSON.stringify(result))
 		_check(int(result.estimated_primary_triangles) == int(value.expected.estimated_primary_triangles), "Budget triangle parity")
 		_check(bool(result.target_met) == bool(value.expected.target_met), "Impossible-budget reporting parity")
 	var original := PlantInstance.create("saved-tree", "desert_museum", 41, 0, Vector3(2.0, 0.0, 4.0), 0.6)
@@ -103,7 +129,7 @@ func _settle(world: Node) -> bool:
 	return false
 
 func _finish() -> void:
-	var report := {"schema": "plant-runtime-smoke/1", "checks": checks, "failures": failures,
+	var report := {"schema": "plant-runtime-smoke/1", "checks": checks, "failures": failures, "budget_evidence": budget_evidence,
 		"passed": failures.is_empty(), "godot_runtime_executed": true,
 		"engine_version": Engine.get_version_info(), "visual_approved": false, "tablet_tested": false}
 	var file := FileAccess.open("user://plant-foundation-smoke.json", FileAccess.WRITE)

@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 import hashlib
 import math
 import random
+from plant_engine.coverage import select_coverage
 from plant_engine.recipe import PlantRecipe, load_recipes, validate_seed, validate_maturity
 V = tuple[float, float, float]
 TAU = math.tau
@@ -149,7 +150,7 @@ def cards_for_lod(cards:list[Card],lod:int, *, recipe:PlantRecipe|None=None) -> 
     stride=recipe.data['render']['lods'][lod]['card_stride'] if recipe else (1,2,4)[lod]
     by_lobe={}
     for c in cards: by_lobe.setdefault(c.lobe_id,[]).append(c)
-    return [c for values in by_lobe.values() for c in sorted(values,key=lambda v:(v.rank,v.id))[::stride]]
+    return [c for values in by_lobe.values() for c in select_coverage(values, stride)]
 
 def wood_mesh(plant:Plant,lod:int, *, recipe:PlantRecipe|None=None):
     if lod not in (0,1,2): raise ValueError('LOD must be 0, 1 or 2')
