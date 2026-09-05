@@ -131,39 +131,61 @@ func _prepare_capture(species: String, lod: int = 0) -> void:
 	_sync_materials()
 
 func _capture_suite(folder: String) -> void:
+	# LOD0-first art gate. Distant representations are intentionally excluded from
+	# visual acceptance until the close/main plant art is approved.
 	DirAccess.make_dir_recursive_absolute(folder)
 	var images: Array = []
 	for style in ["baseline", "canopy"]:
 		if not _set_treatment(style):
 			break
 		for species in ["tree", "sage"]:
-			_prepare_capture(species)
-			for lod in range(3):
-				forced_lod = lod
-				await _save_frame(folder, "%s-%s-lod%d" % [style, species, lod], images)
+			_prepare_capture(species, 0)
+			bloom = 0.0
+			if species == "tree":
+				focus = Vector3(0, 3.25, 0)
+				distance = 11.2
+			else:
+				focus = Vector3(0, 0.88, 0)
+				distance = 3.75
+			_update_camera()
+			_sync_materials()
+			await _save_frame(folder, "%s-%s-lod0" % [style, species], images)
 			if style == "canopy":
-				forced_lod = 0
-				yaw += PI * 0.65
+				var base_yaw: float = yaw
+				yaw = base_yaw + PI * 0.50
+				_update_camera()
+				await _save_frame(folder, species + "-side", images)
+				yaw = base_yaw + PI
 				_update_camera()
 				await _save_frame(folder, species + "-reverse", images)
-				pitch = 0.95
+				yaw = base_yaw + PI * 0.18
+				pitch = 0.82
 				_update_camera()
 				await _save_frame(folder, species + "-elevated", images)
-	_prepare_capture("sage")
-	component_view = "core"
-	await _save_frame(folder, "sage-core-only", images)
-	component_view = "all"
-	for view in ["growth_tree", "growth_sage", "garden"]:
+				# Return to the main art angle and capture bloom separately so flower
+				# distribution cannot hide foliage-shape problems in the base view.
+				yaw = base_yaw
+				pitch = 0.22
+				bloom = 0.70
+				_update_camera()
+				_sync_materials()
+				await _save_frame(folder, species + "-bloom", images)
+	# Growth examples remain at LOD0 because growth art is part of the plant identity.
+	bloom = 0.0
+	for view in ["growth_tree", "growth_sage"]:
+		_select_mode(view)
+		forced_lod = 0
 		yaw = 0.54
 		pitch = 0.22
-		_select_mode(view)
+		_update_camera()
+		_sync_materials()
+		_update_lods()
 		await _save_frame(folder, view, images)
-	_prepare_capture("sage")
-	await _save_frame(folder, "sage-repeat-a", images)
-	await _save_frame(folder, "sage-repeat-b", images)
-	var report: Dictionary = {"schema": "canopy-capture/1", "images": images, "errors": errors + engine_cache.errors + engine_runtime.errors,
-		"renderer": RenderingServer.get_current_rendering_method(), "adapter": RenderingServer.get_video_adapter_name(),
-		"engine": Engine.get_version_info(), "android_device_tested": false, "art_approved": false}
+	var report: Dictionary = {"schema": "canopy-lod0-capture/1", "images": images,
+		"errors": errors + engine_cache.errors + engine_runtime.errors,
+		"renderer": RenderingServer.get_current_rendering_method(),
+		"adapter": RenderingServer.get_video_adapter_name(), "engine": Engine.get_version_info(),
+		"art_target": "lod0_only", "android_device_tested": false, "art_approved": false}
 	var file := FileAccess.open(folder.path_join("capture-report.json"), FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	print("CANOPY_CAPTURE_DONE " + JSON.stringify(report))
