@@ -1,0 +1,176 @@
+name: Godot Linux visual review
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/courtyard-review-pass]
+    paths: [.github/workflows/godot-linux-review.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-linux-review-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GODOT_VERSION: 4.7.1
+      # Official godotengine/godot-builds release asset 476992009 digest.
+      GODOT_SHA256: c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba
+      LIBGL_ALWAYS_SOFTWARE: "true"
+      LP_NUM_THREADS: "4"
+    steps:
+      - name: Check out the requested branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Preserve source identity and existing reference images
+        run: |
+          mkdir -p render-output/baseline render-output/source
+          git rev-parse HEAD > render-output/source-commit.txt
+          cp godot/captures/godot_courtyard.png render-output/baseline/
+          cp pool_recreation.png render-output/baseline/
+          printf '%s\n' 'Baseline images predate the current water/navigation work.' > render-output/baseline/README.txt
+          git ls-files -z '*.gd' '*.gdshader' '*.py' '*.md' '*.yml' 'godot/project.godot' '.gitignore' | tar --null -T - -cf render-output/source/source-text.tar
+      - name: Install software Vulkan and virtual display
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth libvulkan1 mesa-vulkan-drivers vulkan-tools unzip
+          ICD="$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)"
+          test -n "$ICD"
+          echo "VK_ICD_FILENAMES=$ICD" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/xdg-runtime" >> "$GITHUB_ENV"
+      - name: Install the repository baseline Godot release
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/godot"
+          cd "$RUNNER_TEMP/godot"
+          BASE="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable"
+          ZIP="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl --fail --location --retry 2 --max-time 180 "$BASE/$ZIP" --output "$ZIP"
+          printf '%s  %s\n' "$GODOT_SHA256" "$ZIP" | sha256sum --check --strict
+          unzip -q "$ZIP"
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          echo "$RUNNER_TEMP/godot" >> "$GITHUB_PATH"
+      - name: Run Python regression tests
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tests -v 2>&1 | tee render-output/python-tests.log
+      - name: Test and capture with explicit failure reporting
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1200x24' python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+          import sys
+          from tools import review
+          root = Path('render-output/review').resolve()
+          root.mkdir(parents=True)
+          project = Path('godot').resolve()
+          engine = review.resolve_engine('godot')
+          report = {'status': 'failed', 'import_display': 'headless editor',
+                    'visual_acceptance': 'not_evaluated', 'graphics_validation': 'not_run',
+                    'runtime_validation': 'not_run', 'stages': [], 'errors': [], 'capture_count': 0,
+                    'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+          def stage(name, command, marker=None, timeout=600):
+              record = {'name': name, 'command': command, 'status': 'running'}
+              report['stages'].append(record)
+              print('Starting', name, flush=True)
+              try:
+                  result = review.run_stage(command, root / (name + '.log'), timeout, marker)
+                  record['status'] = 'passed'
+                  return result
+              except Exception:
+                  record['status'] = 'failed'
+                  raise
+          def diagnostic_stage(name, command, marker=None):
+              try:
+                  return stage(name, command, marker)
+              except review.ReviewError as exc:
+                  # Collect evidence from independent stages; never turn this failure green.
+                  report['errors'].append({'stage': name, 'error': str(exc)})
+                  return (root / (name + '.log')).read_text(errors='replace')
+          try:
+              version = stage('version', [engine, '--version']).strip()
+              if not version.startswith('4.7.1.stable.'):
+                  raise review.ReviewError('Unexpected engine release: ' + version)
+              report['engine_version'] = version
+              stage('vulkan', ['vulkaninfo', '--summary'])
+              config = project / 'project.godot'
+              original_config = config.read_bytes()
+              try:
+                  diagnostic_stage('import', [engine, '--headless', '--audio-driver', 'Dummy', '--path', str(project), '--editor', '--import'])
+              finally:
+                  if config.read_bytes() != original_config:
+                      (root / 'editor-rewritten-project.godot.txt').write_bytes(config.read_bytes())
+                      config.write_bytes(original_config)
+                      report['editor_config_rewrite_restored'] = True
+              for name, script, marker in (
+                  ('navigation', 'test_navigation.gd', 'NAVIGATION_TESTS_OK '),
+                  ('water', 'test_water_interaction.gd', 'WATER_TESTS_OK '),
+              ):
+                  diagnostic_stage(name, [engine, '--headless', '--path', str(project), '--script', 'res://tests/' + script], marker)
+              for scene in ('editable', 'builder'):
+                  output = diagnostic_stage('binding-' + scene,
+                      [engine, '--headless', '--path', str(project), '--script',
+                       'res://tests/test_scene_water.gd', '--', '--test-scene=' + review.SCENES[scene]],
+                      'SCENE_WATER_TESTS_OK ')
+                  try:
+                      evidence = review.marked_json(output, 'SCENE_WATER_TESTS_OK ')
+                      if (evidence.get('scene') != review.SCENES[scene] or
+                          type(evidence.get('checks')) is not int or evidence['checks'] <= 0 or
+                          evidence.get('impact_count') != review.COURTYARD_IMPACTS or
+                          evidence.get('graphics_validated') is not False):
+                          raise review.ReviewError('Invalid real-scene test witness')
+                  except review.ReviewError as exc:
+                      report['errors'].append({'stage': 'binding-' + scene, 'error': str(exc)})
+              report['runtime_validation'] = 'failed' if any(e['stage'] != 'import' for e in report['errors']) else 'passed'
+              captures = root / 'captures'
+              captures.mkdir()
+              command = review.capture_command(engine, project, captures, 'editable', True)
+              command[1:1] = ['--audio-driver', 'Dummy']
+              output = diagnostic_stage('editable-flow-on', command, 'REVIEW_OK ')
+              manifest_path = review.manifest_from_output(output)
+              manifest = review.validate_manifest(manifest_path, captures)
+              review.validate_water_manifest(manifest, review.marked_json(output, 'WATER_READY '), True)
+              report.update(status='diagnostic_captures' if report['errors'] else 'capture_complete',
+                            graphics_validation='diagnostic_captures' if report['errors'] else 'capture_complete',
+                            manifest=str(manifest_path), capture_count=len(manifest['images']))
+          except Exception as exc:
+              report['error'] = str(exc)
+              print('LINUX_REVIEW_FAILED:', exc, file=sys.stderr)
+          finally:
+              (root / 'runner-report.json').write_text(json.dumps(report, indent=2) + '\n')
+              print(json.dumps(report, indent=2))
+          # Diagnostic pictures are useful evidence, not a waiver of ANY failed stage.
+          sys.exit(0 if report['status'] == 'capture_complete' else 1)
+          PY
+      - name: Record final workspace state and scope
+        if: always()
+        run: |
+          git status --short > render-output/workspace-status.txt
+          printf '%s\n' \
+            'Requested renderer: Godot 4.7.1 Forward+ on Linux with Mesa software Vulkan.' \
+            'Not a desktop GPU or Android performance benchmark.' \
+            'Fresh captures, when successful, are under review/. Baseline/ images are older.' \
+            'ANY failed stage keeps the job failed even when diagnostic pictures are captured.' \
+            'No Blender regeneration, editable-scene save, or tracked baseline replacement.' \
+            > render-output/README.txt
+          echo '## Godot Linux visual review' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Download the artifact for images and logs. Consult runner-report.json: upload alone does not establish a passing review.' >> "$GITHUB_STEP_SUMMARY"
+          git diff --exit-code > render-output/tracked-source-diff.txt
+      - name: Upload images and diagnostic evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: godot-linux-review-${{ github.run_number }}
+          path: render-output/
+          if-no-files-found: error
+          retention-days: 3

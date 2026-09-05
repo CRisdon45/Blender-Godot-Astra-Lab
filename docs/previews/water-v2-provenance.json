@@ -1,0 +1,44 @@
+{
+  "rendered_source_commit": "546c4e21a4fedd5ec5731f4840878b1490cd1ad8",
+  "artifact_id": 9971591107,
+  "artifact_sha256": "25626128f055e58cf2763ab3285c5baf0fffdb17d93ac8007c905e49179a6367",
+  "runner_report": {
+    "source_commit": "546c4e21a4fedd5ec5731f4840878b1490cd1ad8",
+    "images": 22,
+    "png_files_written": 23,
+    "errors": [
+      {
+        "stage": "import",
+        "error": "Godot stage failed (exit 0); see /home/runner/work/Blender-Godot-Astra-Lab/Blender-Godot-Astra-Lab/water-v2-output/import.log"
+      },
+      {
+        "stage": "warnings",
+        "file": "capture.log",
+        "messages": [
+          "WARNING: 7 RIDs of type \"Texture\" were leaked."
+        ]
+      }
+    ],
+    "visual_acceptance": "pending_user_review",
+    "performance_certified": false,
+    "status": "diagnostic"
+  },
+  "capture_errors": [],
+  "reflection_pixel_comparison": {
+    "changed_fraction": 0.99,
+    "mean_absolute_rgb_delta": 0.0294989122864274,
+    "samples": 600
+  },
+  "renderer_warnings": [
+    "WARNING: 7 RIDs of type \"Texture\" were leaked."
+  ],
+  "image_sha256": {
+    "docs/previews/water-v2-before.png": "529d6e4e7bcc85690e25bdb38f3409e18f03d6a0cb603a6434afd82149cf08a3",
+    "docs/previews/water-v2-day.png": "0349ef955c3f796d19aafc9477389057d38150502faf59c7cd39df46665d680b",
+    "docs/previews/water-v2-low-view.png": "782c7f0f873a2fa2aedeb949fb4475666aa968046238428b82119a1740d0403e",
+    "docs/previews/water-v2-sheers.png": "4a156337f13c17c81dfce099bacefc1ec62c3c973e363bf4b45988b2cf20d2b5"
+  },
+  "artistic_acceptance": false,
+  "device_performance_certified": false,
+  "main_modified": false
+}

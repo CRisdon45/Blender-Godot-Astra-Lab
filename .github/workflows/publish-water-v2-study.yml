@@ -1,0 +1,112 @@
+name: Publish inspected water V2 frames
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/courtyard-review-pass]
+    paths: [.github/workflows/publish-water-v2-study.yml]
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: publish-inspected-water-v2
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/work/courtyard-review-pass'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Publish reviewed V2 PNGs and diagnostic provenance only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64, hashlib, io, json, os, tarfile, urllib.error, urllib.request, zipfile
+          REPO='CRisdon45/Blender-Godot-Astra-Lab'
+          BRANCH='work/courtyard-review-pass'
+          ARTIFACT=9971591107
+          DIGEST='25626128f055e58cf2763ab3285c5baf0fffdb17d93ac8007c905e49179a6367'
+          SOURCE='546c4e21a4fedd5ec5731f4840878b1490cd1ad8'
+          BASE='https://api.github.com/repos/'+REPO
+          TOKEN=os.environ['GH_TOKEN']
+          assert os.environ['GITHUB_REPOSITORY']==REPO
+          assert os.environ['GITHUB_REF']=='refs/heads/'+BRANCH
+          def api(method,path,data=None):
+              req=urllib.request.Request(BASE+path,data=None if data is None else json.dumps(data).encode(),method=method,
+                  headers={'Authorization':'Bearer '+TOKEN,'Accept':'application/vnd.github+json','Content-Type':'application/json','User-Agent':'water-v2-preview-publisher'})
+              with urllib.request.urlopen(req,timeout=120) as response: return json.load(response)
+          class NoRedirect(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,newurl): return None
+          req=urllib.request.Request(BASE+f'/actions/artifacts/{ARTIFACT}/zip',headers={'Authorization':'Bearer '+TOKEN,'Accept':'application/vnd.github+json','User-Agent':'water-v2-preview-publisher'})
+          try:
+              urllib.request.build_opener(NoRedirect).open(req,timeout=60)
+              raise RuntimeError('Expected artifact redirect')
+          except urllib.error.HTTPError as error:
+              if error.code!=302: raise
+              signed=error.headers['Location']
+          assert signed.startswith('https://')
+          # Fetch signed artifact storage without forwarding the GitHub credential.
+          with urllib.request.urlopen(signed,timeout=120) as response: archive=response.read(60_000_001)
+          assert len(archive)<=60_000_000 and hashlib.sha256(archive).hexdigest()==DIGEST
+          bundle=zipfile.ZipFile(io.BytesIO(archive))
+          assert bundle.read('source-commit.txt').decode().strip()==SOURCE
+          report=json.loads(bundle.read('runner-report.json'))
+          capture=json.loads(bundle.read('images/water-v2-review.json'))
+          assert report['images']==22 and report['png_files_written']==23
+          assert len(capture['images'])==22 and not capture['errors']
+          assert capture['reflection_pixel_comparison']['mean_absolute_rgb_delta']>0.5/255
+          # Publication acknowledges known failures; it is NOT a successful render gate.
+          assert all(item['stage'] in ['import','warnings'] for item in report['errors']),report
+          for line in bundle.read('import.log').decode().splitlines():
+              if 'ERROR:' in line: assert 'Attempting to parent and popup a dialog that already has a parent.' in line
+          assert 'WATER_V2_PREFLIGHT_PASSED' in bundle.read('preflight.log').decode()
+          log=bundle.read('capture.log').decode()
+          assert 'WATER_V2_DONE ' in log and 'ERROR:' not in log
+          assert 'SCRIPT ERROR' not in log and 'SHADER ERROR' not in log
+          warnings=[line for line in log.splitlines() if 'WARNING:' in line or 'leaked' in line.lower()]
+          head=api('GET','/git/ref/heads/'+BRANCH)['object']['sha']
+          parent=api('GET','/git/commits/'+head)
+          tree=api('GET','/git/trees/'+parent['tree']['sha']+'?recursive=1')
+          assert not tree.get('truncated')
+          lookup={e['path']:e.get('sha') for e in tree['tree']}
+          # Verify this study's runtime dependencies; the parallel HDR study is unrelated.
+          exclude={'godot/courtyard_water_reflections.gd','godot/courtyard_water_reflections.tscn','godot/planar_water_reflection.gd',
+              'godot/shaders/caustic_basin.gdshader','godot/shaders/falling_water_film.gdshader','godot/shaders/planar_pool_water.gdshader',
+              'godot/shaders/water_detail_common.gdshaderinc','godot/tests/capture_water_reflections.gd','godot/tests/test_reflection_preflight.gd'}
+          with tarfile.open(fileobj=io.BytesIO(bundle.read('source/source.tar'))) as sources:
+              for item in sources.getmembers():
+                  if item.isfile() and item.name.startswith('godot/') and item.name not in exclude:
+                      payload=sources.extractfile(item).read()
+                      digest=hashlib.sha1(b'blob '+str(len(payload)).encode()+b'\0'+payload).hexdigest()
+                      assert lookup.get(item.name)==digest,'Rendered source changed: '+item.name
+          # Also compare large assets omitted from the source tar against the rendered commit.
+          original=api('GET','/git/trees/'+api('GET','/git/commits/'+SOURCE)['tree']['sha']+'?recursive=1')
+          assert not original.get('truncated')
+          for e in original['tree']:
+              if e['type']=='blob' and (e['path'].startswith('godot/assets/') or e['path']=='godot/courtyard_editable.tscn'):
+                  assert lookup.get(e['path'])==e['sha'],'Rendered asset changed: '+e['path']
+          paths={'images/before-pool.png':'docs/previews/water-v2-before.png',
+              'images/after-pool.png':'docs/previews/water-v2-day.png',
+              'images/after-grazing.png':'docs/previews/water-v2-low-view.png',
+              'images/after-sheer.png':'docs/previews/water-v2-sheers.png'}
+          provenance_path='docs/previews/water-v2-provenance.json'
+          assert all(p not in lookup for p in [*paths.values(),provenance_path]),'No preview overwrites'
+          entries=[]; image_hashes={}
+          for src,dst in paths.items():
+              payload=bundle.read(src)
+              assert payload.startswith(b'\x89PNG\r\n\x1a\n') and 10000<len(payload)<10_000_000
+              image_hashes[dst]=hashlib.sha256(payload).hexdigest()
+              blob=api('POST','/git/blobs',{'encoding':'base64','content':base64.b64encode(payload).decode()})
+              entries.append({'path':dst,'mode':'100644','type':'blob','sha':blob['sha']})
+          provenance={'rendered_source_commit':SOURCE,'artifact_id':ARTIFACT,'artifact_sha256':DIGEST,
+              'runner_report':report,'capture_errors':capture['errors'],'reflection_pixel_comparison':capture['reflection_pixel_comparison'],
+              'renderer_warnings':warnings,'image_sha256':image_hashes,'artistic_acceptance':False,'device_performance_certified':False,'main_modified':False}
+          entries.append({'path':provenance_path,'mode':'100644','type':'blob','content':json.dumps(provenance,indent=2)+'\n'})
+          tree=api('POST','/git/trees',{'base_tree':parent['tree']['sha'],'tree':entries})
+          commit=api('POST','/git/commits',{'message':'Publish inspected V2 water frames with diagnostic provenance; preserve parallel study',
+              'tree':tree['sha'],'parents':[head]})
+          assert api('GET','/git/ref/heads/'+BRANCH)['object']['sha']==head,'Concurrent change: do not overwrite'
+          api('PATCH','/git/refs/heads/'+BRANCH,{'sha':commit['sha'],'force':False})
+          print(json.dumps({'published_commit':commit['sha'],'paths':[e['path'] for e in entries],
+              'rendered_source':SOURCE,'diagnostic':True,'main_modified':False},indent=2))
+          PY

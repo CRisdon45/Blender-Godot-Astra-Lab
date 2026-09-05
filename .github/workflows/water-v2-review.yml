@@ -1,0 +1,119 @@
+name: Water V2 planar reflection study
+# Refined run: probe isolation and actual reflection pixel regression; diagnostics remain failures.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/courtyard-review-pass]
+    paths: [.github/workflows/water-v2-review.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: water-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GODOT_VERSION: 4.7.1
+      GODOT_SHA256: c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+      LP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Prepare bounded software Vulkan review
+        run: |
+          mkdir -p water-v2-output
+          git rev-parse HEAD > water-v2-output/source-commit.txt
+          sha256sum godot/assets/anime/courtyard_anime.glb godot/courtyard_editable.tscn godot/shaders/water.gdshader > water-v2-output/preserved.sha256
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth libvulkan1 mesa-vulkan-drivers libxrender1 libxi6 libxxf86vm1 libxfixes3 libxkbcommon0 unzip
+          ICD="$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)"
+          test -n "$ICD"
+          echo "VK_ICD_FILENAMES=$ICD" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/xdg-runtime" "$RUNNER_TEMP/engines"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/xdg-runtime" >> "$GITHUB_ENV"
+          cd "$RUNNER_TEMP/engines"
+          ZIP="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl --fail --location --retry 2 --max-time 180 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/$ZIP" -o "$ZIP"
+          printf '%s  %s\n' "$GODOT_SHA256" "$ZIP" | sha256sum --check --strict
+          unzip -q "$ZIP"
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          echo "$RUNNER_TEMP/engines" >> "$GITHUB_PATH"
+      - name: Python source and math regressions
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tests -v 2>&1 | tee water-v2-output/python-tests.log
+      - name: Import and capture actual before after water
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1200x24' python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          from tools import review
+          out=Path('water-v2-output').resolve()
+          project=Path('godot').resolve()
+          config=project/'project.godot'
+          original=config.read_bytes()
+          errors=[]
+          stages=[('import',['godot','--audio-driver','Dummy','--path',str(project),'--editor','--import'],None),
+                  ('preflight',['godot','--headless','--audio-driver','Dummy','--path',str(project),'--script','res://tests/test_water_v2_preflight.gd'],'WATER_V2_PREFLIGHT_PASSED'),
+                  ('capture',['godot','--audio-driver','Dummy','--path',str(project),'--rendering-method','forward_plus','--script','res://tests/capture_water_v2.gd','--','--output='+str(out/'images')],'WATER_V2_DONE ')]
+          for name,command,marker in stages:
+              if name=='capture' and any(e['stage']=='preflight' for e in errors):
+                  errors.append({'stage':'capture','error':'Skipped after failed actual-script preflight'})
+                  break
+              try:
+                  review.run_stage(command,out/(name+'.log'),600 if name=='capture' else 180,marker)
+              except Exception as exc:
+                  errors.append({'stage':name,'error':str(exc)})
+              finally:
+                  if config.read_bytes()!=original:
+                      (out/'editor-rewritten-project.txt').write_bytes(config.read_bytes())
+                      config.write_bytes(original)
+          count=0
+          manifest=out/'images/water-v2-review.json'
+          if manifest.exists():
+              data=json.loads(manifest.read_text())
+              count=len(data.get('images',[]))
+              for item in data.get('images',[]):
+                  try: review.validate_png(out/'images'/item['file'])
+                  except Exception as exc: errors.append({'stage':'png','error':str(exc)})
+              if data.get('errors'): errors.append({'stage':'contracts','error':data['errors']})
+          if count!=22: errors.append({'stage':'capture_count','error':count})
+          for image in (out/'images').glob('*.png'):
+              try: review.validate_png(image)
+              except Exception as exc: errors.append({'stage':'png','error':str(exc)})
+          if not (out/'images/planar-source.png').is_file():
+              errors.append({'stage':'reflection','error':'Missing real reflection image'})
+          for logfile in out.glob('*.log'):
+              warnings=[line for line in logfile.read_text(errors='replace').splitlines() if 'WARNING:' in line or 'leaked' in line.lower()]
+              if warnings: errors.append({'stage':'warnings','file':logfile.name,'messages':warnings})
+          report={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                  'images':count,'png_files_written':len(list((out/'images').glob('*.png'))),'errors':errors,'visual_acceptance':'pending_user_review',
+                  'performance_certified':False,'status':'diagnostic' if errors else 'captured'}
+          (out/'runner-report.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          raise SystemExit(1 if errors else 0)
+          PY
+      - name: Package evidence without replacing baselines
+        if: always()
+        run: |
+          mkdir -p water-v2-output/source
+          git ls-files -z '*.gd' '*.gdshader' '*.gdshaderinc' '*.py' '*.md' '*.yml' '*.tscn' 'godot/project.godot' | tar --exclude=godot/courtyard_editable.tscn --null -T - -cf water-v2-output/source/source.tar
+          sha256sum --check --strict water-v2-output/preserved.sha256 > water-v2-output/preserved-check.log
+          git diff --exit-code > water-v2-output/tracked-source-diff.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: water-v2-review-${{ github.run_number }}
+          path: water-v2-output/
+          if-no-files-found: error
+          retention-days: 7

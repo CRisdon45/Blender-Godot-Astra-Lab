@@ -16,3 +16,6 @@ Thumbs.db
 # Keep the reviewed Godot preview; ignore ad-hoc captures.
 godot/captures/*
 !godot/captures/godot_courtyard.png
+
+# Per-run review logs/manifests/captures are evidence, not automatic baselines.
+.review-output/

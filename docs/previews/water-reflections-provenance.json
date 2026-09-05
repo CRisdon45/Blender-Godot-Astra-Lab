@@ -1,0 +1,67 @@
+{
+  "artifact_id": 9971950580,
+  "artifact_sha256": "8d45f8bf28d5b8d8c488d240c03f9390b9be5555cbf2dce64c7b261c6f9de84d",
+  "rendered_source_commit": "1fb69a1ea69fdd54c72219f5fb633a3119c5a5c2",
+  "render_report": {
+    "source_commit": "1fb69a1ea69fdd54c72219f5fb633a3119c5a5c2",
+    "images": 30,
+    "errors": [
+      {
+        "stage": "import",
+        "error": "Godot stage failed (exit 0); see /home/runner/work/Blender-Godot-Astra-Lab/Blender-Godot-Astra-Lab/reflection-output/import.log"
+      }
+    ],
+    "warnings": [
+      {
+        "stage": "capture",
+        "warning": "WARNING: 7 RIDs of type \"Texture\" were leaked."
+      }
+    ],
+    "status": "diagnostic",
+    "visual_acceptance": "pending_review",
+    "performance_certified": false
+  },
+  "capture_runtime_errors": [],
+  "renderer_warnings": [
+    "WARNING: 7 RIDs of type \"Texture\" were leaked."
+  ],
+  "runtime_witnesses": {
+    "clip_and_hdr": {
+      "diagnostic-clip-off": {
+        "above_green_pixels": 703,
+        "below_magenta_pixels": 626,
+        "maximum_linear_value": 3.0
+      },
+      "diagnostic-clip-on": {
+        "above_green_pixels": 703,
+        "below_magenta_pixels": 0,
+        "maximum_linear_value": 3.0
+      }
+    },
+    "final_surface": {
+      "changed_pixels": 24015,
+      "mean_rgb_difference": 0.0393855646790387,
+      "off": "diagnostic-no-reflection.png",
+      "on": "after-pool.png",
+      "region": [
+        160,
+        540,
+        220,
+        110
+      ]
+    },
+    "plane_projection": {
+      "main_uv": [
+        1.18829309940338,
+        0.688790500164032
+      ],
+      "mirror_uv": [
+        -0.188293039798737,
+        0.688790500164032
+      ]
+    }
+  },
+  "artistic_acceptance": false,
+  "main_modified": false,
+  "device_performance_certified": false
+}

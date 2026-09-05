@@ -1,0 +1,135 @@
+name: Anime foliage Blender and Godot review
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/courtyard-review-pass]
+    paths: [.github/workflows/anime-foliage-review.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anime-foliage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foliage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      GODOT_VERSION: 4.7.1
+      GODOT_SHA256: c7ff14fd28472c8d4f193043de30278dcf7e5241a1dcf7566b02e27addaa33ba
+      BLENDER_VERSION: 5.2.1
+      LIBGL_ALWAYS_SOFTWARE: 'true'
+      LP_NUM_THREADS: '4'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Record source identity
+        run: |
+          mkdir -p foliage-output
+          git rev-parse HEAD > foliage-output/source-commit.txt
+          sha256sum pool_godot_source.blend godot/assets/backyard.glb godot/courtyard_editable.tscn godot/captures/godot_courtyard.png > foliage-output/preserved-source.sha256
+      - name: Install Vulkan and display
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends xvfb xauth libvulkan1 mesa-vulkan-drivers libxrender1 libxi6 libxxf86vm1 libxfixes3 libxkbcommon0 unzip
+          ICD="$(find /usr/share/vulkan/icd.d -name 'lvp_icd*.json' -print -quit)"
+          test -n "$ICD"
+          echo "VK_ICD_FILENAMES=$ICD" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/xdg-runtime"
+          chmod 700 "$RUNNER_TEMP/xdg-runtime"
+          echo "XDG_RUNTIME_DIR=$RUNNER_TEMP/xdg-runtime" >> "$GITHUB_ENV"
+      - name: Install pinned Godot and Blender with checksum validation
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/engines"
+          cd "$RUNNER_TEMP/engines"
+          ZIP="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          curl --fail --location --retry 2 --max-time 180 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/$ZIP" -o "$ZIP"
+          printf '%s  %s\n' "$GODOT_SHA256" "$ZIP" | sha256sum --check --strict
+          unzip -q "$ZIP"
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" godot
+          chmod +x godot
+          ARCHIVE="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          BASE="https://download.blender.org/release/Blender5.2"
+          curl --fail --location --retry 2 --max-time 240 "$BASE/$ARCHIVE" -o "$ARCHIVE"
+          curl --fail --location --retry 2 --max-time 60 "$BASE/blender-${BLENDER_VERSION}.sha256" -o blender.sha256
+          grep " $ARCHIVE$" blender.sha256 | tee "$GITHUB_WORKSPACE/foliage-output/blender-download.sha256" | sha256sum --check --strict
+          tar -xf "$ARCHIVE"
+          echo "$RUNNER_TEMP/engines" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/engines/blender-${BLENDER_VERSION}-linux-x64" >> "$GITHUB_PATH"
+      - name: Existing Python regressions
+        run: |
+          set -o pipefail
+          python3 -m unittest discover -s tests -v 2>&1 | tee foliage-output/python-tests.log
+      - name: Bake authored foliage with Blender
+        id: build
+        run: |
+          set -o pipefail
+          blender --background --factory-startup --python-exit-code 1 --python tools/build_anime_foliage.py 2>&1 | tee foliage-output/blender-build.log
+          test -s godot/assets/anime/courtyard_anime.glb
+          test -s godot/assets/anime/build_manifest.json
+          grep -q 'ANIME_FOLIAGE_BUILD_OK' foliage-output/blender-build.log
+          python3 tools/check_foliage_glb.py godot/assets/anime/courtyard_anime.glb > foliage-output/glb-contract.json
+          sha256sum --check --strict foliage-output/preserved-source.sha256
+      - name: Import and render before after plus full crown orbit
+        run: |
+          xvfb-run -a -s '-screen 0 1600x1200x24' python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          from tools import review
+          out=Path('foliage-output').resolve()
+          project=Path('godot').resolve()
+          errors=[]
+          config=project/'project.godot'
+          original=config.read_bytes()
+          stages=[('import',['godot','--headless','--audio-driver','Dummy','--path',str(project),'--editor','--import'],None),
+                  ('capture',['godot','--audio-driver','Dummy','--path',str(project),'--rendering-method','forward_plus','--script','res://tests/capture_foliage.gd','--','--output='+str(out/'images')],'FOLIAGE_REVIEW_DONE ')]
+          for name,command,marker in stages:
+              try:
+                  review.run_stage(command,out/(name+'.log'),660,marker)
+              except Exception as exc:
+                  errors.append({'stage':name,'error':str(exc)})
+              finally:
+                  if config.read_bytes()!=original:
+                      (out/'editor-rewritten-project.txt').write_bytes(config.read_bytes())
+                      config.write_bytes(original)
+          result=out/'images'/'foliage-review.json'
+          count=0
+          if result.exists():
+              data=json.loads(result.read_text())
+              count=len(data.get('images',[]))
+              for image in data.get('images',[]):
+                  review.validate_png(out/'images'/image['file'])
+              if data.get('errors'):
+                  errors.append({'stage':'mesh_contract','error':data['errors']})
+          if count!=20:
+              errors.append({'stage':'capture_count','error':count})
+          report={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                  'images':count,'errors':errors,'visual_acceptance':'not_approved',
+                  'status':'diagnostic_captures' if errors else 'captured',
+                  'device_performance_certified':False}
+          (out/'runner-report.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          raise SystemExit(1 if errors else 0)
+          PY
+      - name: Package source and generated editable assets
+        if: always()
+        run: |
+          mkdir -p foliage-output/assets foliage-output/source
+          cp -r godot/assets/anime foliage-output/assets/ 2>/dev/null || true
+          cp -r authoring foliage-output/ 2>/dev/null || true
+          git ls-files -z '*.gd' '*.gdshader' '*.py' '*.md' '*.yml' '*.tscn' 'godot/project.godot' | tar --exclude=godot/courtyard_editable.tscn --null -T - -cf foliage-output/source/source.tar
+          sha256sum --check --strict foliage-output/preserved-source.sha256 > foliage-output/preserved-source-check.log
+          git diff --exit-code > foliage-output/tracked-source-diff.txt
+      - name: Upload actual images, editable Blender source and diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: anime-foliage-review-${{ github.run_number }}
+          path: foliage-output/
+          if-no-files-found: error
+          retention-days: 7
