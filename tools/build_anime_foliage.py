@@ -133,7 +133,7 @@ SHRUB_LOBES = [
 
 def crown(name, origin, scale, lobes, count, brush, seed):
     rng = random.Random(seed)
-    vertices, faces, normals, uv, uv2, colors = [], [], [], [], [], [], []
+    vertices, faces, normals, uv, uv2, colors = [], [], [], [], [], []
     origin = Vector(origin)
     cards = 0
     for li, (center, radii) in enumerate(lobes):
@@ -295,7 +295,9 @@ for mat in bpy.data.materials:
     nt.links.new(bsdf.outputs[0],output.inputs[0])
     mat.use_backface_culling=False
 bpy.ops.export_scene.gltf(filepath=str(OUT/'courtyard_anime.glb'),export_format='GLB',export_apply=True,
-                          export_cameras=False,export_lights=False,export_yup=True)
+                          export_cameras=False,export_lights=False,export_yup=True,
+                          export_vertex_color='NAME',export_vertex_color_name='BrushData',
+                          export_all_vertex_colors=False)
 manifest={'schema':1,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),
           'blender':bpy.app.version_string,'removed_objects':removed,'plants':stats,
           'tree_count':len(roots),'shrub_count':5,'total_brush_cards':sum(p['cards'] for p in stats),
