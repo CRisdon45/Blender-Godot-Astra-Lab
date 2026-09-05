@@ -69,7 +69,7 @@ jobs:
         id: build
         run: |
           set -o pipefail
-          blender --background --factory-startup --python tools/build_anime_foliage.py 2>&1 | tee foliage-output/blender-build.log
+          blender --background --factory-startup --python-exit-code 1 --python tools/build_anime_foliage.py 2>&1 | tee foliage-output/blender-build.log
           test -s godot/assets/anime/courtyard_anime.glb
           test -s godot/assets/anime/build_manifest.json
           grep -q 'ANIME_FOLIAGE_BUILD_OK' foliage-output/blender-build.log
