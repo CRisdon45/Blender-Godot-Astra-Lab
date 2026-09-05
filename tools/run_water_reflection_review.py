@@ -9,10 +9,11 @@ from tools import review
 
 POSES = ('courtyard', 'pool', 'grazing', 'shelf', 'sheer')
 EXPECTED = ({f'{version}-{pose}.png' for version in ('before', 'after') for pose in POSES}
-            | {'diagnostic-reflection.png', 'diagnostic-reflection-flat.png',
+            | {'diagnostic-reflection.png', 'diagnostic-no-reflection.png',
                'diagnostic-receiver.png', 'diagnostic-receiver-no-caustics.png',
                'after-flow-off.png', 'night-pool.png',
-               'diagnostic-clip-on.png', 'diagnostic-clip-off.png'}
+               'diagnostic-clip-on.png', 'diagnostic-clip-off.png',
+               'variant-calmer.png', 'variant-livelier.png'}
             | {f'motion-{n:02}.png' for n in range(6)}
             | {f'orbit-{n:02}.png' for n in range(4)})
 
@@ -22,8 +23,8 @@ def validate_manifest(directory: Path) -> dict:
     data = json.loads((directory / 'water-reflection-review.json').read_text())
     rows = data.get('images', [])
     names = [row['file'] for row in rows]
-    if len(names) != 28 or set(names) != EXPECTED or len(set(names)) != len(names):
-        raise ValueError('Expected exactly 28 uniquely named real captures')
+    if len(names) != 30 or set(names) != EXPECTED or len(set(names)) != len(names):
+        raise ValueError('Expected exactly 30 uniquely named real captures')
     if {p.name for p in directory.glob('*.png')} != EXPECTED:
         raise ValueError('Manifest differs from actual PNG set')
     if data.get('errors'):
@@ -48,6 +49,9 @@ def validate_manifest(directory: Path) -> dict:
         if not b['study'].get('reflection_ready'):
             raise ValueError(f'Reflection not initialized: {pose}')
     witnesses = data.get('witnesses', {})
+    surface = witnesses.get('final_surface', {})
+    if surface.get('mean_rgb_difference', 0) <= .006 or surface.get('changed_pixels', 0) <= 2420:
+        raise ValueError('Reflected scene does not affect the final water pixels')
     clip = witnesses.get('clip_and_hdr', {})
     on, off = clip.get('diagnostic-clip-on', {}), clip.get('diagnostic-clip-off', {})
     if on.get('below_magenta_pixels') != 0 or off.get('below_magenta_pixels', 0) <= 4:
@@ -81,7 +85,7 @@ def run(godot: str, output: Path) -> int:
             break
         log = output / (name + '.log')
         try:
-            review.run_stage(command, log, 480 if name == 'capture' else 180, marker)
+            review.run_stage(command, log, 450 if name == 'capture' else (30 if name == 'preflight' else 90), marker)
         except Exception as exc:
             errors.append({'stage': name, 'error': str(exc)})
         finally:

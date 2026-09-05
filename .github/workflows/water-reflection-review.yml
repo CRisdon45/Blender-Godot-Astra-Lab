@@ -1,5 +1,5 @@
 name: Planar pool reflection and light study
-# Revision 1: actual mirrored scene, clipped HDR controls and matched previous-water views.
+# Revision 2: render-sized HDR buffer, shared foliage pose and calmer/livelier comparisons.
 
 on:
   workflow_dispatch:

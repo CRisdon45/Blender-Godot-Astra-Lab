@@ -66,10 +66,10 @@ complete videos. No external shader package, artwork or textures were copied.
 ## Evidence gates
 
 The bounded GitHub Linux workflow `water-reflection-review.yml` preloads the actual
-script chain and performs camera-mirror checks before rendering. Its 28 frames
+script chain and performs camera-mirror checks before rendering. Its 30 frames
 include five pose/time-matched previous/new pairs, reflection and receiver
 isolations, flow off, night, six explicitly sampled motion phases, four camera
-angles, and two conspicuously labeled clip-control frames.
+angles, calmer/livelier ripple alternatives, and two conspicuously labeled clip-control frames.
 
 The raw reflected viewport contains temporary reflection-only emissive controls:
 an above-plane green box must remain; a below-plane magenta box must be absent.
@@ -97,3 +97,33 @@ loop. Background fire/sky may continue their own engine-clock animation.
   fixture limitations, not recommended dimensions or construction standards.
 - Texture/view lifetime is explicitly broken on shutdown, but only actual engine
   logs can establish whether any previous or new resource warnings remain.
+
+## First actual run and bounded refinement
+
+Run 33972760077 / commit `610a996` produced all 28 original frames. All 165
+combined Python tests and the actual-script preflight passed. Capture logged no
+script/shader errors and its runtime assertions passed: the submerged marker was
+0 pixels with clipping and 1105 pixels without, the above-water control remained
+1257 pixels in both, and the raw linear HDR maximum was 3.0.
+
+Independent source verification matched all 13 new files exactly. The evidence
+runner nevertheless failed correctly: a 1600 x 1200 logical window yielded an
+800 x 600 reflection while the actual main render was 1200 x 900. This exposed a
+render-size/window-size mismatch, not corrupted PNGs. The next revision sizes the
+buffer from the render texture (600 x 450), rather than weakening the size test.
+
+The first actual frames show recognizable reflected planting, fire bowls and
+pergola instead of the old repeated blobs. They remain too mirror-like at some
+angles. The refinement also locks leaf-card positions to the main camera and
+compares .035 / .09 / .16 distortion weights. These are art-directed settings,
+not physical roughness measurements. Waiting fewer completed frames avoids
+unnecessary software-renderer work; explicit frame-post-draw capture remains.
+
+Known editor popup-parenting errors and seven leaked Texture RIDs persisted in
+the first run and remain failures. Refinement results are pending; no production,
+artistic, device-performance, or leak-resolution approval follows from these tests.
+
+The refined set also disables the reflection on the final pool surface and measures
+an unobstructed water rectangle against the same pose/time with it enabled. This
+checks that a valid reflected texture actually contributes to the final water,
+not only that the off-screen camera can render. Both full frames are preserved.

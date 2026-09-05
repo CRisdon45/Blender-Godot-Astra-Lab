@@ -14,7 +14,7 @@ func _ready() -> void:
 		return
 	water._pool_material.shader = PLANAR_WATER
 	water._pool_material.set_shader_parameter("surface_strength",0.55)
-	water._pool_material.set_shader_parameter("reflection_distortion",0.035)
+	water._pool_material.set_shader_parameter("reflection_distortion",0.09)
 	for material in water._materials:
 		if material != water._pool_material:
 			material.shader = FALLING_FILM
@@ -78,8 +78,7 @@ func register_reflected_geometry(node: Node) -> void:
 func _process(delta: float) -> void:
 	super._process(delta)
 	if reflection_ready:
-		mirror.plane_y=water.snapshot().water_level
-		mirror.sync_camera()
+		mirror.plane_y=water.snapshot().water_level # Child updates after navigation, once per frame.
 
 func set_water_phase(seconds: float) -> void:
 	super.set_water_phase(seconds)

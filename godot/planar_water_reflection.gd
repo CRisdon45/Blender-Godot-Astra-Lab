@@ -21,6 +21,7 @@ var enabled: bool = true
 var error: String = ""
 var reflected_materials: Array[ShaderMaterial] = []
 var shader_cache: Dictionary = {}
+var fixed_foliage: Array[ShaderMaterial] = []
 var source_environment: Environment
 var mirror_environment: Environment
 
@@ -43,6 +44,10 @@ static func clipped_code(source: String) -> String:
 	if source.count("shader_type spatial;") != 1 or source.count("void fragment()") != 1:
 		return ""
 	var code: String = source.replace("shader_type spatial;", "shader_type spatial;" + CLIP_HEADER)
+	if code.contains("MAIN_CAM_INV_VIEW_MATRIX"):
+		# A reflection should see the same cards, not a second camera-facing canopy.
+		code=code.replace("MAIN_CAM_INV_VIEW_MATRIX","reflection_foliage_camera")
+		code=code.replace("shader_type spatial;","shader_type spatial;\nuniform mat4 reflection_foliage_camera;\n")
 	var opening: int = code.find("{", code.find("void fragment()"))
 	if opening < 0:
 		return ""
@@ -56,10 +61,11 @@ func bind(camera: Camera3D, material: ShaderMaterial, level: float, environment:
 	surface = material
 	plane_y = level
 	source_environment = environment
+	process_priority = 10
 	source_camera.cull_mask &= ~REFLECTION_LAYER
 	viewport = SubViewport.new()
 	viewport.name = "Linear HDR planar reflection"
-	viewport.size = target_size(Vector2i(camera.get_viewport().get_visible_rect().size), resolution_scale, max_dimension)
+	viewport.size = target_size(Vector2i(camera.get_viewport().get_texture().get_size()), resolution_scale, max_dimension)
 	viewport.use_hdr_2d = true # Linear HDR texture, NOT an sRGB/filmic screen copy.
 	viewport.transparent_bg = false
 	viewport.canvas_cull_mask = 0
@@ -90,6 +96,8 @@ func register_material(material: ShaderMaterial) -> Error:
 	if reflected_materials.has(material):
 		return OK
 	var source: Shader = material.shader
+	if source.code.contains("MAIN_CAM_INV_VIEW_MATRIX"):
+		fixed_foliage.append(material)
 	var key: String = source.code.sha256_text()
 	if not shader_cache.has(key):
 		var code: String = clipped_code(source.code)
@@ -122,7 +130,7 @@ func sync_camera() -> void:
 		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		surface.set_shader_parameter("planar_enabled", false)
 		return
-	viewport.size = target_size(Vector2i(source_camera.get_viewport().get_visible_rect().size), resolution_scale, max_dimension)
+	viewport.size = target_size(Vector2i(source_camera.get_viewport().get_texture().get_size()), resolution_scale, max_dimension)
 	mirror_camera.keep_aspect = source_camera.keep_aspect
 	mirror_camera.projection = source_camera.projection
 	mirror_camera.fov = source_camera.fov
@@ -137,6 +145,8 @@ func sync_camera() -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if enabled else SubViewport.UPDATE_DISABLED
 	for material in reflected_materials:
 		material.set_shader_parameter("reflection_plane_y", plane_y)
+	for material in fixed_foliage:
+		material.set_shader_parameter("reflection_foliage_camera", source_camera.get_camera_transform())
 	sync_environment()
 
 func _process(_delta: float) -> void:
@@ -147,7 +157,7 @@ func snapshot() -> Dictionary:
 		"size": [viewport.size.x, viewport.size.y] if is_instance_valid(viewport) else [],
 		"linear_hdr": viewport.use_hdr_2d if is_instance_valid(viewport) else false,
 		"camera_position": [mirror_camera.global_position.x, mirror_camera.global_position.y, mirror_camera.global_position.z] if is_instance_valid(mirror_camera) else [],
-		"material_count": reflected_materials.size(), "shader_families": shader_cache.size(),
+		"material_count": reflected_materials.size(), "shader_families": shader_cache.size(), "fixed_foliage_count": fixed_foliage.size(),
 		"quality_note": "One extra view; no target-device performance approval"}
 
 func close() -> void:
@@ -167,6 +177,7 @@ func close() -> void:
 	surface = null
 	reflected_materials.clear()
 	shader_cache.clear()
+	fixed_foliage.clear()
 
 func _exit_tree() -> void:
 	close()

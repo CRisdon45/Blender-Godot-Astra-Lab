@@ -17,7 +17,7 @@ func capture(scene, label: String, position: Vector3, aim: Vector3, seconds: flo
 	scene.camera.position=position
 	scene.camera.look_at(aim)
 	scene.set_water_phase(seconds)
-	await frames(6)
+	await frames(3)
 	await RenderingServer.frame_post_draw
 	var image: Image=root.get_texture().get_image()
 	if image==null or image.is_empty():
@@ -28,6 +28,28 @@ func capture(scene, label: String, position: Vector3, aim: Vector3, seconds: flo
 		"aim":[aim.x,aim.y,aim.z],"width":image.get_width(),"height":image.get_height(),
 		"water":scene.water.snapshot(),"study":scene.study_snapshot()})
 	print("REFLECTION_FRAME ",label)
+func surface_witness() -> void:
+	var on: Image=Image.load_from_file(output.path_join("after-pool.png"))
+	var off: Image=Image.load_from_file(output.path_join("diagnostic-no-reflection.png"))
+	if on==null or off==null or on.get_size()!=off.get_size():
+		errors.append("Missing paired final-surface witness images")
+		return
+	# This rectangle is entirely unobstructed pool water in the fixed pool pose.
+	var region := Rect2i(160,540,220,110)
+	var total: float=0.0
+	var changed: int=0
+	for y in range(region.position.y,region.end.y):
+		for x in range(region.position.x,region.end.x):
+			var a: Color=on.get_pixel(x,y)
+			var b: Color=off.get_pixel(x,y)
+			var difference: float=(absf(a.r-b.r)+absf(a.g-b.g)+absf(a.b-b.b))/3.0
+			total+=difference
+			if difference>0.01:
+				changed+=1
+	var mean: float=total/float(region.get_area())
+	witnesses["final_surface"]={"mean_rgb_difference":mean,"changed_pixels":changed,
+		"region":[160,540,220,110],"on":"after-pool.png","off":"diagnostic-no-reflection.png"}
+	check(mean>0.006 and changed>region.get_area()/10,"Reflection buffer does not visibly affect final water")
 func marker(color: Vector3, position: Vector3, scene) -> MeshInstance3D:
 	var box := MeshInstance3D.new()
 	box.mesh=BoxMesh.new()
@@ -71,7 +93,7 @@ func reflection_witness(scene) -> void:
 	var measurements: Dictionary={}
 	for clip in [true,false]:
 		below_mat.set_shader_parameter("reflection_plane_y",level if clip else -100.0)
-		await frames(6)
+		await frames(3)
 		await RenderingServer.frame_post_draw
 		var raw: Image=scene.mirror.viewport.get_texture().get_image()
 		if raw==null or raw.is_empty():
@@ -134,7 +156,7 @@ func run() -> void:
 			scene.free()
 			continue
 		root.add_child(scene)
-		await frames(12)
+		await frames(6)
 		scene.set_process(false)
 		scene.set_illustration(true)
 		var state: Dictionary=scene.water.snapshot()
@@ -154,15 +176,23 @@ func run() -> void:
 			check((scene.water._pool.layers & MIRROR.REFLECTION_LAYER)==0,"Recursive pool capture")
 			check(scene.reflected_meshes>20 and scene.mirror.reflected_materials.size()>20,"Reflection scene incomplete")
 			check(scene.mirror.viewport.use_hdr_2d,"Linear HDR reflection disabled")
+			check(scene.mirror.fixed_foliage.size()==12,"Reflected foliage pose is not fixed to the main camera")
+			check(scene.mirror.viewport.size==Vector2i(600,450),"Reflection buffer is not half the rendered size")
 			check(int(scene.water._pool_material.get_shader_parameter("impact_count"))==2,"Impact uniforms lost")
 			check(scene.painted_foliage.size()==12,"Foliage materials lost")
 			projection_witness(scene)
 			var mat: ShaderMaterial=scene.water._pool_material
 			mat.set_shader_parameter("debug_view",3)
 			await capture(scene,"diagnostic-reflection",poses[1][1],poses[1][2])
-			mat.set_shader_parameter("reflection_distortion",0.0)
-			await capture(scene,"diagnostic-reflection-flat",poses[1][1],poses[1][2])
-			mat.set_shader_parameter("reflection_distortion",0.035)
+			mat.set_shader_parameter("debug_view",0)
+			scene.mirror.enabled=false
+			await capture(scene,"diagnostic-no-reflection",poses[1][1],poses[1][2])
+			surface_witness()
+			scene.mirror.enabled=true
+			for variant in [[0.035,"calmer"],[0.16,"livelier"]]:
+				mat.set_shader_parameter("reflection_distortion",variant[0])
+				await capture(scene,"variant-"+variant[1],poses[1][1],poses[1][2])
+			mat.set_shader_parameter("reflection_distortion",0.09)
 			mat.set_shader_parameter("debug_view",4)
 			await capture(scene,"diagnostic-receiver",poses[3][1],poses[3][2])
 			for material in scene.basin_materials:
@@ -177,12 +207,12 @@ func run() -> void:
 			scene.water.set_flow(true)
 			check(scene.water.snapshot().impact_segments_xz==state.impact_segments_xz,"Flow changed contacts")
 			scene.set_night(true)
-			await frames(8)
+			await frames(4)
 			await capture(scene,"night-pool",poses[1][1],poses[1][2])
 			for material in scene.painted_foliage:
 				check(is_equal_approx(float(material.get_shader_parameter("paint_illumination")),0.1),"Night foliage not dimmed")
 			scene.set_night(false)
-			await frames(8)
+			await frames(4)
 			for material in scene.painted_foliage:
 				check(is_equal_approx(float(material.get_shader_parameter("paint_illumination")),1.0),"Day foliage not restored")
 			for step in range(6):
@@ -196,10 +226,10 @@ func run() -> void:
 			scene.mirror.close()
 			await frames(4)
 		scene.queue_free()
-		await frames(6)
-	await frames(8)
+		await frames(3)
+	await frames(4)
 	await RenderingServer.frame_post_draw
-	var report: Dictionary={"images":images,"errors":errors,"witnesses":witnesses,"expected_images":28,
+	var report: Dictionary={"images":images,"errors":errors,"witnesses":witnesses,"expected_images":30,
 		"engine":Engine.get_version_info(),"renderer":"Forward+ / Linux software Vulkan",
 		"visual_acceptance":"pending_review","performance_certified":false}
 	var file := FileAccess.open(output.path_join("water-reflection-review.json"),FileAccess.WRITE)
@@ -210,4 +240,4 @@ func run() -> void:
 	file.store_string(JSON.stringify(report,"\t"))
 	file.close()
 	print("REFLECTION_REVIEW_DONE ",JSON.stringify({"images":images.size(),"errors":errors}))
-	quit(0 if errors.is_empty() and images.size()==28 else 1)
+	quit(0 if errors.is_empty() and images.size()==30 else 1)

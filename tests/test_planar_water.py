@@ -105,6 +105,15 @@ class SourceTests(unittest.TestCase):
         s=source('godot/tests/capture_water_reflections.gd')
         for token in ['level if clip else -100.0','maximum_linear_value>1.1','below_magenta_pixels==0','below_magenta_pixels>4']:
             self.assertIn(token,s)
+    def test_capture_size_uses_render_texture_not_window(self):
+        helper=source('godot/planar_water_reflection.gd')
+        self.assertIn('source_camera.get_viewport().get_texture().get_size()',helper)
+        self.assertNotIn('get_visible_rect()',helper)
+    def test_foliage_pose_is_shared_with_reflection(self):
+        helper=source('godot/planar_water_reflection.gd')
+        self.assertIn('code.replace("MAIN_CAM_INV_VIEW_MATRIX","reflection_foliage_camera")',helper)
+        self.assertIn('"reflection_foliage_camera", source_camera.get_camera_transform()',helper)
+        self.assertIn('fixed_foliage.size()==12',source('godot/tests/capture_water_reflections.gd'))
     def test_shader_spectrum_and_hessian_share_modes(self):
         s=source('godot/shaders/water_detail_common.gdshaderinc')
         import re
@@ -122,7 +131,7 @@ class EvidenceTests(unittest.TestCase):
             rows.append({'file':name,'width':size[0],'height':size[1], 'camera':[1,2,3], 'aim':[0,0,0],
                          'water':{'time_seconds':2,'flow_enabled':True,'impact_segments_xz':[[1,2,3,4],[5,6,7,8]]},
                          'study':{'reflection_ready':True}})
-        data={'images':rows,'errors':[], 'witnesses':{'clip_and_hdr':{
+        data={'images':rows,'errors':[], 'witnesses':{'final_surface':{'mean_rgb_difference':.1,'changed_pixels':20000},'clip_and_hdr':{
             'diagnostic-clip-on':{'below_magenta_pixels':0,'above_green_pixels':20},
             'diagnostic-clip-off':{'below_magenta_pixels':10,'above_green_pixels':20,'maximum_linear_value':3}}}}
         self.write(directory,data)
@@ -133,9 +142,9 @@ class EvidenceTests(unittest.TestCase):
     def test_complete_synthetic_manifest(self,_mock):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d);self.fixture(p)
-            self.assertEqual(len(runner.validate_manifest(p)['images']),28)
+            self.assertEqual(len(runner.validate_manifest(p)['images']),30)
     def test_expected_count_is_exact(self):
-        self.assertEqual(len(runner.EXPECTED),28)
+        self.assertEqual(len(runner.EXPECTED),30)
     def test_duplicate_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             p=Path(d);data=self.fixture(p)
@@ -163,6 +172,14 @@ class EvidenceTests(unittest.TestCase):
             data['witnesses']['clip_and_hdr']['diagnostic-clip-off']['below_magenta_pixels']=0
             self.write(p,data)
             with self.assertRaisesRegex(ValueError,'positive control'):
+                runner.validate_manifest(p)
+    @patch.object(runner.review,'validate_png',side_effect=lambda p: (600,450) if p.name.startswith('diagnostic-clip-') else (1200,900))
+    def test_inert_reflection_buffer_rejected(self,_mock):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d);data=self.fixture(p)
+            data['witnesses']['final_surface']['mean_rgb_difference']=0
+            self.write(p,data)
+            with self.assertRaisesRegex(ValueError,'final water pixels'):
                 runner.validate_manifest(p)
     def test_warning_detection_preserves_texture_leaks(self):
         text='OK\nWARNING: 7 leaked Texture RIDs\nERROR: 2 RID allocations remain\n'
