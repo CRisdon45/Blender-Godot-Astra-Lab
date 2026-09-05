@@ -2,6 +2,7 @@ extends "res://engine_lab.gd"
 ## Same placement/cache/budget engine, opt-in 4-component art catalog. No separate runtime.
 const CORE_SHADER = preload("res://shaders/canopy_core.gdshader")
 const EDGE_SHADER = preload("res://shaders/canopy_edge.gdshader")
+const LEAF_SHADER = preload("res://shaders/canopy_leaf.gdshader")
 const GROUND_SHADER = preload("res://shaders/canopy_ground.gdshader")
 var treatment: String = "canopy"
 var component_view: String = "all"
@@ -65,7 +66,7 @@ func _material(species: String, component: String) -> ShaderMaterial:
 	if material_cache.has(key):
 		return material_cache[key]
 	var mat := ShaderMaterial.new()
-	mat.shader = CORE_SHADER if component in ["core", "leaf"] else EDGE_SHADER
+	mat.shader = CORE_SHADER if component == "core" else (LEAF_SHADER if component == "leaf" else EDGE_SHADER)
 	var profile: Dictionary = manifest.profiles[species]
 	var palette: Array = profile.flowers if component == "flower" else profile.leaves
 	for index in range(3):
