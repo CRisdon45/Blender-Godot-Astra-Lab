@@ -38,6 +38,16 @@ static func target_size(source: Vector2i, scale: float, limit: int) -> Vector2i:
 	var factor: float = minf(clampf(scale, 0.25, 1.0), float(maxi(limit, 64)) / float(maxi(maxi(source.x, source.y), 2)))
 	return Vector2i(maxi(2, roundi(source.x * factor)), maxi(2, roundi(source.y * factor)))
 
+static func source_pixel_size(view: Viewport) -> Vector2i:
+	# Window.size is physical pixels. The visible rect is logical under canvas
+	# stretch; ViewportTexture.get_size() can additionally include stretch scaling.
+	# No per-frame GPU readback is needed to obtain the presentation buffer size.
+	if view is Window:
+		return (view as Window).size
+	if view is SubViewport:
+		return (view as SubViewport).size
+	return Vector2i(0,0)
+
 static func clipped_code(source: String) -> String:
 	# Limited adapter for the lab's inspected spatial shader families. Fail closed
 	# instead of silently reflecting new unsupported materials through the basin.
@@ -65,7 +75,7 @@ func bind(camera: Camera3D, material: ShaderMaterial, level: float, environment:
 	source_camera.cull_mask &= ~REFLECTION_LAYER
 	viewport = SubViewport.new()
 	viewport.name = "Linear HDR planar reflection"
-	viewport.size = target_size(Vector2i(camera.get_viewport().get_texture().get_size()), resolution_scale, max_dimension)
+	viewport.size = target_size(source_pixel_size(camera.get_viewport()), resolution_scale, max_dimension)
 	viewport.use_hdr_2d = true # Linear HDR texture, NOT an sRGB/filmic screen copy.
 	viewport.transparent_bg = false
 	viewport.canvas_cull_mask = 0
@@ -130,7 +140,7 @@ func sync_camera() -> void:
 		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 		surface.set_shader_parameter("planar_enabled", false)
 		return
-	viewport.size = target_size(Vector2i(source_camera.get_viewport().get_texture().get_size()), resolution_scale, max_dimension)
+	viewport.size = target_size(source_pixel_size(source_camera.get_viewport()), resolution_scale, max_dimension)
 	mirror_camera.keep_aspect = source_camera.keep_aspect
 	mirror_camera.projection = source_camera.projection
 	mirror_camera.fov = source_camera.fov
@@ -155,6 +165,7 @@ func _process(_delta: float) -> void:
 func snapshot() -> Dictionary:
 	return {"enabled": enabled, "error": error, "plane_y": plane_y,
 		"size": [viewport.size.x, viewport.size.y] if is_instance_valid(viewport) else [],
+		"source_pixels": [source_pixel_size(source_camera.get_viewport()).x, source_pixel_size(source_camera.get_viewport()).y] if is_instance_valid(source_camera) else [],
 		"linear_hdr": viewport.use_hdr_2d if is_instance_valid(viewport) else false,
 		"camera_position": [mirror_camera.global_position.x, mirror_camera.global_position.y, mirror_camera.global_position.z] if is_instance_valid(mirror_camera) else [],
 		"material_count": reflected_materials.size(), "shader_families": shader_cache.size(), "fixed_foliage_count": fixed_foliage.size(),

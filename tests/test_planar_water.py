@@ -105,9 +105,11 @@ class SourceTests(unittest.TestCase):
         s=source('godot/tests/capture_water_reflections.gd')
         for token in ['level if clip else -100.0','maximum_linear_value>1.1','below_magenta_pixels==0','below_magenta_pixels>4']:
             self.assertIn(token,s)
-    def test_capture_size_uses_render_texture_not_window(self):
+    def test_capture_size_uses_physical_pixels_not_scaled_texture(self):
         helper=source('godot/planar_water_reflection.gd')
-        self.assertIn('source_camera.get_viewport().get_texture().get_size()',helper)
+        self.assertIn('source_pixel_size(source_camera.get_viewport())',helper)
+        self.assertIn('return (view as Window).size',helper)
+        self.assertIn('return (view as SubViewport).size',helper)
         self.assertNotIn('get_visible_rect()',helper)
     def test_foliage_pose_is_shared_with_reflection(self):
         helper=source('godot/planar_water_reflection.gd')

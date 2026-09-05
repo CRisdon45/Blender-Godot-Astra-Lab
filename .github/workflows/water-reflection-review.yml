@@ -1,5 +1,5 @@
 name: Planar pool reflection and light study
-# Revision 2: render-sized HDR buffer, shared foliage pose and calmer/livelier comparisons.
+# Revision 3: physical Window/SubViewport pixels; retain strict 600 x 450 runtime proof.
 
 on:
   workflow_dispatch:
