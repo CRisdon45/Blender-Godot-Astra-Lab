@@ -14,7 +14,7 @@ from species_lab_core import (Plant, Lobe, Card, compile_plant, bezier, add,
                               sub, mul, mix, unit, dot, cross, rng_for)
 from .coverage import select_coverage
 
-VERSION = 'canopy-study/3.1'
+VERSION = 'canopy-study/3.2'
 UP = (0.0, 0.0, 1.0)
 X = (1.0, 0.0, 0.0)
 Y = (0.0, 1.0, 0.0)
@@ -80,7 +80,7 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
             angle=index*2.39996323+phase
             ring=math.sqrt(max(0,1-z*z))
             direction=(ring*math.cos(angle),ring*math.sin(angle),z)
-            radial_depth=rnd.uniform(.82,1.04) if tree else rnd.uniform(.72,1.04)
+            radial_depth=rnd.uniform(.64,1.05) if tree else rnd.uniform(.70,1.04)
             center=add(lobe.center,tuple(direction[k]*lobe.radii[k]*radial_depth for k in range(3)))
             if any(other.id!=lobe.id and sum(((center[k]-other.center[k])/other.radii[k])**2 for k in range(3))<.55 for other in lobes):
                 continue
@@ -88,7 +88,7 @@ def compose(species: str, seed: int, maturity: float) -> Plant:
             broad=unit(sub(center,lobe.center))
             n=unit(add(mul(local,.58),mul(broad,.42)))
             size=(.115+.125*maturity) if tree else (.060+.045*maturity)
-            size*=rnd.uniform(.86,1.14)
+            size*=rnd.uniform(.72,1.30) if tree else rnd.uniform(.82,1.18)
             plant.cards.append(Card(f'{lobe.id}/anchor:{index}',lobe.id,center,n,
                                     (size,size*(.54 if tree else .88)),rnd.randrange(4),
                                     min(1,max(0,center[2]/h)),rnd.random()))
@@ -140,7 +140,7 @@ def _brush_polygon(card: Card, lobe: Lobe, species: str, scale: float, spin: flo
     """Six-vertex bowed brush stroke: four triangles, opaque and camera-independent."""
     n,t,b=_frame_from_normal(card.normal,spin)
     if crossed:
-        n=unit(add(mul(n,.62),mul(t,.78)))
+        n=unit(add(mul(n,.86),mul(t,.38)))
         n,t,b=_frame_from_normal(n,spin*.37+1.1)
     tree=species=='desert_museum'
     full_w=card.size[0]*scale*(1.48 if tree else 1.42)
@@ -186,7 +186,7 @@ def core_mesh(plant: Plant, lod: int) -> Surface:
     out=Surface([],[],[],[])
     tree=plant.species=='desert_museum'
     for lobe in plant.lobes:
-        scale=(.23,.25,.30)[lod] if tree else (.24,.34,.54)[lod]
+        scale=(.20,.24,.30)[lod] if tree else (.12,.22,.52)[lod]
         radii=(lobe.radii[0]*scale,lobe.radii[1]*scale,lobe.radii[2]*scale)
         _append_surface(out,_support_ellipsoid(lobe.center,radii,4,
                         (0,0,plant.height*(.64 if tree else .44)),
@@ -211,12 +211,12 @@ def foliage_mesh(plant: Plant, lod: int) -> Surface:
     out=Surface([],[],[],[])
     lookup={l.id:l for l in plant.lobes}
     tree=plant.species=='desert_museum'
-    scale=(1.08,1.38,1.72)[lod] if tree else (1.28,1.48,1.78)[lod]
+    scale=(1.15,1.42,1.74)[lod] if tree else (1.30,1.50,1.80)[lod]
     for card in _surface_selection(plant,lod):
         lobe=lookup[card.lobe_id]
         spin=rng_for(plant.seed,'brush:'+card.id).uniform(-math.pi,math.pi)
         _append_surface(out,_brush_polygon(card,lobe,plant.species,scale,spin,False))
-        if not tree and lod<2 and int(card.rank*1000003.0)%2==0:
+        if not tree and lod<2 and int(card.rank*1000003.0)%3==0:
             _append_surface(out,_brush_polygon(card,lobe,plant.species,scale*.92,spin+1.17,True))
     return out
 
