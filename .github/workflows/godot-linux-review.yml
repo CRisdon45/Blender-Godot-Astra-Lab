@@ -63,64 +63,88 @@ jobs:
         run: |
           set -o pipefail
           python3 -m unittest discover -s tests -v 2>&1 | tee render-output/python-tests.log
-      - name: Capture the saved courtyard with the real Forward+ renderer
-        id: review
+      - name: Import and capture using the virtual desktop
         run: |
-          set -o pipefail
-          xvfb-run -a -s '-screen 0 1600x1200x24' bash -c '
-            vulkaninfo --summary > render-output/vulkan-info.txt 2>&1
-            python3 tools/review.py --godot godot --scene editable --water on --timeout 600 --output "$GITHUB_WORKSPACE/render-output/review"
-          ' 2>&1 | tee render-output/review-console.log
-      - name: Diagnose failed engine gate without declaring success
-        if: failure() && steps.review.outcome == 'failure'
-        run: |
-          python3 - <<'PY'
+          xvfb-run -a -s '-screen 0 1600x1200x24' python3 - <<'PY'
           import json
           from pathlib import Path
           import subprocess
-          output = Path('render-output/diagnostics')
-          output.mkdir(parents=True, exist_ok=True)
-          results = []
-          commands = [
-              (str(p.relative_to('godot')).replace('/', '_'),
-               ['godot', '--headless', '--path', 'godot', '--check-only', '--script',
-                'res://' + str(p.relative_to('godot'))])
-              for p in sorted(Path('godot').rglob('*.gd'))
-          ]
-          commands += [
-              ('runtime-' + name, ['godot', '--headless', '--path', 'godot', '--script',
-                                 'res://tests/' + name])
-              for name in ('test_navigation.gd', 'test_water_interaction.gd', 'test_scene_water.gd')
-          ]
-          for name, command in commands:
+          import sys
+          from tools import review
+          root = Path('render-output/review').resolve()
+          root.mkdir(parents=True)
+          project = Path('godot').resolve()
+          engine = review.resolve_engine('godot')
+          report = {'status': 'failed', 'import_display': 'Xvfb graphical editor',
+                    'visual_acceptance': 'not_evaluated', 'graphics_validation': 'not_run',
+                    'runtime_validation': 'not_run', 'stages': [], 'capture_count': 0,
+                    'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
+          def stage(name, command, marker=None, timeout=600):
+              record = {'name': name, 'command': command, 'status': 'running'}
+              report['stages'].append(record)
               try:
-                  proc = subprocess.run(command, capture_output=True, text=True, timeout=35)
-                  text = proc.stdout + '\n' + proc.stderr
-                  code = proc.returncode
-              except subprocess.TimeoutExpired as exc:
-                  def decode(value):
-                      return value.decode('utf-8', 'replace') if isinstance(value, bytes) else value or ''
-                  text = decode(exc.stdout) + decode(exc.stderr) + '\nDIAGNOSTIC_TIMEOUT\n'
-                  code = 124
-              (output / (name + '.log')).write_text(text)
-              results.append({'name': name, 'command': command, 'exit_code': code})
-              print(name, 'exit', code)
-              print(text[-10000:])
-          (output / 'results.json').write_text(json.dumps(results, indent=2))
+                  result = review.run_stage(command, root / (name + '.log'), timeout, marker)
+                  record['status'] = 'passed'
+                  return result
+              except Exception:
+                  record['status'] = 'failed'
+                  raise
+          try:
+              version = stage('version', [engine, '--version']).strip()
+              if not version.startswith('4.7.1.stable.'):
+                  raise review.ReviewError('Unexpected engine release: ' + version)
+              report['engine_version'] = version
+              stage('vulkan', ['vulkaninfo', '--summary'])
+              # Unlike the desktop CLI default, import uses the available X11 display.
+              # All process, script, shader and import errors remain fatal.
+              stage('import', [engine, '--path', str(project), '--editor', '--import'])
+              for name, script, marker in (
+                  ('navigation', 'test_navigation.gd', 'NAVIGATION_TESTS_OK '),
+                  ('water', 'test_water_interaction.gd', 'WATER_TESTS_OK '),
+              ):
+                  stage(name, [engine, '--headless', '--path', str(project), '--script', 'res://tests/' + script], marker)
+              for scene in ('editable', 'builder'):
+                  output = stage('binding-' + scene,
+                      [engine, '--headless', '--path', str(project), '--script',
+                       'res://tests/test_scene_water.gd', '--', '--test-scene=' + review.SCENES[scene]],
+                      'SCENE_WATER_TESTS_OK ')
+                  evidence = review.marked_json(output, 'SCENE_WATER_TESTS_OK ')
+                  if (evidence.get('scene') != review.SCENES[scene] or
+                      type(evidence.get('checks')) is not int or evidence['checks'] <= 0 or
+                      evidence.get('impact_count') != review.COURTYARD_IMPACTS or
+                      evidence.get('graphics_validated') is not False):
+                      raise review.ReviewError('Invalid real-scene test witness')
+              report['runtime_validation'] = 'passed'
+              captures = root / 'captures'
+              captures.mkdir()
+              output = stage('editable-flow-on', review.capture_command(engine, project, captures, 'editable', True), 'REVIEW_OK ')
+              manifest_path = review.manifest_from_output(output)
+              manifest = review.validate_manifest(manifest_path, captures)
+              review.validate_water_manifest(manifest, review.marked_json(output, 'WATER_READY '), True)
+              report.update(status='capture_complete', graphics_validation='capture_complete',
+                            manifest=str(manifest_path), capture_count=len(manifest['images']))
+          except Exception as exc:
+              report['error'] = str(exc)
+              print('LINUX_REVIEW_FAILED:', exc, file=sys.stderr)
+          finally:
+              (root / 'runner-report.json').write_text(json.dumps(report, indent=2) + '\n')
+              print(json.dumps(report, indent=2))
+          sys.exit(0 if report['status'] == 'capture_complete' else 1)
           PY
       - name: Record final workspace state and scope
         if: always()
         run: |
           git status --short > render-output/workspace-status.txt
+          git diff --exit-code > render-output/tracked-source-diff.txt
           printf '%s\n' \
             'Requested renderer: Godot 4.7.1 Forward+ on Linux with Mesa software Vulkan.' \
+            'Import uses the Xvfb graphical editor, not the headless editor.' \
             'Not a desktop GPU or Android performance benchmark.' \
             'Fresh captures, when successful, are under review/. Baseline/ images are older.' \
-            'Diagnostics never override a failed review gate.' \
             'No Blender regeneration, editable-scene save, or tracked baseline replacement.' \
             > render-output/README.txt
           echo '## Godot Linux visual review' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Download the godot-linux-review artifact for images and diagnostic logs. Consult runner-report.json: an uploaded artifact alone does not establish a passing review.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Download the artifact for images and logs. Consult runner-report.json: upload alone does not establish a passing review.' >> "$GITHUB_STEP_SUMMARY"
       - name: Upload images and diagnostic evidence even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
