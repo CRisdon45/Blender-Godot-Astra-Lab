@@ -9,8 +9,11 @@ const WOOD=preload("res://assets/wood_grain.png")
 var material_count := 0
 var mesh_count := 0
 
+func scene_asset_path() -> String:
+	return "res://assets/backyard.glb"
+
 func _ready() -> void:
-	var packed=load("res://assets/backyard.glb") as PackedScene
+	var packed=load(scene_asset_path()) as PackedScene
 	var scene=packed.instantiate()
 	add_child(scene)
 	apply_materials(scene)
