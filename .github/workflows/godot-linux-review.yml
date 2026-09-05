@@ -63,7 +63,7 @@ jobs:
         run: |
           set -o pipefail
           python3 -m unittest discover -s tests -v 2>&1 | tee render-output/python-tests.log
-      - name: Test and capture with explicit import-failure reporting
+      - name: Test and capture with explicit failure reporting
         run: |
           xvfb-run -a -s '-screen 0 1600x1200x24' python3 - <<'PY'
           import json
@@ -77,7 +77,7 @@ jobs:
           engine = review.resolve_engine('godot')
           report = {'status': 'failed', 'import_display': 'headless editor',
                     'visual_acceptance': 'not_evaluated', 'graphics_validation': 'not_run',
-                    'runtime_validation': 'not_run', 'stages': [], 'capture_count': 0,
+                    'runtime_validation': 'not_run', 'stages': [], 'errors': [], 'capture_count': 0,
                     'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()}
           def stage(name, command, marker=None, timeout=600):
               record = {'name': name, 'command': command, 'status': 'running'}
@@ -90,6 +90,13 @@ jobs:
               except Exception:
                   record['status'] = 'failed'
                   raise
+          def diagnostic_stage(name, command, marker=None):
+              try:
+                  return stage(name, command, marker)
+              except review.ReviewError as exc:
+                  # Collect evidence from independent stages; never turn this failure green.
+                  report['errors'].append({'stage': name, 'error': str(exc)})
+                  return (root / (name + '.log')).read_text(errors='replace')
           try:
               version = stage('version', [engine, '--version']).strip()
               if not version.startswith('4.7.1.stable.'):
@@ -99,10 +106,7 @@ jobs:
               config = project / 'project.godot'
               original_config = config.read_bytes()
               try:
-                  stage('import', [engine, '--headless', '--audio-driver', 'Dummy', '--path', str(project), '--editor', '--import'])
-              except review.ReviewError as exc:
-                  # Further tests can diagnose the imported scene, but the job stays failed.
-                  report['import_error'] = str(exc)
+                  diagnostic_stage('import', [engine, '--headless', '--audio-driver', 'Dummy', '--path', str(project), '--editor', '--import'])
               finally:
                   if config.read_bytes() != original_config:
                       (root / 'editor-rewritten-project.godot.txt').write_bytes(config.read_bytes())
@@ -112,37 +116,40 @@ jobs:
                   ('navigation', 'test_navigation.gd', 'NAVIGATION_TESTS_OK '),
                   ('water', 'test_water_interaction.gd', 'WATER_TESTS_OK '),
               ):
-                  stage(name, [engine, '--headless', '--path', str(project), '--script', 'res://tests/' + script], marker)
+                  diagnostic_stage(name, [engine, '--headless', '--path', str(project), '--script', 'res://tests/' + script], marker)
               for scene in ('editable', 'builder'):
-                  output = stage('binding-' + scene,
+                  output = diagnostic_stage('binding-' + scene,
                       [engine, '--headless', '--path', str(project), '--script',
                        'res://tests/test_scene_water.gd', '--', '--test-scene=' + review.SCENES[scene]],
                       'SCENE_WATER_TESTS_OK ')
-                  evidence = review.marked_json(output, 'SCENE_WATER_TESTS_OK ')
-                  if (evidence.get('scene') != review.SCENES[scene] or
-                      type(evidence.get('checks')) is not int or evidence['checks'] <= 0 or
-                      evidence.get('impact_count') != review.COURTYARD_IMPACTS or
-                      evidence.get('graphics_validated') is not False):
-                      raise review.ReviewError('Invalid real-scene test witness')
-              report['runtime_validation'] = 'passed'
+                  try:
+                      evidence = review.marked_json(output, 'SCENE_WATER_TESTS_OK ')
+                      if (evidence.get('scene') != review.SCENES[scene] or
+                          type(evidence.get('checks')) is not int or evidence['checks'] <= 0 or
+                          evidence.get('impact_count') != review.COURTYARD_IMPACTS or
+                          evidence.get('graphics_validated') is not False):
+                          raise review.ReviewError('Invalid real-scene test witness')
+                  except review.ReviewError as exc:
+                      report['errors'].append({'stage': 'binding-' + scene, 'error': str(exc)})
+              report['runtime_validation'] = 'failed' if any(e['stage'] != 'import' for e in report['errors']) else 'passed'
               captures = root / 'captures'
               captures.mkdir()
               command = review.capture_command(engine, project, captures, 'editable', True)
               command[1:1] = ['--audio-driver', 'Dummy']
-              output = stage('editable-flow-on', command, 'REVIEW_OK ')
+              output = diagnostic_stage('editable-flow-on', command, 'REVIEW_OK ')
               manifest_path = review.manifest_from_output(output)
               manifest = review.validate_manifest(manifest_path, captures)
               review.validate_water_manifest(manifest, review.marked_json(output, 'WATER_READY '), True)
-              report.update(status='diagnostic_captures' if 'import_error' in report else 'capture_complete',
-                            graphics_validation='capture_complete', manifest=str(manifest_path),
-                            capture_count=len(manifest['images']))
+              report.update(status='diagnostic_captures' if report['errors'] else 'capture_complete',
+                            graphics_validation='diagnostic_captures' if report['errors'] else 'capture_complete',
+                            manifest=str(manifest_path), capture_count=len(manifest['images']))
           except Exception as exc:
               report['error'] = str(exc)
               print('LINUX_REVIEW_FAILED:', exc, file=sys.stderr)
           finally:
               (root / 'runner-report.json').write_text(json.dumps(report, indent=2) + '\n')
               print(json.dumps(report, indent=2))
-          # Diagnostic pictures are useful evidence, not a waiver of the import error.
+          # Diagnostic pictures are useful evidence, not a waiver of ANY failed stage.
           sys.exit(0 if report['status'] == 'capture_complete' else 1)
           PY
       - name: Record final workspace state and scope
@@ -153,7 +160,7 @@ jobs:
             'Requested renderer: Godot 4.7.1 Forward+ on Linux with Mesa software Vulkan.' \
             'Not a desktop GPU or Android performance benchmark.' \
             'Fresh captures, when successful, are under review/. Baseline/ images are older.' \
-            'An import error keeps the job failed even when later diagnostic captures succeed.' \
+            'ANY failed stage keeps the job failed even when diagnostic pictures are captured.' \
             'No Blender regeneration, editable-scene save, or tracked baseline replacement.' \
             > render-output/README.txt
           echo '## Godot Linux visual review' >> "$GITHUB_STEP_SUMMARY"
