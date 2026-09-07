@@ -7,11 +7,11 @@ export const NORTHSTAR_ANIME_01 = Object.freeze({
   intent: 'architectural-anime illustration; painted shape hierarchy before botanical micro-detail',
   shading: {
     tonalBands: 3,
-    midBand: [0.43, 0.49],
-    highBand: [0.70, 0.77],
+    midBand: [0.40, 0.50],
+    highBand: [0.74, 0.84],
     normalUpBias: 0.035,
     heightLightBias: 0.045,
-    variationAmount: 0.055,
+    variationAmount: 0.040,
     ambientEmission: 0.86,
     realisticGradientPriority: 0.18
   },
@@ -74,34 +74,34 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
   canopy: {
     openness: 1.0,
     interiorFill: 0.24,
-    massStride: 5,
-    massBrushesPerAnchor: [3, 5],
-    massWidthM: [0.42, 0.86],
-    massAspect: [1.55, 2.25],
-    massDepthScatter: [0.24, 0.72],
+    massStride: 3,
+    massBrushesPerAnchor: [4, 6],
+    massWidthM: [0.28, 0.58],
+    massAspect: [1.75, 2.80],
+    massDepthScatter: [0.28, 0.85],
     mediumBreakupScale: [0.48, 0.72],
-    fineAccentFraction: 0.46,
-    bridgeMassProbability: 0.22,
-    avoidSolidCenterRadiusFraction: 0.18
+    fineAccentFraction: 0.62,
+    bridgeMassProbability: 0.35,
+    avoidSolidCenterRadiusFraction: 0.24
   },
   modules: {
     fineSprig: {
       lengthM: [0.17, 0.28],
       leafletPairs: [5, 7],
       leafletLengthFraction: [0.15, 0.22],
-      densityScale: 0.62,
+      densityScale: 0.72,
       visibleRole: 'accent_not_mass'
     },
     bloom: {
-      probabilityAtTerminal: 0.20,
+      probabilityAtTerminal: 0.12,
       sizeFractionOfSprig: [0.08, 0.12],
       visualPriority: 0.16
     }
   },
   material: {
-    wood: ['#356e58', '#659c74', '#9bbd9a'],
-    foliage: ['#3e6b3c', '#789c4f', '#b8cb70'],
-    bloom: ['#a67e23', '#ddb92f', '#f2da63'],
+    wood: ['#3e715a', '#6f9c78', '#a2bd9e'],
+    foliage: ['#4b6c42', '#789351', '#a8ba6a'],
+    bloom: ['#9c7b2c', '#c9a83c', '#e2c95f'],
     outline: '#365249',
     ground: '#d8ccb5',
     sky: '#dce9e7'
