@@ -6,6 +6,10 @@ A backyard courtyard study authored in Blender and rendered in Godot. The visual
 
 ![Current Godot viewport](godot/captures/godot_courtyard.png)
 
+## Agent entry point
+
+Use [AGENTS.md](AGENTS.md) → [CURRENT_AUTHORITY.md](CURRENT_AUTHORITY.md) → the task-relevant instructions. [Evidence protocol](docs/EVIDENCE_PROTOCOL.md) defines target registration, named scenarios, capture limitations, telemetry, and promotion. This lab supplies evidence to Design-Platform; it does not define product truth.
+
 ## Open and run
 
 1. Use **Godot 4.7.1 or newer**. The project was validated with 4.7.1 and the Forward+ Vulkan renderer on an NVIDIA RTX 3070 Ti Laptop GPU.
