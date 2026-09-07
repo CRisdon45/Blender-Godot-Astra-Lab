@@ -8,7 +8,7 @@ on:
       - threejs_palo_verde/src/main_authored_volume.js
       - threejs_palo_verde/src/tree_authored_volume.js
       - threejs_palo_verde/src/palo_verde_authored_template.js
-      - threejs_palo_verde/src/painted_foliage_atlas.js
+      - threejs_palo_verde/src/palo_verde_sprig_atlas.js
       - .github/workflows/threejs-palo-verde-authored-volume-review.yml
 permissions:
   contents: read
@@ -28,7 +28,7 @@ jobs:
           mkdir -p threejs-output
           git rev-parse HEAD > threejs-output/source-commit.txt
           node --check threejs_palo_verde/src/palo_verde_authored_template.js
-          node --check threejs_palo_verde/src/painted_foliage_atlas.js
+          node --check threejs_palo_verde/src/palo_verde_sprig_atlas.js
           node --check threejs_palo_verde/src/tree_authored_volume.js
           node --check threejs_palo_verde/src/main_authored_volume.js
           node --input-type=module - <<'NODE'
@@ -51,12 +51,12 @@ jobs:
           import html,json,re,struct
           root=Path('threejs-output');dom=(root/'dom.html').read_text(errors='replace');assert 'data-ready="true"' in dom,dom[-3000:]
           m=re.search(r'data-report="([^"]+)"',dom);assert m;r=json.loads(html.unescape(m.group(1)))
-          assert r['schema']=='threejs-palo-verde/7' and r['authoredTemplate'] is True and r['hybridCanopy'] is True and r['clusteredOpaqueLobes'] is True,r
+          assert r['schema']=='threejs-palo-verde/8' and r['authoredTemplate'] is True and r['hybridCanopy'] is True and r['speciesSignatureSprigs'] is True,r
           assert r['leaders']==3 and r['heroScaffolds']==11 and r['authoredCanopyRegions']==18,r
-          assert r['coreRegions']==18 and r['coreLobes']>=60 and r['edgeCards']>=35,r
-          assert r['foliageMasses']==r['coreLobes']+r['edgeCards'] and r['triangles']<=r['triangleHardCap'],r
-          assert abs(r['scaffoldVisibleFraction']-.80)<1e-9,r
-          assert r['atlasRepresentation']=='continuous_irregular_brush_cloud' and r['paintedToneAtlas'] is True,r
+          assert r['coreRegions']==18 and r['coreLobes']>=60 and r['sprigCards']>=60,r
+          assert r['foliageMasses']==r['coreLobes']+r['sprigCards'] and r['triangles']<=r['triangleHardCap'],r
+          assert abs(r['scaffoldVisibleFraction']-.78)<1e-9,r
+          assert r['edgeAtlasRepresentation']=='pinnate_brush_sprigs' and r['massRepresentation']=='flattened_irregular_opaque_sublobes',r
           for name in ('hero','side','low','elevated','reverse'):
               raw=(root/f'{name}.png').read_bytes();assert raw[:8]==b'\x89PNG\r\n\x1a\n' and len(raw)>30000,(name,len(raw));w,h=struct.unpack('>II',raw[16:24]);assert(w,h)==(1280,800)
           (root/'runtime-report.json').write_text(json.dumps(r,indent=2));print(json.dumps(r,indent=2))
