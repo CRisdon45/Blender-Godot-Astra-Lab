@@ -7,33 +7,34 @@ export const NORTHSTAR_ANIME_01 = Object.freeze({
   intent: 'architectural-anime illustration; painted shape hierarchy before botanical micro-detail',
   shading: {
     tonalBands: 3,
-    midBand: [0.40, 0.50],
-    highBand: [0.74, 0.84],
-    normalUpBias: 0.035,
-    heightLightBias: 0.045,
-    variationAmount: 0.040,
-    ambientEmission: 0.86,
-    realisticGradientPriority: 0.18
+    midBand: [0.40, 0.52],
+    highBand: [0.76, 0.88],
+    normalUpBias: 0.025,
+    heightLightBias: 0.030,
+    variationAmount: 0.032,
+    ambientEmission: 0.90,
+    realisticGradientPriority: 0.10
   },
   linework: {
     mode: 'selective_major_structure',
     trunkSilhouette: 1.0,
-    majorBranchSilhouette: 0.72,
+    majorBranchSilhouette: 0.64,
     foliageInteriorOutline: 0.0,
-    foliageSilhouetteInk: 0.10,
-    color: '#355148'
+    foliageSilhouetteInk: 0.04,
+    color: '#40594f'
   },
   shadow: {
-    opacityIntent: 0.45,
-    softnessIntent: 0.82,
-    visualPriority: 0.30,
-    note: 'ground shadow supports composition and must not become the focal point'
+    mode: 'painted_contact',
+    opacityIntent: 0.18,
+    softnessIntent: 0.94,
+    visualPriority: 0.16,
+    note: 'painted contact shadow replaces detailed realtime foliage projection in the art study'
   },
   hierarchy: {
     largeMass: 1.0,
-    mediumBreakup: 0.78,
-    smallAccent: 0.24,
-    microNoise: 0.04
+    mediumBreakup: 0.82,
+    smallAccent: 0.26,
+    microNoise: 0.03
   }
 });
 
@@ -63,6 +64,7 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
     leaderHeightMatureM: [2.70, 2.25, 3.10],
     leaderReachFraction: [0.11, 0.14, 0.10],
     scaffoldCountMature: 4,
+    scaffoldLengthFraction: [0.27, 0.39],
     secondaryCountMature: 4,
     twigCountMature: 2,
     tipBranchProbabilityPattern: 'alternating',
@@ -74,43 +76,45 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
   canopy: {
     openness: 1.0,
     interiorFill: 0.24,
-    massStride: 3,
-    massBrushesPerAnchor: [4, 6],
-    massWidthM: [0.28, 0.58],
-    massAspect: [1.75, 2.80],
-    massDepthScatter: [0.28, 0.85],
+    massStride: 2,
+    massBrushesPerAnchor: [3, 5],
+    massWidthM: [0.24, 0.50],
+    massAspect: [1.25, 1.85],
+    massDepthFraction: [0.20, 0.36],
+    massDepthScatter: [0.24, 0.82],
     mediumBreakupScale: [0.48, 0.72],
     fineAccentFraction: 0.62,
-    bridgeMassProbability: 0.35,
-    avoidSolidCenterRadiusFraction: 0.24
+    bridgeMassProbability: 0.31,
+    avoidSolidCenterRadiusFraction: 0.25
   },
   modules: {
     fineSprig: {
-      lengthM: [0.17, 0.28],
+      lengthM: [0.16, 0.26],
       leafletPairs: [5, 7],
-      leafletLengthFraction: [0.15, 0.22],
-      densityScale: 0.72,
+      leafletLengthFraction: [0.14, 0.21],
+      densityScale: 0.66,
       visibleRole: 'accent_not_mass'
     },
     bloom: {
-      probabilityAtTerminal: 0.12,
-      sizeFractionOfSprig: [0.08, 0.12],
-      visualPriority: 0.16
+      probabilityAtTerminal: 0.08,
+      sizeFractionOfSprig: [0.07, 0.105],
+      visualPriority: 0.10
     }
   },
   material: {
-    wood: ['#3e715a', '#6f9c78', '#a2bd9e'],
-    foliage: ['#4b6c42', '#789351', '#a8ba6a'],
-    bloom: ['#9c7b2c', '#c9a83c', '#e2c95f'],
-    outline: '#365249',
-    ground: '#d8ccb5',
-    sky: '#dce9e7'
+    wood: ['#456f5b', '#759879', '#a5bba0'],
+    foliage: ['#526b46', '#7d9158', '#a7b66d'],
+    bloom: ['#a08336', '#c3a84a', '#dcc667'],
+    outline: '#40584f',
+    ground: '#ddd3bf',
+    sky: '#dce9e7',
+    contactShadow: '#62665a'
   },
   lod0Budget: {
     triangleTarget: 190000,
     triangleHardCap: 280000,
-    preferredVisibleMasses: [180, 420],
-    preferredFineSprigs: [900, 3500],
+    preferredVisibleMasses: [220, 620],
+    preferredFineSprigs: [700, 3000],
     artWinsOverBudgetUntilDeviceTest: true
   }
 });
@@ -149,6 +153,7 @@ export const TEXAS_SAGE = Object.freeze({
     massBrushesPerAnchor: [7, 12],
     massWidthM: [0.12, 0.28],
     massAspect: [0.80, 1.34],
+    massDepthFraction: [0.28, 0.48],
     massDepthScatter: [0.18, 0.98],
     mediumBreakupScale: [0.58, 0.84],
     fineAccentFraction: 0.76,
@@ -171,8 +176,9 @@ export const TEXAS_SAGE = Object.freeze({
     foliage: ['#66766d', '#91a097', '#c1cbc1'],
     bloom: ['#7c668b', '#a788b5', '#cdb5d7'],
     outline: '#59665f',
-    ground: '#d8ccb5',
-    sky: '#dce9e7'
+    ground: '#ddd3bf',
+    sky: '#dce9e7',
+    contactShadow: '#686a65'
   },
   lod0Budget: {
     triangleTarget: 90000,
