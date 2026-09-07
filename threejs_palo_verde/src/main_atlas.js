@@ -19,19 +19,20 @@ function makeFoliageAtlas(){
  const c=document.createElement('canvas');c.width=1024;c.height=256;const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);
  for(let tile=0;tile<4;tile++){
   const r=rand(7109+tile*1943),ox=tile*256;ctx.save();ctx.beginPath();ctx.rect(ox,0,256,256);ctx.clip();
-  // Broad overlapping painted masses form the cluster; small marks only soften the edge.
-  for(let i=0;i<9;i++){
-   const a=r()*Math.PI*2,rr=Math.pow(r(),.78)*58,cx=ox+128+Math.cos(a)*rr,cy=128+Math.sin(a)*rr*.56;
-   const len=48+r()*54,wid=24+r()*30,rot=(r()-.5)*1.9,val=Math.round(186+r()*62);
-   ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);ctx.globalAlpha=.84+r()*.16;ctx.fillStyle=`rgb(${val},${val},${val})`;ctx.beginPath();ctx.ellipse(0,0,len*.5,wid*.5,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  // Anime background language: a few broad scalloped brush lobes, not dozens of literal leaf marks.
+  for(let i=0;i<7;i++){
+   const a=r()*Math.PI*2,rr=Math.pow(r(),.82)*46,cx=ox+128+Math.cos(a)*rr,cy=128+Math.sin(a)*rr*.54;
+   const len=68+r()*48,wid=42+r()*38,rot=(r()-.5)*1.55,val=Math.round(194+r()*48);
+   ctx.save();ctx.translate(cx,cy);ctx.rotate(rot);ctx.globalAlpha=.90+r()*.10;ctx.fillStyle=`rgb(${val},${val},${val})`;ctx.beginPath();ctx.ellipse(0,0,len*.5,wid*.5,0,0,Math.PI*2);ctx.fill();ctx.restore();
   }
-  for(let i=0;i<18;i++){
-   const a=r()*Math.PI*2,rr=66+r()*35,cx=ox+128+Math.cos(a)*rr,cy=128+Math.sin(a)*rr*.57;
-   const len=18+r()*30,wid=6+r()*11,val=Math.round(180+r()*70);
-   ctx.save();ctx.translate(cx,cy);ctx.rotate(a+(r()-.5)*1.3);ctx.globalAlpha=.72+r()*.26;ctx.fillStyle=`rgb(${val},${val},${val})`;ctx.beginPath();ctx.ellipse(0,0,len*.5,wid*.5,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  // Sparse edge scallops keep the silhouette botanical without becoming noisy.
+  for(let i=0;i<8;i++){
+   const a=r()*Math.PI*2,rr=72+r()*24,cx=ox+128+Math.cos(a)*rr,cy=128+Math.sin(a)*rr*.55;
+   const len=34+r()*34,wid=18+r()*22,val=Math.round(188+r()*54);
+   ctx.save();ctx.translate(cx,cy);ctx.rotate(a+(r()-.5)*.85);ctx.globalAlpha=.82+r()*.16;ctx.fillStyle=`rgb(${val},${val},${val})`;ctx.beginPath();ctx.ellipse(0,0,len*.5,wid*.5,0,0,Math.PI*2);ctx.fill();ctx.restore();
   }
   ctx.globalCompositeOperation='destination-out';
-  for(let h=0;h<5;h++){const a=r()*Math.PI*2,rr=18+r()*54;ctx.globalAlpha=.62+r()*.30;ctx.beginPath();ctx.ellipse(ox+128+Math.cos(a)*rr,128+Math.sin(a)*rr*.52,6+r()*10,4+r()*8,r()*Math.PI,0,Math.PI*2);ctx.fill();}
+  for(let h=0;h<3;h++){const a=r()*Math.PI*2,rr=20+r()*48;ctx.globalAlpha=.60+r()*.22;ctx.beginPath();ctx.ellipse(ox+128+Math.cos(a)*rr,128+Math.sin(a)*rr*.48,7+r()*10,5+r()*8,r()*Math.PI,0,Math.PI*2);ctx.fill();}
   ctx.globalCompositeOperation='source-over';ctx.restore();
  }
  const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.NoColorSpace;tex.needsUpdate=true;return tex;
@@ -42,7 +43,7 @@ function illustratedMaterial(palette,role,masked=false){
  const m=new THREE.MeshBasicNodeMaterial({side:THREE.DoubleSide}),sh=style.shading,shadow=color(palette[0]),middle=color(palette[1]),light=color(palette[2]);
  const variation=attribute('variation','float').sub(.5).mul(role==='foliage'?sh.variationAmount:sh.variationAmount*.5),height=clamp(positionWorld.y.div(recipe.growth.mature.heightM+.4),0,1),facing=normalWorld.dot(sunDirection).mul(.5).add(.5);
  let value=facing.add(normalWorld.y.mul(sh.normalUpBias)).add(height.mul(role==='foliage'?sh.heightLightBias:sh.heightLightBias*.35)).add(variation);
- if(masked){const sample=texture(foliageAtlas,uv());m.opacityNode=sample.a;m.alphaTest=.27;value=value.add(sample.r.sub(.82).mul(.08));}
+ if(masked){const sample=texture(foliageAtlas,uv());m.opacityNode=sample.a;m.alphaTest=.24;value=value.add(sample.r.sub(.82).mul(.06));}
  const mid=smoothstep(sh.midBand[0],sh.midBand[1],value),hi=smoothstep(sh.highBand[0],sh.highBand[1],value);m.colorNode=mix(mix(shadow,middle,mid),light,hi);m.roughness=1;return m;
 }
 const materials={wood:illustratedMaterial(recipe.material.wood,'wood'),foliage:illustratedMaterial(recipe.material.foliage,'foliage',true),flowers:illustratedMaterial(recipe.material.bloom,'bloom',true),outline:new THREE.MeshBasicNodeMaterial({color:new THREE.Color(recipe.material.outline),side:THREE.BackSide})};

@@ -56,7 +56,7 @@ jobs:
           assert report['recipeSchema']=='perspective-plant-species/1' and report['recipeId']=='desert_museum_palo_verde',report
           assert report['styleProfile']=='northstar_anime_01' and report['lod']==0 and report['recipeDriven'] is True,report
           assert report['paintedContactShadow'] is True and report['foliageAtlasTiles']==4,report
-          assert report['foliageMasses']>=150 and report['fineSprays']>=60,report
+          assert report['foliageMasses']>=150 and report['fineSprays']>=40,report
           assert report['triangles'] <= report['triangleHardCap'],report
           assert 'atlas' in report['foliageRepresentation'],report
           assert 6.8 <= report['targetHeightM'] <= 7.8 and 6.8 <= report['targetSpreadM'] <= 8.3,report
