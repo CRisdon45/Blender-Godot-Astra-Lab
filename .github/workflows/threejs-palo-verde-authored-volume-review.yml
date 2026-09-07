@@ -8,6 +8,7 @@ on:
       - threejs_palo_verde/src/main_authored_volume.js
       - threejs_palo_verde/src/tree_authored_volume.js
       - threejs_palo_verde/src/palo_verde_authored_template.js
+      - threejs_palo_verde/src/painted_foliage_atlas.js
       - .github/workflows/threejs-palo-verde-authored-volume-review.yml
 permissions:
   contents: read
@@ -27,6 +28,7 @@ jobs:
           mkdir -p threejs-output
           git rev-parse HEAD > threejs-output/source-commit.txt
           node --check threejs_palo_verde/src/palo_verde_authored_template.js
+          node --check threejs_palo_verde/src/painted_foliage_atlas.js
           node --check threejs_palo_verde/src/tree_authored_volume.js
           node --check threejs_palo_verde/src/main_authored_volume.js
           node --input-type=module - <<'NODE'
@@ -51,7 +53,8 @@ jobs:
           m=re.search(r'data-report="([^"]+)"',dom);assert m;r=json.loads(html.unescape(m.group(1)))
           assert r['schema']=='threejs-palo-verde/4' and r['authoredTemplate'] is True and r['regionClouds'] is True,r
           assert r['leaders']==3 and r['heroScaffolds']==11 and r['authoredCanopyRegions']==18,r
-          assert r['foliageMasses']>=500 and r['scaffoldVisibleFraction']==.84 and r['triangles']<=r['triangleHardCap'],r
+          assert r['foliageMasses']>=500 and abs(r['scaffoldVisibleFraction']-.82)<1e-9 and r['triangles']<=r['triangleHardCap'],r
+          assert r['atlasRepresentation']=='continuous_irregular_brush_cloud' and r['paintedToneAtlas'] is True,r
           for name in ('hero','side','low','elevated','reverse'):
               raw=(root/f'{name}.png').read_bytes();assert raw[:8]==b'\x89PNG\r\n\x1a\n' and len(raw)>30000,(name,len(raw));w,h=struct.unpack('>II',raw[16:24]);assert(w,h)==(1280,800)
           (root/'runtime-report.json').write_text(json.dumps(r,indent=2));print(json.dumps(r,indent=2))
