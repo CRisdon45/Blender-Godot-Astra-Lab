@@ -1,0 +1,71 @@
+name: Three.js Palo Verde painted-tone LOD0 review
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/threejs-palo-verde-gold]
+    paths:
+      - threejs_palo_verde/**
+      - .github/workflows/threejs-palo-verde-painted-review.yml
+permissions:
+  contents: read
+concurrency:
+  group: threejs-palo-verde-painted-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Static checks and start study
+        run: |
+          set -euo pipefail
+          mkdir -p painted-output
+          git rev-parse HEAD > painted-output/source-commit.txt
+          node --check threejs_palo_verde/src/recipes.js
+          node --check threejs_palo_verde/src/tree_gold_dense.js
+          node --check threejs_palo_verde/src/main_gold_painted.js
+          python3 -m http.server 8131 --directory threejs_palo_verde >painted-output/server.log 2>&1 &
+          echo $! > painted-output/server.pid
+          for i in {1..30}; do curl -fsS http://127.0.0.1:8131/painted.html >/dev/null && break; sleep 0.2; done
+          if command -v google-chrome >/dev/null; then echo "BROWSER=$(command -v google-chrome)" >> "$GITHUB_ENV";
+          elif command -v chromium >/dev/null; then echo "BROWSER=$(command -v chromium)" >> "$GITHUB_ENV";
+          else echo 'No Chromium browser on runner' >&2; exit 2; fi
+      - name: Render five painted-tone LOD0 views
+        run: |
+          set -euo pipefail
+          FLAGS=(--headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader --window-size=1280,800 --hide-scrollbars --virtual-time-budget=12000)
+          for VIEW in hero side low elevated reverse; do
+            timeout 45 "$BROWSER" "${FLAGS[@]}" --screenshot="painted-output/${VIEW}.png" "http://127.0.0.1:8131/painted.html?capture=1&view=${VIEW}" >"painted-output/${VIEW}.stdout.log" 2>"painted-output/${VIEW}.stderr.log"
+          done
+          timeout 45 "$BROWSER" "${FLAGS[@]}" --dump-dom "http://127.0.0.1:8131/painted.html?capture=1&view=hero" > painted-output/dom.html 2>painted-output/dom.stderr.log
+      - name: Validate painted-tone runtime
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import html, json, re, struct
+          root=Path('painted-output'); dom=(root/'dom.html').read_text(errors='replace')
+          if 'data-ready="true"' not in dom: raise SystemExit('study did not report ready=true\n'+dom[-4000:])
+          m=re.search(r'data-report="([^"]+)"',dom)
+          if not m: raise SystemExit('runtime report missing')
+          report=json.loads(html.unescape(m.group(1)))
+          assert report['schema']=='threejs-palo-verde/2',report
+          assert report['recipeId']=='desert_museum_palo_verde' and report['styleProfile']=='northstar_anime_01',report
+          assert report['lod']==0 and report['recipeDriven'] is True and report['paintedToneAtlas'] is True,report
+          assert report['paintedContactShadow'] is True and report['foliageAtlasTiles']==4,report
+          assert report['foliageMasses']>=500,report
+          assert report['triangles'] <= report['triangleHardCap'],report
+          for name in ('hero','side','low','elevated','reverse'):
+              raw=(root/f'{name}.png').read_bytes(); assert raw[:8]==b'\x89PNG\r\n\x1a\n' and len(raw)>30000,(name,len(raw)); w,h=struct.unpack('>II',raw[16:24]); assert (w,h)==(1280,800),(name,w,h)
+          (root/'runtime-report.json').write_text(json.dumps(report,indent=2)); print(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: threejs-palo-verde-painted-${{ github.run_number }}-${{ github.run_attempt }}
+          path: painted-output/
+          if-no-files-found: error
+          retention-days: 7
