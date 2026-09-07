@@ -24,9 +24,9 @@ scene.background = new THREE.Color(recipe.material.sky);
 scene.fog = new THREE.FogExp2(recipe.material.sky, 0.010);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.08, 120);
-camera.position.set(10.6, 6.5, 11.6);
+camera.position.set(8.9, 5.7, 9.8);
 const controls = new OrbitControls(camera, canvas);
-controls.target.set(0, 3.35, 0);
+controls.target.set(0, 3.25, 0);
 controls.enableDamping = true;
 controls.dampingFactor = 0.065;
 controls.minDistance = 4.2;
@@ -63,7 +63,7 @@ const materials = {
 
 const hemi = new THREE.HemisphereLight('#e5efeb', '#c8b99e', 0.74);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight('#fff5db', 0.82);
+const sun = new THREE.DirectionalLight('#fff5db', 0.58);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -11;
@@ -74,7 +74,7 @@ sun.shadow.camera.near = 0.1;
 sun.shadow.camera.far = 36;
 sun.shadow.bias = -0.0003;
 sun.shadow.normalBias = 0.020;
-sun.shadow.radius = 3.2;
+sun.shadow.radius = 3.8;
 scene.add(sun);
 scene.add(sun.target);
 
@@ -102,7 +102,7 @@ const state = {
   bloom: 0.24,
   azimuth: -35,
   elevation: 52,
-  shadow: 3.2
+  shadow: 3.8
 };
 
 let treeGroup = null;
@@ -239,9 +239,9 @@ for (const [id, binding] of Object.entries(sliderBindings)) {
 }
 
 const views = {
-  hero: { position: [10.6, 6.5, 11.6], target: [0, 3.35, 0] },
-  side: { position: [-12.6, 5.7, 1.5], target: [0, 3.15, 0] },
-  low: { position: [7.8, 2.35, 10.0], target: [0, 3.45, 0] },
+  hero: { position: [8.9, 5.7, 9.8], target: [0, 3.25, 0] },
+  side: { position: [-10.2, 5.1, 1.2], target: [0, 3.12, 0] },
+  low: { position: [7.0, 2.55, 8.8], target: [0, 3.42, 0] },
   elevated: { position: [8.2, 10.5, 8.7], target: [0, 3.2, 0] },
   reverse: { position: [-8.4, 5.8, -10.5], target: [0, 3.3, 0] }
 };
