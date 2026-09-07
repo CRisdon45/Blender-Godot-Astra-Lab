@@ -19,44 +19,50 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Locate browser and start study
+      - name: Static module checks and start study
         run: |
           set -euo pipefail
           mkdir -p threejs-output
           git rev-parse HEAD > threejs-output/source-commit.txt
+          node --check threejs_palo_verde/src/recipes.js
+          node --check threejs_palo_verde/src/tree.js
+          node --check threejs_palo_verde/src/main.js
           python3 -m http.server 8123 --directory threejs_palo_verde >threejs-output/server.log 2>&1 &
           echo $! > threejs-output/server.pid
           for i in {1..30}; do curl -fsS http://127.0.0.1:8123/ >/dev/null && break; sleep 0.2; done
           if command -v google-chrome >/dev/null; then echo "BROWSER=$(command -v google-chrome)" >> "$GITHUB_ENV";
           elif command -v chromium >/dev/null; then echo "BROWSER=$(command -v chromium)" >> "$GITHUB_ENV";
           else echo 'No Chromium browser on runner' >&2; exit 2; fi
-      - name: Render actual Three.js views
+      - name: Render actual anime-first LOD0 views
         run: |
           set -euo pipefail
           FLAGS=(--headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader --window-size=1280,800 --hide-scrollbars --virtual-time-budget=12000)
-          for VIEW in hero side low; do
+          for VIEW in hero side low elevated reverse; do
             timeout 45 "$BROWSER" "${FLAGS[@]}" --screenshot="threejs-output/${VIEW}.png" "http://127.0.0.1:8123/?capture=1&view=${VIEW}" >"threejs-output/${VIEW}.stdout.log" 2>"threejs-output/${VIEW}.stderr.log"
           done
           timeout 45 "$BROWSER" "${FLAGS[@]}" --dump-dom "http://127.0.0.1:8123/?capture=1&view=hero" > threejs-output/dom.html 2>threejs-output/dom.stderr.log
-      - name: Validate real browser output
+      - name: Validate recipe-driven browser output
         run: |
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import json, re, struct, zlib
+          import html, json, re, struct
           root=Path('threejs-output')
           dom=(root/'dom.html').read_text(errors='replace')
           if 'data-ready="true"' not in dom:
               raise SystemExit('Three.js study did not report ready=true\n'+dom[-4000:])
           match=re.search(r'data-report="([^"]+)"',dom)
-          if not match:
-              raise SystemExit('runtime report missing')
-          import html
+          if not match: raise SystemExit('runtime report missing')
           report=json.loads(html.unescape(match.group(1)))
-          assert report['schema']=='threejs-palo-verde/1',report
-          assert report['lod']==0 and report['branches']>=15 and report['foliageBrushes']>=300,report
-          assert 6.8 <= report['targetHeightM'] <= 7.8 and 6.8 <= report['targetSpreadM'] <= 8.2,report
-          for name in ('hero','side','low'):
+          assert report['schema']=='threejs-palo-verde/2',report
+          assert report['recipeSchema']=='perspective-plant-species/1',report
+          assert report['recipeId']=='desert_museum_palo_verde',report
+          assert report['styleProfile']=='northstar_anime_01',report
+          assert report['lod']==0 and report['recipeDriven'] is True,report
+          assert report['foliageMasses']>=100 and report['fineSprays']>=100,report
+          assert report['triangles'] <= report['triangleHardCap'],report
+          assert 6.8 <= report['targetHeightM'] <= 7.8 and 6.8 <= report['targetSpreadM'] <= 8.3,report
+          for name in ('hero','side','low','elevated','reverse'):
               raw=(root/f'{name}.png').read_bytes()
               assert raw[:8]==b'\x89PNG\r\n\x1a\n' and len(raw)>30000,(name,len(raw))
               w,h=struct.unpack('>II',raw[16:24]); assert (w,h)==(1280,800),(name,w,h)

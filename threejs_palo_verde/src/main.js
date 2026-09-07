@@ -1,10 +1,16 @@
 document.documentElement.dataset.ready = 'starting';
 window.addEventListener('error', event => { document.documentElement.dataset.ready = 'error'; document.documentElement.dataset.error = String(event.error || event.message || 'unknown'); });
 window.addEventListener('unhandledrejection', event => { document.documentElement.dataset.ready = 'error'; document.documentElement.dataset.error = String(event.reason || 'unhandled rejection'); });
+
 import * as THREE from 'three/webgpu';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { attribute, clamp, color, mix, normalWorld, positionWorld, smoothstep, uniform } from 'three/tsl';
 import { buildDesertMuseum } from './tree.js';
+import { DESERT_MUSEUM_PALO_VERDE, NORTHSTAR_ANIME_01, validateSpeciesRecipe } from './recipes.js';
+
+const recipe = DESERT_MUSEUM_PALO_VERDE;
+const style = NORTHSTAR_ANIME_01;
+validateSpeciesRecipe(recipe);
 
 const canvas = document.querySelector('#viewport');
 const renderer = new THREE.WebGPURenderer({ canvas, antialias: true, alpha: false });
@@ -14,8 +20,8 @@ renderer.shadowMap.enabled = true;
 await renderer.init();
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color('#dce9e7');
-scene.fog = new THREE.FogExp2('#dce9e7', 0.012);
+scene.background = new THREE.Color(recipe.material.sky);
+scene.fog = new THREE.FogExp2(recipe.material.sky, 0.010);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.08, 120);
 camera.position.set(10.6, 6.5, 11.6);
@@ -29,32 +35,35 @@ controls.maxPolarAngle = Math.PI * 0.49;
 
 const sunDirection = uniform(new THREE.Vector3(-0.45, 0.78, 0.43).normalize());
 
-function illustratedMaterial(palette, variationAmount = 0.10, heightBoost = 0.06, side = THREE.DoubleSide) {
+function illustratedMaterial(palette, role, side = THREE.DoubleSide) {
   const material = new THREE.MeshBasicNodeMaterial({ side });
+  const shading = style.shading;
   const shadow = color(palette[0]);
   const middle = color(palette[1]);
   const light = color(palette[2]);
-  const variation = attribute('variation', 'float').sub(0.5).mul(variationAmount);
-  const height = clamp(positionWorld.y.div(8.0), 0.0, 1.0);
+  const variationScale = role === 'foliage' ? shading.variationAmount : role === 'wood' ? shading.variationAmount * 0.48 : shading.variationAmount * 0.66;
+  const heightBias = role === 'foliage' ? shading.heightLightBias : shading.heightLightBias * 0.42;
+  const variation = attribute('variation', 'float').sub(0.5).mul(variationScale);
+  const height = clamp(positionWorld.y.div(recipe.growth.mature.heightM + 0.4), 0.0, 1.0);
   const facing = normalWorld.dot(sunDirection).mul(0.5).add(0.5);
-  const value = facing.add(normalWorld.y.mul(0.045)).add(height.mul(heightBoost)).add(variation);
-  const midBand = smoothstep(0.31, 0.50, value);
-  const highBand = smoothstep(0.69, 0.86, value);
+  const value = facing.add(normalWorld.y.mul(shading.normalUpBias)).add(height.mul(heightBias)).add(variation);
+  const midBand = smoothstep(shading.midBand[0], shading.midBand[1], value);
+  const highBand = smoothstep(shading.highBand[0], shading.highBand[1], value);
   material.colorNode = mix(mix(shadow, middle, midBand), light, highBand);
   material.roughness = 1;
   return material;
 }
 
 const materials = {
-  wood: illustratedMaterial(['#2b5f4d', '#5e9270', '#8db596'], 0.055, 0.025, THREE.FrontSide),
-  foliage: illustratedMaterial(['#315c37', '#6f9947', '#adc969'], 0.145, 0.085, THREE.DoubleSide),
-  flowers: illustratedMaterial(['#96721b', '#dfb823', '#f6df58'], 0.09, 0.045, THREE.DoubleSide),
-  outline: new THREE.MeshBasicNodeMaterial({ color: new THREE.Color('#29473e'), side: THREE.BackSide })
+  wood: illustratedMaterial(recipe.material.wood, 'wood', THREE.FrontSide),
+  foliage: illustratedMaterial(recipe.material.foliage, 'foliage', THREE.DoubleSide),
+  flowers: illustratedMaterial(recipe.material.bloom, 'bloom', THREE.DoubleSide),
+  outline: new THREE.MeshBasicNodeMaterial({ color: new THREE.Color(recipe.material.outline), side: THREE.BackSide })
 };
 
-const hemi = new THREE.HemisphereLight('#dbe9e5', '#b39d79', 1.0);
+const hemi = new THREE.HemisphereLight('#e5efeb', '#c8b99e', 0.74);
 scene.add(hemi);
-const sun = new THREE.DirectionalLight('#fff6db', 2.0);
+const sun = new THREE.DirectionalLight('#fff5db', 0.82);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
 sun.shadow.camera.left = -11;
@@ -63,20 +72,20 @@ sun.shadow.camera.top = 12;
 sun.shadow.camera.bottom = -5;
 sun.shadow.camera.near = 0.1;
 sun.shadow.camera.far = 36;
-sun.shadow.bias = -0.00035;
-sun.shadow.normalBias = 0.018;
+sun.shadow.bias = -0.0003;
+sun.shadow.normalBias = 0.020;
+sun.shadow.radius = 3.2;
 scene.add(sun);
 scene.add(sun.target);
 
-const groundMat = new THREE.MeshStandardNodeMaterial({ color: new THREE.Color('#d3c4aa'), roughness: 1.0, metalness: 0.0 });
+const groundMat = new THREE.MeshStandardNodeMaterial({ color: new THREE.Color(recipe.material.ground), roughness: 1.0, metalness: 0.0 });
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), groundMat);
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.025;
 ground.receiveShadow = true;
 scene.add(ground);
 
-// Very restrained illustrated datum rings help judge scale without turning the study into a game grid.
-const ringMaterial = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color('#94a59a'), transparent: true, opacity: 0.22 });
+const ringMaterial = new THREE.MeshBasicNodeMaterial({ color: new THREE.Color('#9aa9a0'), transparent: true, opacity: 0.12 });
 for (const radius of [2, 4, 6]) {
   const curve = new THREE.EllipseCurve(0, 0, radius, radius, 0, Math.PI * 2, false, 0);
   const pts = curve.getPoints(128).map(p => new THREE.Vector3(p.x, 0.005, p.y));
@@ -87,13 +96,13 @@ for (const radius of [2, 4, 6]) {
 const state = {
   seed: 41,
   maturity: 1.0,
-  openness: 1.0,
-  density: 1.0,
-  sprayScale: 1.0,
-  bloom: 0.62,
+  openness: recipe.canopy.openness,
+  density: 0.94,
+  sprayScale: 0.96,
+  bloom: 0.24,
   azimuth: -35,
   elevation: 52,
-  shadow: 2.0
+  shadow: 3.2
 };
 
 let treeGroup = null;
@@ -104,9 +113,7 @@ let rebuildTimer = null;
 
 function disposeGroup(group) {
   if (!group) return;
-  group.traverse(obj => {
-    if (obj.isMesh && obj.geometry) obj.geometry.dispose();
-  });
+  group.traverse(obj => { if (obj.isMesh && obj.geometry) obj.geometry.dispose(); });
   scene.remove(group);
 }
 
@@ -118,10 +125,10 @@ function rebuildTree() {
     openness: state.openness,
     density: state.density,
     sprayScale: state.sprayScale
-  });
+  }, recipe);
 
   treeGroup = new THREE.Group();
-  treeGroup.name = 'Desert Museum Palo Verde';
+  treeGroup.name = recipe.commonName;
 
   const outline = new THREE.Mesh(built.outline, materials.outline);
   outline.castShadow = false;
@@ -155,7 +162,8 @@ function rebuildTree() {
     backend: backendLabel(),
     errors: [],
     artApproved: false,
-    target: 'Desert Museum palo verde architectural illustration LOD0'
+    target: 'anime-background Desert Museum palo verde LOD0',
+    recipeDriven: true
   };
   document.documentElement.dataset.report = JSON.stringify(window.__PALO_VERDE_REPORT__);
 }
@@ -167,10 +175,13 @@ function scheduleRebuild() {
 
 function setBloom(value) {
   state.bloom = Number(value);
-  if (flowerMesh?.geometry?.index) {
-    const brushes = Math.floor((flowerIndexCount / 12) * state.bloom);
-    flowerMesh.geometry.setDrawRange(0, brushes * 12);
+  if (flowerMesh?.geometry?.index && currentReport?.flowerBrushes) {
+    const indicesPerFlower = flowerIndexCount / currentReport.flowerBrushes;
+    const brushes = Math.floor(currentReport.flowerBrushes * state.bloom);
+    flowerMesh.geometry.setDrawRange(0, Math.floor(brushes * indicesPerFlower));
     flowerMesh.visible = brushes > 0;
+  } else if (flowerMesh) {
+    flowerMesh.visible = false;
   }
   document.querySelector('#bloomOut').value = `${Math.round(state.bloom * 100)}%`;
 }
@@ -211,6 +222,12 @@ const sliderBindings = {
 for (const [id, binding] of Object.entries(sliderBindings)) {
   const input = document.querySelector(`#${id}`);
   const out = document.querySelector(`#${id}Out`);
+  if (!input) continue;
+  if (id === 'bloom') input.value = String(state.bloom);
+  if (id === 'density') input.value = String(state.density);
+  if (id === 'spray') input.value = String(state.sprayScale);
+  if (id === 'shadow') input.value = String(state.shadow);
+  if (out) out.value = binding.output(state[binding.key || id]);
   input.addEventListener('input', () => {
     const key = binding.key || id;
     const value = binding.parse(input.value);
@@ -224,8 +241,11 @@ for (const [id, binding] of Object.entries(sliderBindings)) {
 const views = {
   hero: { position: [10.6, 6.5, 11.6], target: [0, 3.35, 0] },
   side: { position: [-12.6, 5.7, 1.5], target: [0, 3.15, 0] },
-  low: { position: [7.8, 2.35, 10.0], target: [0, 3.45, 0] }
+  low: { position: [7.8, 2.35, 10.0], target: [0, 3.45, 0] },
+  elevated: { position: [8.2, 10.5, 8.7], target: [0, 3.2, 0] },
+  reverse: { position: [-8.4, 5.8, -10.5], target: [0, 3.3, 0] }
 };
+
 function setView(name) {
   const view = views[name];
   if (!view) return;
@@ -233,6 +253,7 @@ function setView(name) {
   controls.target.fromArray(view.target);
   controls.update();
 }
+
 for (const button of document.querySelectorAll('[data-view]')) button.addEventListener('click', () => setView(button.dataset.view));
 document.querySelector('#randomize').addEventListener('click', () => {
   state.seed = 1 + Math.floor(Math.random() * 998);
