@@ -22,7 +22,7 @@
     <aside id="panel">
       <div class="eyebrow">PERSPECTIVE LAB / THREE.JS / NORTHSTAR ANIME 01</div>
       <h1>Desert Museum Palo Verde</h1>
-      <p class="sub">LOD0 anime-first study · shallow 3D painted foliage masses · selective pinnate accents</p>
+      <p class="sub">LOD0 Ghibli-technique study · original painted cluster atlas · fixed 3D quadmesh · bent proxy normals</p>
       <div class="metric-grid">
         <div><span>Backend</span><strong id="backend">starting…</strong></div>
         <div><span>Triangles</span><strong id="triangles">—</strong></div>
@@ -35,27 +35,22 @@
         <label>Maturity <output id="maturityOut">100%</output><input id="maturity" type="range" min="0.45" max="1" value="1" step="0.01"></label>
         <label>Canopy openness <output id="opennessOut">1.00</output><input id="openness" type="range" min="0.72" max="1.32" value="1" step="0.01"></label>
         <label>Foliage density <output id="densityOut">0.94</output><input id="density" type="range" min="0.55" max="1.45" value="0.94" step="0.01"></label>
-        <label>Fine accent scale <output id="sprayOut">0.94</output><input id="spray" type="range" min="0.70" max="1.35" value="0.94" step="0.01"></label>
-        <label>Bloom <output id="bloomOut">18%</output><input id="bloom" type="range" min="0" max="1" value="0.18" step="0.01"></label>
+        <label>Accent scale <output id="sprayOut">0.94</output><input id="spray" type="range" min="0.70" max="1.35" value="0.94" step="0.01"></label>
+        <label>Bloom <output id="bloomOut">14%</output><input id="bloom" type="range" min="0" max="1" value="0.14" step="0.01"></label>
       </section>
       <section>
         <h2>Illustration light</h2>
         <label>Sun azimuth <output id="azimuthOut">-35°</output><input id="azimuth" type="range" min="-180" max="180" value="-35" step="1"></label>
         <label>Sun elevation <output id="elevationOut">52°</output><input id="elevation" type="range" min="18" max="82" value="52" step="1"></label>
-        <label>Painted shadow softness <output id="shadowOut">4.2</output><input id="shadow" type="range" min="0.5" max="5" value="4.2" step="0.1"></label>
+        <label>Painted shadow softness <output id="shadowOut">4.3</output><input id="shadow" type="range" min="0.5" max="5" value="4.3" step="0.1"></label>
       </section>
       <div class="buttons">
-        <button data-view="hero">Hero</button>
-        <button data-view="side">Side</button>
-        <button data-view="low">Low</button>
-        <button data-view="elevated">Elevated</button>
-        <button data-view="reverse">Reverse</button>
-        <button id="randomize">New seed</button>
+        <button data-view="hero">Hero</button><button data-view="side">Side</button><button data-view="low">Low</button><button data-view="elevated">Elevated</button><button data-view="reverse">Reverse</button><button id="randomize">New seed</button>
       </div>
-      <p class="note">Drag to orbit · wheel/pinch to zoom. LOD1/LOD2 intentionally ignored. Growth remains illustrative, not calendar-calibrated.</p>
+      <p class="note">The crown is fully volumetric through many local planes. No whole-tree billboard. LOD1/LOD2 intentionally ignored.</p>
     </aside>
-    <div id="badge">PAINTED MASS · OPEN VASE · SELECTIVE DETAIL</div>
+    <div id="badge">PAINTED CLUSTERS · BENT NORMALS · FULL 3D CROWN</div>
   </div>
-  <script type="module" src="./src/main_anime.js"></script>
+  <script type="module" src="./src/main_atlas.js"></script>
 </body>
 </html>
