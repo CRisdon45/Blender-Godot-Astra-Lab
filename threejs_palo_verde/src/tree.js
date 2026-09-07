@@ -275,8 +275,10 @@ function siteProxy(site) {
 function addAnimeMassCluster(foliage, site, siteIndex, params, recipe, counters) {
   const canopy = recipe.canopy;
   if (siteIndex % canopy.massStride !== 0 && site.weight < .74) return;
+  if (site.branch.order === 0) return;
   const rng = new RNG(hashSeed(params.seed, `paint-mass:${site.branch.id}:${site.t}`));
   const { center, tangent, u, v, outward, proxy } = siteProxy(site);
+  if (center.y < recipe.growth.mature.heightM * .27 && site.weight < .70) return;
   const count = rng.int(canopy.massBrushesPerAnchor[0], canopy.massBrushesPerAnchor[1]);
   const [depthMin, depthMax] = canopy.massDepthScatter;
   const avoidRadius = recipe.growth.mature.spreadM * canopy.avoidSolidCenterRadiusFraction;
@@ -284,25 +286,27 @@ function addAnimeMassCluster(foliage, site, siteIndex, params, recipe, counters)
   for (let i = 0; i < count; i++) {
     const angle = i * GOLDEN_ANGLE + rng.signed(.46);
     const depth = rng.range(depthMin, depthMax);
-    const radial = THREE.MathUtils.lerp(canopy.massWidthM[0], canopy.massWidthM[1], rng.next()) * (.62 + site.weight * .62);
-    const offset = u.clone().multiplyScalar(Math.cos(angle) * radial * depth)
-      .addScaledVector(v, Math.sin(angle) * radial * depth * rng.range(.38, .72))
-      .addScaledVector(UP, rng.signed(radial * .28))
-      .addScaledVector(tangent, rng.signed(radial * .20));
+    const baseWidth = THREE.MathUtils.lerp(canopy.massWidthM[0], canopy.massWidthM[1], rng.next()) * (.70 + site.weight * .52);
+    const hierarchy = i === 0 ? 1.0 : i < 3 ? rng.range(.58, .78) : rng.range(.36, .56);
+    const radial = baseWidth * hierarchy;
+    const offset = u.clone().multiplyScalar(Math.cos(angle) * baseWidth * depth)
+      .addScaledVector(v, Math.sin(angle) * baseWidth * depth * rng.range(.42, .78))
+      .addScaledVector(UP, rng.signed(baseWidth * .32))
+      .addScaledVector(tangent, rng.signed(baseWidth * .24));
     const p = center.clone().add(offset);
     if (avoidRadius > 0 && Math.hypot(p.x, p.z) < avoidRadius && p.y > recipe.growth.mature.heightM * .28) {
       p.addScaledVector(outward, avoidRadius * rng.range(.25, .55));
     }
-    const width = radial * rng.range(.88, 1.18);
+    const width = radial * rng.range(.94, 1.16);
     const aspect = rng.range(canopy.massAspect[0], canopy.massAspect[1]);
     const height = width / aspect;
     const normal = proxy.clone().multiplyScalar(.72).addScaledVector(UP, .18).addScaledVector(outward, .10).normalize();
-    addBrush(foliage, p, normal, width, height, rng.range(-Math.PI, Math.PI), rng.range(.43, .61), .15, i % 3 - 1);
+    addBrush(foliage, p, normal, width, height, rng.range(-Math.PI, Math.PI), rng.range(.47, .57), .15, i % 3 - 1);
     counters.massCount++;
 
     if (rng.next() < canopy.bridgeMassProbability && i === 0) {
       const bp = p.clone().addScaledVector(tangent, width * rng.range(.32, .58)).addScaledVector(outward, width * rng.range(-.12, .20));
-      addBrush(foliage, bp, normal, width * rng.range(.54, .72), height * rng.range(.62, .86), rng.range(-Math.PI, Math.PI), rng.range(.45, .60), .13, 1);
+      addBrush(foliage, bp, normal, width * rng.range(.54, .72), height * rng.range(.62, .86), rng.range(-Math.PI, Math.PI), rng.range(.48, .57), .13, 1);
       counters.massCount++;
     }
   }
