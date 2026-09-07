@@ -51,9 +51,11 @@ jobs:
           import html,json,re,struct
           root=Path('threejs-output');dom=(root/'dom.html').read_text(errors='replace');assert 'data-ready="true"' in dom,dom[-3000:]
           m=re.search(r'data-report="([^"]+)"',dom);assert m;r=json.loads(html.unescape(m.group(1)))
-          assert r['schema']=='threejs-palo-verde/4' and r['authoredTemplate'] is True and r['regionClouds'] is True,r
+          assert r['schema']=='threejs-palo-verde/5' and r['authoredTemplate'] is True and r['regionClouds'] is True and r['hierarchicalCanopy'] is True,r
           assert r['leaders']==3 and r['heroScaffolds']==11 and r['authoredCanopyRegions']==18,r
-          assert r['foliageMasses']>=500 and abs(r['scaffoldVisibleFraction']-.82)<1e-9 and r['triangles']<=r['triangleHardCap'],r
+          assert r['foundationCards']>=40 and r['surfaceCards']>=140 and r['accentCards']>=20,r
+          assert r['foliageMasses']==r['foundationCards']+r['surfaceCards']+r['accentCards'] and r['triangles']<=r['triangleHardCap'],r
+          assert abs(r['scaffoldVisibleFraction']-.82)<1e-9,r
           assert r['atlasRepresentation']=='continuous_irregular_brush_cloud' and r['paintedToneAtlas'] is True,r
           for name in ('hero','side','low','elevated','reverse'):
               raw=(root/f'{name}.png').read_bytes();assert raw[:8]==b'\x89PNG\r\n\x1a\n' and len(raw)>30000,(name,len(raw));w,h=struct.unpack('>II',raw[16:24]);assert(w,h)==(1280,800)
