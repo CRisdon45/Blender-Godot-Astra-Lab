@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Perspective Lab — Desert Museum Palo Verde</title>
+  <link rel="stylesheet" href="./src/style.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+      "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+      "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <canvas id="viewport"></canvas>
+    <aside id="panel">
+      <div class="eyebrow">PERSPECTIVE LAB / THREE.JS</div>
+      <h1>Desert Museum Palo Verde</h1>
+      <p class="sub">LOD0 clean-sheet study · procedural 3D brushes · architectural illustration target</p>
+      <div class="metric-grid">
+        <div><span>Backend</span><strong id="backend">starting…</strong></div>
+        <div><span>Triangles</span><strong id="triangles">—</strong></div>
+        <div><span>Brushes</span><strong id="brushes">—</strong></div>
+        <div><span>FPS</span><strong id="fps">—</strong></div>
+      </div>
+      <section>
+        <h2>Tree</h2>
+        <label>Seed <output id="seedOut">41</output><input id="seed" type="range" min="1" max="999" value="41" step="1"></label>
+        <label>Maturity <output id="maturityOut">100%</output><input id="maturity" type="range" min="0.45" max="1" value="1" step="0.01"></label>
+        <label>Canopy openness <output id="opennessOut">1.00</output><input id="openness" type="range" min="0.72" max="1.32" value="1" step="0.01"></label>
+        <label>Foliage density <output id="densityOut">1.00</output><input id="density" type="range" min="0.55" max="1.45" value="1" step="0.01"></label>
+        <label>Spray scale <output id="sprayOut">1.00</output><input id="spray" type="range" min="0.70" max="1.35" value="1" step="0.01"></label>
+        <label>Bloom <output id="bloomOut">62%</output><input id="bloom" type="range" min="0" max="1" value="0.62" step="0.01"></label>
+      </section>
+      <section>
+        <h2>Illustration light</h2>
+        <label>Sun azimuth <output id="azimuthOut">-35°</output><input id="azimuth" type="range" min="-180" max="180" value="-35" step="1"></label>
+        <label>Sun elevation <output id="elevationOut">52°</output><input id="elevation" type="range" min="18" max="82" value="52" step="1"></label>
+        <label>Shadow softness <output id="shadowOut">2.0</output><input id="shadow" type="range" min="0.5" max="5" value="2" step="0.1"></label>
+      </section>
+      <div class="buttons">
+        <button data-view="hero">Hero</button>
+        <button data-view="side">Side</button>
+        <button data-view="low">Low</button>
+        <button id="randomize">New seed</button>
+      </div>
+      <p class="note">Drag to orbit · wheel/pinch to zoom. This is an art study, not calibrated nursery growth or tablet certification.</p>
+    </aside>
+    <div id="badge">OPEN CROWN · GREEN BARK · FINE SPRAYS</div>
+  </div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

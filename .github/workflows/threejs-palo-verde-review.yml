@@ -1,0 +1,72 @@
+name: Three.js Palo Verde LOD0 review
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/threejs-palo-verde-gold]
+    paths:
+      - threejs_palo_verde/**
+      - .github/workflows/threejs-palo-verde-review.yml
+permissions:
+  contents: read
+concurrency:
+  group: threejs-palo-verde-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Locate browser and start study
+        run: |
+          set -euo pipefail
+          mkdir -p threejs-output
+          git rev-parse HEAD > threejs-output/source-commit.txt
+          python3 -m http.server 8123 --directory threejs_palo_verde >threejs-output/server.log 2>&1 &
+          echo $! > threejs-output/server.pid
+          for i in {1..30}; do curl -fsS http://127.0.0.1:8123/ >/dev/null && break; sleep 0.2; done
+          if command -v google-chrome >/dev/null; then echo "BROWSER=$(command -v google-chrome)" >> "$GITHUB_ENV";
+          elif command -v chromium >/dev/null; then echo "BROWSER=$(command -v chromium)" >> "$GITHUB_ENV";
+          else echo 'No Chromium browser on runner' >&2; exit 2; fi
+      - name: Render actual Three.js views
+        run: |
+          set -euo pipefail
+          FLAGS=(--headless=new --no-sandbox --disable-dev-shm-usage --enable-webgl --ignore-gpu-blocklist --use-angle=swiftshader --window-size=1280,800 --hide-scrollbars --virtual-time-budget=12000)
+          for VIEW in hero side low; do
+            timeout 45 "$BROWSER" "${FLAGS[@]}" --screenshot="threejs-output/${VIEW}.png" "http://127.0.0.1:8123/?capture=1&view=${VIEW}" >"threejs-output/${VIEW}.stdout.log" 2>"threejs-output/${VIEW}.stderr.log"
+          done
+          timeout 45 "$BROWSER" "${FLAGS[@]}" --dump-dom "http://127.0.0.1:8123/?capture=1&view=hero" > threejs-output/dom.html 2>threejs-output/dom.stderr.log
+      - name: Validate real browser output
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, re, struct, zlib
+          root=Path('threejs-output')
+          dom=(root/'dom.html').read_text(errors='replace')
+          if 'data-ready="true"' not in dom:
+              raise SystemExit('Three.js study did not report ready=true\n'+dom[-4000:])
+          match=re.search(r'data-report="([^"]+)"',dom)
+          if not match:
+              raise SystemExit('runtime report missing')
+          import html
+          report=json.loads(html.unescape(match.group(1)))
+          assert report['schema']=='threejs-palo-verde/1',report
+          assert report['lod']==0 and report['branches']>=15 and report['foliageBrushes']>=300,report
+          assert 6.8 <= report['targetHeightM'] <= 7.8 and 6.8 <= report['targetSpreadM'] <= 8.2,report
+          for name in ('hero','side','low'):
+              raw=(root/f'{name}.png').read_bytes()
+              assert raw[:8]==b'\x89PNG\r\n\x1a\n' and len(raw)>30000,(name,len(raw))
+              w,h=struct.unpack('>II',raw[16:24]); assert (w,h)==(1280,800),(name,w,h)
+          (root/'runtime-report.json').write_text(json.dumps(report,indent=2))
+          print(json.dumps(report,indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: threejs-palo-verde-${{ github.run_number }}-${{ github.run_attempt }}
+          path: threejs-output/
+          if-no-files-found: error
+          retention-days: 7
