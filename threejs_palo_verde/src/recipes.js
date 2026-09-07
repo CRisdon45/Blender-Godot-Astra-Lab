@@ -64,7 +64,7 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
     leaderHeightMatureM: [2.70, 2.25, 3.10],
     leaderReachFraction: [0.11, 0.14, 0.10],
     scaffoldCountMature: 4,
-    scaffoldLengthFraction: [0.27, 0.39],
+    scaffoldLengthFraction: [0.30, 0.43],
     secondaryCountMature: 4,
     twigCountMature: 2,
     tipBranchProbabilityPattern: 'alternating',
@@ -77,33 +77,33 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
     openness: 1.0,
     interiorFill: 0.24,
     massStride: 2,
-    massBrushesPerAnchor: [3, 5],
-    massWidthM: [0.24, 0.50],
-    massAspect: [1.25, 1.85],
-    massDepthFraction: [0.20, 0.36],
-    massDepthScatter: [0.24, 0.82],
+    massBrushesPerAnchor: [2, 4],
+    massWidthM: [0.34, 0.72],
+    massAspect: [1.05, 1.55],
+    massDepthFraction: [0.34, 0.58],
+    massDepthScatter: [0.18, 0.62],
     mediumBreakupScale: [0.48, 0.72],
-    fineAccentFraction: 0.62,
-    bridgeMassProbability: 0.31,
+    fineAccentFraction: 0.40,
+    bridgeMassProbability: 0.24,
     avoidSolidCenterRadiusFraction: 0.25
   },
   modules: {
     fineSprig: {
-      lengthM: [0.16, 0.26],
+      lengthM: [0.15, 0.24],
       leafletPairs: [5, 7],
       leafletLengthFraction: [0.14, 0.21],
-      densityScale: 0.66,
+      densityScale: 0.54,
       visibleRole: 'accent_not_mass'
     },
     bloom: {
-      probabilityAtTerminal: 0.08,
-      sizeFractionOfSprig: [0.07, 0.105],
-      visualPriority: 0.10
+      probabilityAtTerminal: 0.06,
+      sizeFractionOfSprig: [0.07, 0.10],
+      visualPriority: 0.08
     }
   },
   material: {
     wood: ['#456f5b', '#759879', '#a5bba0'],
-    foliage: ['#526b46', '#7d9158', '#a7b66d'],
+    foliage: ['#536d48', '#788f54', '#9eae68'],
     bloom: ['#a08336', '#c3a84a', '#dcc667'],
     outline: '#40584f',
     ground: '#ddd3bf',
@@ -114,7 +114,7 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
     triangleTarget: 190000,
     triangleHardCap: 280000,
     preferredVisibleMasses: [220, 620],
-    preferredFineSprigs: [700, 3000],
+    preferredFineSprigs: [500, 2200],
     artWinsOverBudgetUntilDeviceTest: true
   }
 });
