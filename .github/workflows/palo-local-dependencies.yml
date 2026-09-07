@@ -1,0 +1,30 @@
+name: Palo local dependency bundle
+on:
+  workflow_dispatch:
+  push:
+    branches: [work/palo-calibration-local-tools]
+    paths: [.github/workflows/palo-local-dependencies.yml]
+permissions:
+  contents: read
+jobs:
+  dependencies:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Retrieve pinned dependencies only
+        run: |
+          set -euo pipefail
+          mkdir bundle
+          cd bundle
+          npm init -y
+          npm install --save-exact three@0.185.1 esbuild@0.25.5
+          npm pack agent-browser@0.20.0
+          printf 'Tooling bundle only. No rendering or target-device test performed.\n' > README.txt
+          find node_modules -type f -exec sha256sum {} \; > SHA256SUMS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: palo-local-dependencies
+          path: bundle/
+          retention-days: 7
+          if-no-files-found: error
