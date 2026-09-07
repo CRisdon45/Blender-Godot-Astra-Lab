@@ -25,8 +25,8 @@ jobs:
           mkdir -p threejs-output
           git rev-parse HEAD > threejs-output/source-commit.txt
           node --check threejs_palo_verde/src/recipes.js
-          node --check threejs_palo_verde/src/tree.js
-          node --check threejs_palo_verde/src/main.js
+          node --check threejs_palo_verde/src/tree_anime.js
+          node --check threejs_palo_verde/src/main_anime.js
           python3 -m http.server 8123 --directory threejs_palo_verde >threejs-output/server.log 2>&1 &
           echo $! > threejs-output/server.pid
           for i in {1..30}; do curl -fsS http://127.0.0.1:8123/ >/dev/null && break; sleep 0.2; done
@@ -59,7 +59,8 @@ jobs:
           assert report['recipeId']=='desert_museum_palo_verde',report
           assert report['styleProfile']=='northstar_anime_01',report
           assert report['lod']==0 and report['recipeDriven'] is True,report
-          assert report['foliageMasses']>=100 and report['fineSprays']>=100,report
+          assert report['paintedContactShadow'] is True,report
+          assert report['foliageMasses']>=150 and report['fineSprays']>=80,report
           assert report['triangles'] <= report['triangleHardCap'],report
           assert 6.8 <= report['targetHeightM'] <= 7.8 and 6.8 <= report['targetSpreadM'] <= 8.3,report
           for name in ('hero','side','low','elevated','reverse'):
