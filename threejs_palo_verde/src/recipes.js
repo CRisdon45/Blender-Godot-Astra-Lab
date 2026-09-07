@@ -11,17 +11,17 @@ export const NORTHSTAR_ANIME_01 = Object.freeze({
     highBand: [0.76, 0.88],
     normalUpBias: 0.025,
     heightLightBias: 0.030,
-    variationAmount: 0.032,
+    variationAmount: 0.028,
     ambientEmission: 0.90,
     realisticGradientPriority: 0.10
   },
   linework: {
-    mode: 'selective_major_structure',
-    trunkSilhouette: 1.0,
-    majorBranchSilhouette: 0.64,
+    mode: 'trunk_silhouette_only',
+    trunkSilhouette: 0.72,
+    majorBranchSilhouette: 0.18,
     foliageInteriorOutline: 0.0,
-    foliageSilhouetteInk: 0.04,
-    color: '#40594f'
+    foliageSilhouetteInk: 0.03,
+    color: '#5c7369'
   },
   shadow: {
     mode: 'painted_contact',
@@ -85,7 +85,11 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
     mediumBreakupScale: [0.48, 0.72],
     fineAccentFraction: 0.40,
     bridgeMassProbability: 0.24,
-    avoidSolidCenterRadiusFraction: 0.25
+    avoidSolidCenterRadiusFraction: 0.25,
+    transitionCoverage: 0.94,
+    upperCrownStart: 0.57,
+    upperCrownScale: 1.34,
+    upperCrownExtraMasses: 1
   },
   modules: {
     fineSprig: {
@@ -102,10 +106,10 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
     }
   },
   material: {
-    wood: ['#456f5b', '#759879', '#a5bba0'],
-    foliage: ['#536d48', '#788f54', '#9eae68'],
+    wood: ['#60836f', '#81a089', '#acc0a9'],
+    foliage: ['#60774f', '#80955b', '#a2b16c'],
     bloom: ['#a08336', '#c3a84a', '#dcc667'],
-    outline: '#40584f',
+    outline: '#5c7369',
     ground: '#ddd3bf',
     sky: '#dce9e7',
     contactShadow: '#62665a'
@@ -113,8 +117,8 @@ export const DESERT_MUSEUM_PALO_VERDE = Object.freeze({
   lod0Budget: {
     triangleTarget: 190000,
     triangleHardCap: 280000,
-    preferredVisibleMasses: [220, 620],
-    preferredFineSprigs: [500, 2200],
+    preferredVisibleMasses: [220, 760],
+    preferredFineSprigs: [400, 2000],
     artWinsOverBudgetUntilDeviceTest: true
   }
 });
