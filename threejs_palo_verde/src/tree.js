@@ -142,8 +142,8 @@ function addCompoundSpray(target, center, direction, proxyNormal, length, rng, v
     const t = (i + 0.55) / pairCount;
     const bend = Math.sin(t * Math.PI) * rng.signed(length * 0.035);
     const anchor = start.clone().lerp(end, t).addScaledVector(side, bend);
-    const leafletLength = length * rng.range(0.145, 0.205) * (0.84 + Math.sin(t * Math.PI) * 0.18);
-    const leafletWidth = leafletLength * rng.range(0.25, 0.34);
+    const leafletLength = length * rng.range(0.165, 0.235) * (0.84 + Math.sin(t * Math.PI) * 0.18);
+    const leafletWidth = leafletLength * rng.range(0.28, 0.38);
     const forward = axis.clone().multiplyScalar(rng.range(0.26, 0.44));
     for (const sign of [-1, 1]) {
       const leafAxis = forward.clone().addScaledVector(side, sign * rng.range(0.82, 1.0)).addScaledVector(UP, rng.range(-0.08, 0.12)).normalize();
@@ -236,7 +236,7 @@ function buildBranchGraph(params) {
         branches.push(tertiary);
         foliageSites.push({ branch:tertiary, t:0.70, weight:0.58 }, { branch:tertiary, t:0.98, weight:0.76 });
 
-        if (maturity > 0.72 && (j + k) % 2 === 0) {
+        if (maturity > 0.68) {
           const qrng = new RNG(hashSeed(seed, `twig:${i}:${j}:${k}`));
           const qt = qrng.range(0.57,0.79);
           const twig = growChild(tertiary, `twig:${i}:${j}:${k}`, 3, qt, length * qrng.range(0.16,0.28), qrng.next()<0.5?-1:1, qrng, 0.42, qrng.range(0.08,0.22));
@@ -248,7 +248,9 @@ function buildBranchGraph(params) {
   }
 
   // Sparse bridge sites make the crown continuous without erasing the open center.
-  for (const leader of leaders) foliageSites.push({ branch:leader, t:0.90, weight:0.40 });
+  for (const leader of leaders) {
+    foliageSites.push({ branch:leader, t:0.68, weight:0.28 }, { branch:leader, t:0.86, weight:0.38 }, { branch:leader, t:0.985, weight:0.52 });
+  }
   return { branches, foliageSites, height, spread };
 }
 
@@ -264,14 +266,14 @@ function buildFoliage(foliageSites, params) {
     const center = site.branch.curve.getPoint(Math.min(0.997,site.t));
     const tangent = site.branch.curve.getTangent(Math.min(0.995,Math.max(0.05,site.t))).normalize();
     const { u, v } = tangentBasis(tangent);
-    const cloudRadius = THREE.MathUtils.lerp(0.24,0.54,maturity) * site.weight;
-    const sprays = Math.max(1, Math.round(rng.range(1.6,3.2) * density * (0.72 + site.weight)));
+    const cloudRadius = THREE.MathUtils.lerp(0.30,0.72,maturity) * (0.72 + site.weight * 0.50);
+    const sprays = Math.max(3, Math.round(rng.range(5.5,8.5) * density * (0.86 + site.weight * 0.46)));
 
     for (let s = 0; s < sprays; s++) {
       const theta = (s + rng.next()) * GOLDEN_ANGLE;
       const vertical = rng.range(-0.52,0.62);
       const radial = Math.sqrt(Math.max(0,1-vertical*vertical));
-      const shell = rng.range(0.18,1.0);
+      const shell = rng.range(0.16,1.08);
       const offset = u.clone().multiplyScalar(Math.cos(theta)*radial*cloudRadius*shell)
         .addScaledVector(UP, vertical*cloudRadius*0.72*shell)
         .addScaledVector(v, Math.sin(theta)*radial*cloudRadius*0.72*shell);
@@ -280,16 +282,16 @@ function buildFoliage(foliageSites, params) {
       proxy.multiplyScalar(0.46).addScaledVector(UP,0.22).addScaledVector(tangent,0.32).normalize();
       let direction = tangent.clone().multiplyScalar(rng.range(0.52,0.82))
         .addScaledVector(u,rng.signed(0.54)).addScaledVector(v,rng.signed(0.42)).addScaledVector(UP,rng.range(-0.10,0.26)).normalize();
-      const length = THREE.MathUtils.lerp(0.28,0.50,maturity) * sprayScale * rng.range(0.72,1.20) * (0.82+site.weight*0.23);
+      const length = THREE.MathUtils.lerp(0.20,0.34,maturity) * sprayScale * rng.range(0.74,1.22) * (0.88+site.weight*0.18);
       const variation = rng.next();
       addCompoundSpray(foliage,p,direction,proxy,length,rng,variation);
       sprayCount++;
 
-      if (rng.next() < 0.48) {
+      if (rng.next() < 0.62) {
         const flowerN = 1 + (rng.next()<0.34 ? 1:0);
         for (let f=0; f<flowerN; f++) {
           const fp = p.clone().addScaledVector(direction,length*rng.range(0.10,0.42)).addScaledVector(proxy,rng.range(0.015,0.045));
-          addBrush(flowers,fp,proxy,length*rng.range(0.13,0.19),length*rng.range(0.09,0.13),rng.range(-Math.PI,Math.PI),rng.next(),0.03);
+          addBrush(flowers,fp,proxy,length*rng.range(0.11,0.16),length*rng.range(0.075,0.11),rng.range(-Math.PI,Math.PI),rng.next(),0.03);
           flowerCount++;
         }
       }
