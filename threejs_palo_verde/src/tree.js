@@ -57,6 +57,7 @@ function addBranchTube(target, branch, radiusScale = 1) {
       const q = p.clone().addScaledVector(radial, radius * wobble);
       target.positions.push(q.x, q.y, q.z);
       target.normals.push(radial.x, radial.y, radial.z);
+      // Fine wood should remain visually green and present, not sink into the darkest band.
       target.variation.push(Math.min(0.98, 0.61 + branch.order * 0.065 + t * 0.06));
     }
   }
@@ -189,57 +190,67 @@ function growChild(parent,id,order,t,length,sideSign,rng,radiusScale,upwardBias=
 function buildBranchGraph(params) {
   const {seed,maturity,openness}=params;
   const height=THREE.MathUtils.lerp(3.0,7.55,maturity);
-  const spread=THREE.MathUtils.lerp(2.25,7.82,Math.pow(maturity,1.04))*openness;
-  const branches=[], foliageSites=[], leaders=[];
-  const azimuths=[.10,2.12,4.30];
-  const leaderReach=[.47,.56,.49];
-  const leaderHeight=[.82,.72,.965];
+  const spread=THREE.MathUtils.lerp(2.25,7.95,Math.pow(maturity,1.03))*openness;
+  const branches=[], foliageSites=[], stems=[];
 
+  // Desert Museum reads from a low green scaffold that forks early, not three telephone poles.
+  const stemAzimuth=[-.15,2.05,4.22];
+  const stemHeight=[2.70,2.25,3.10];
+  const stemReach=[.11,.14,.10];
   for(let i=0;i<3;i++) {
-    const rng=new RNG(hashSeed(seed,`leader:${i}`));
-    const a=azimuths[i]+rng.signed(.17);
-    const p0=new THREE.Vector3(Math.cos(a)*.055,0,Math.sin(a)*.055);
-    const tip=new THREE.Vector3(Math.cos(a)*spread*leaderReach[i],height*(leaderHeight[i]+rng.signed(.018)),Math.sin(a)*spread*leaderReach[i]);
-    const p1=new THREE.Vector3(Math.cos(a)*spread*.07,height*.155,Math.sin(a)*spread*.07);
-    const p2=new THREE.Vector3(tip.x*.66+rng.signed(spread*.055),tip.y*.62,tip.z*.66+rng.signed(spread*.055));
-    const leader=curveBranch({id:`leader:${i}`,order:0,p0,p1,p2,p3:tip,
-      radius0:THREE.MathUtils.lerp(.055,.115,maturity),radius1:THREE.MathUtils.lerp(.017,.035,maturity)});
-    branches.push(leader); leaders.push(leader);
+    const rng=new RNG(hashSeed(seed,`stem:${i}`));
+    const a=stemAzimuth[i]+rng.signed(.16);
+    const p0=new THREE.Vector3(Math.cos(a)*.045,0,Math.sin(a)*.045);
+    const p3=new THREE.Vector3(Math.cos(a)*spread*stemReach[i],stemHeight[i]*maturity,Math.sin(a)*spread*stemReach[i]);
+    const p1=new THREE.Vector3(Math.cos(a)*spread*.035,stemHeight[i]*.34,Math.sin(a)*spread*.035);
+    const p2=new THREE.Vector3(p3.x*.58+rng.signed(.13),p3.y*.74,p3.z*.58+rng.signed(.13));
+    const stem=curveBranch({id:`stem:${i}`,order:0,p0,p1,p2,p3,
+      radius0:THREE.MathUtils.lerp(.065,.15,maturity),radius1:THREE.MathUtils.lerp(.025,.060,maturity)});
+    branches.push(stem); stems.push(stem);
 
-    const secondaryCount=maturity<.62?5:7;
-    for(let j=0;j<secondaryCount;j++) {
-      const srng=new RNG(hashSeed(seed,`secondary:${i}:${j}`));
-      const t=.18+j*(.70/Math.max(1,secondaryCount-1))+srng.signed(.018);
-      const len=spread*srng.range(.19,.31)*(1.02+t*.15);
-      const sec=growChild(leader,`secondary:${i}:${j}`,1,t,len,j%2?-1:1,srng,.52,srng.range(.12,.32),.76);
-      branches.push(sec);
-      foliageSites.push({branch:sec,t:.50,weight:.40},{branch:sec,t:.68,weight:.52},{branch:sec,t:.84,weight:.66},{branch:sec,t:.985,weight:.82});
+    const scaffoldCount=maturity<.58?2:4;
+    for(let j=0;j<scaffoldCount;j++) {
+      const srng=new RNG(hashSeed(seed,`scaffold:${i}:${j}`));
+      const t=.29+j*(.59/Math.max(1,scaffoldCount-1))+srng.signed(.022);
+      const len=spread*srng.range(.32,.49)*(j===scaffoldCount-1?1.02:.94);
+      const sideSign=(j+i)%2?-1:1;
+      const upward=(i===2 && j===scaffoldCount-1)?srng.range(.62,.86):srng.range(.18,.46);
+      const scaffold=growChild(stem,`scaffold:${i}:${j}`,1,t,len,sideSign,srng,.53,upward,.92);
+      branches.push(scaffold);
+      // Inner scaffold is still visible green structure; foliage builds from middle outward.
+      foliageSites.push({branch:scaffold,t:.42,weight:.30},{branch:scaffold,t:.60,weight:.43},{branch:scaffold,t:.78,weight:.58},{branch:scaffold,t:.94,weight:.72},{branch:scaffold,t:.995,weight:.78});
 
-      const tertiaryCount=maturity<.58?1:2;
-      for(let k=0;k<tertiaryCount;k++) {
-        const trng=new RNG(hashSeed(seed,`tertiary:${i}:${j}:${k}`));
-        const tt=.45+k*.34+trng.signed(.02);
-        const ter=growChild(sec,`tertiary:${i}:${j}:${k}`,2,tt,len*trng.range(.38,.58),(j+k)%2?-1:1,trng,.46,trng.range(.08,.24),.72);
-        branches.push(ter);
-        foliageSites.push({branch:ter,t:.50,weight:.48},{branch:ter,t:.72,weight:.60},{branch:ter,t:.93,weight:.76},{branch:ter,t:.995,weight:.84});
+      const secondaryCount=maturity<.60?2:4;
+      for(let k=0;k<secondaryCount;k++) {
+        const brng=new RNG(hashSeed(seed,`branch:${i}:${j}:${k}`));
+        const bt=.28+k*(.58/Math.max(1,secondaryCount-1))+brng.signed(.022);
+        const childLen=len*brng.range(.33,.54);
+        const branch=growChild(scaffold,`branch:${i}:${j}:${k}`,2,bt,childLen,(j+k)%2?-1:1,brng,.46,brng.range(.08,.28),.74);
+        branches.push(branch);
+        foliageSites.push({branch,t:.40,weight:.36},{branch,t:.58,weight:.48},{branch,t:.76,weight:.60},{branch,t:.91,weight:.72},{branch,t:.992,weight:.80});
 
-        if(maturity>.66) {
-          const qCount=(j+k)%3===0?2:1;
-          for(let q=0;q<qCount;q++) {
-            const qrng=new RNG(hashSeed(seed,`twig:${i}:${j}:${k}:${q}`));
-            const qt=.52+q*.25+qrng.signed(.025);
-            const twig=growChild(ter,`twig:${i}:${j}:${k}:${q}`,3,qt,len*qrng.range(.17,.30),qrng.next()<.5?-1:1,qrng,.39,qrng.range(.03,.15),.66);
-            branches.push(twig);
-            foliageSites.push({branch:twig,t:.48,weight:.46},{branch:twig,t:.72,weight:.56},{branch:twig,t:.96,weight:.70});
+        const twigCount=maturity<.66?1:2;
+        for(let q=0;q<twigCount;q++) {
+          const trng=new RNG(hashSeed(seed,`twig:${i}:${j}:${k}:${q}`));
+          const qt=.46+q*.34+trng.signed(.025);
+          const twig=growChild(branch,`twig:${i}:${j}:${k}:${q}`,3,qt,childLen*trng.range(.38,.58),(i+j+k+q)%2?-1:1,trng,.40,trng.range(.02,.18),.68);
+          branches.push(twig);
+          foliageSites.push({branch:twig,t:.34,weight:.34},{branch:twig,t:.54,weight:.46},{branch:twig,t:.72,weight:.58},{branch:twig,t:.88,weight:.68},{branch:twig,t:.985,weight:.76});
+
+          if(maturity>.76 && (k+q)%2===0) {
+            const qrng=new RNG(hashSeed(seed,`tip:${i}:${j}:${k}:${q}`));
+            const tip=growChild(twig,`tip:${i}:${j}:${k}:${q}`,4,qrng.range(.52,.75),childLen*qrng.range(.16,.27),qrng.next()<.5?-1:1,qrng,.36,qrng.range(0,.11),.62);
+            branches.push(tip);
+            foliageSites.push({branch:tip,t:.45,weight:.40},{branch:tip,t:.68,weight:.54},{branch:tip,t:.93,weight:.68});
           }
         }
       }
     }
   }
-  for(const leader of leaders) foliageSites.push({branch:leader,t:.58,weight:.22},{branch:leader,t:.76,weight:.30},{branch:leader,t:.91,weight:.40});
+  // A few low/interior sites stop the tree reading as a hollow ring without making a solid blob.
+  for(const stem of stems) foliageSites.push({branch:stem,t:.72,weight:.18},{branch:stem,t:.91,weight:.24});
   return {branches,foliageSites,height,spread};
 }
-
 function addMicroSprig(wood, foliage, flowers, site, siteIndex, sprigIndex, params, counters) {
   const {seed,density,sprayScale,maturity}=params;
   const rng=new RNG(hashSeed(seed,`micro:${site.branch.id}:${site.t}:${sprigIndex}`));
