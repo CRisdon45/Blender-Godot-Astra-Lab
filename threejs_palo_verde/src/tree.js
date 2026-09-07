@@ -22,9 +22,8 @@ function hashSeed(seed, text) {
   return h || 1;
 }
 
-function curveBranch({ id, parent = null, order, p0, p1, p2, p3, radius0, radius1, leafWeight = 1 }) {
-  const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
-  return { id, parent, order, curve, radius0, radius1, leafWeight };
+function curveBranch({ id, parent = null, order, p0, p1, p2, p3, radius0, radius1, foliageWeight = 1 }) {
+  return { id, parent, order, curve: new THREE.CubicBezierCurve3(p0, p1, p2, p3), radius0, radius1, foliageWeight };
 }
 
 function tangentBasis(tangent) {
@@ -35,12 +34,13 @@ function tangentBasis(tangent) {
   return { u, v, n };
 }
 
+function makeTarget() { return { positions: [], normals: [], variation: [], indices: [] }; }
+
 function addBranchTube(target, branch, radiusScale = 1) {
-  const samples = branch.order === 0 ? 13 : branch.order === 1 ? 9 : 6;
-  const sides = branch.order === 0 ? 8 : branch.order === 1 ? 6 : 5;
+  const samples = branch.order === 0 ? 15 : branch.order === 1 ? 10 : branch.order === 2 ? 7 : 5;
+  const sides = branch.order === 0 ? 8 : branch.order === 1 ? 6 : branch.order === 2 ? 5 : 4;
   const base = target.positions.length / 3;
   let previousU = null;
-
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
     const p = branch.curve.getPoint(t);
@@ -48,20 +48,18 @@ function addBranchTube(target, branch, radiusScale = 1) {
     let { u, v } = tangentBasis(tangent);
     if (previousU && u.dot(previousU) < 0) { u.multiplyScalar(-1); v.multiplyScalar(-1); }
     previousU = u.clone();
-    const taper = Math.pow(1 - t, 0.74);
+    const taper = Math.pow(1 - t, 0.68);
     const radius = THREE.MathUtils.lerp(branch.radius1, branch.radius0, taper) * radiusScale;
-
     for (let s = 0; s < sides; s++) {
       const a = s / sides * Math.PI * 2;
       const radial = u.clone().multiplyScalar(Math.cos(a)).addScaledVector(v, Math.sin(a));
-      const wobble = 1 + 0.035 * Math.sin(a * 3 + branch.order * 1.7 + t * 8);
+      const wobble = 1 + 0.025 * Math.sin(a * 3.2 + t * 7.3 + branch.order);
       const q = p.clone().addScaledVector(radial, radius * wobble);
       target.positions.push(q.x, q.y, q.z);
       target.normals.push(radial.x, radial.y, radial.z);
-      target.variation.push(branch.order * 0.17 + t * 0.08);
+      target.variation.push(0.42 + branch.order * 0.055 + t * 0.035);
     }
   }
-
   for (let i = 0; i < samples; i++) {
     for (let s = 0; s < sides; s++) {
       const a = base + i * sides + s;
@@ -83,16 +81,12 @@ function addBrush(target, center, normal, width, height, spin, variation, bow = 
   const rt = t.clone().multiplyScalar(c).addScaledVector(b, s).normalize();
   const rb = b.clone().multiplyScalar(c).addScaledVector(t, -s).normalize();
   t = rt; b = rb;
-
-  const verts = [
-    [-0.54, -0.06], [-0.28, -0.46], [0.20, -0.39],
-    [0.56, -0.04], [0.30, 0.43], [-0.18, 0.48]
-  ];
+  const verts = [[-0.54,-0.06],[-0.28,-0.46],[0.20,-0.39],[0.56,-0.04],[0.30,0.43],[-0.18,0.48]];
   const base = target.positions.length / 3;
   for (let i = 0; i < verts.length; i++) {
     const [x0, y0] = verts[i];
     const angle = Math.atan2(y0, x0);
-    const irregular = 1 + 0.09 * Math.sin(angle * 3.1 + variation * 9.7);
+    const irregular = 1 + 0.08 * Math.sin(angle * 3.1 + variation * 9.7);
     const x = x0 * width * irregular;
     const y = y0 * height * irregular;
     const depth = Math.sin(angle * 2 + spin) * Math.min(width, height) * bow;
@@ -101,7 +95,63 @@ function addBrush(target, center, normal, width, height, spin, variation, bow = 
     target.normals.push(n.x, n.y, n.z);
     target.variation.push(variation);
   }
-  target.indices.push(base, base + 1, base + 2, base, base + 2, base + 3, base, base + 3, base + 4, base, base + 4, base + 5);
+  target.indices.push(base,base+1,base+2, base,base+2,base+3, base,base+3,base+4, base,base+4,base+5);
+}
+
+function addQuad(target, p0, p1, p2, p3, normal, variation) {
+  const base = target.positions.length / 3;
+  for (const p of [p0,p1,p2,p3]) {
+    target.positions.push(p.x,p.y,p.z);
+    target.normals.push(normal.x,normal.y,normal.z);
+    target.variation.push(variation);
+  }
+  target.indices.push(base,base+1,base+2, base,base+2,base+3);
+}
+
+function addLeafDiamond(target, center, axis, side, length, width, normal, variation, lean = 0) {
+  const a = axis.clone().normalize();
+  const s = side.clone().normalize();
+  const n = normal.clone().normalize();
+  const base = center.clone().addScaledVector(a, -length * 0.43).addScaledVector(n, -lean);
+  const tip = center.clone().addScaledVector(a, length * 0.57).addScaledVector(n, lean);
+  const left = center.clone().addScaledVector(s, width * 0.52);
+  const right = center.clone().addScaledVector(s, -width * 0.52);
+  addQuad(target, base, left, tip, right, n, variation);
+}
+
+function addCompoundSpray(target, center, direction, proxyNormal, length, rng, variation) {
+  const axis = direction.clone().normalize();
+  let side = new THREE.Vector3().crossVectors(proxyNormal, axis);
+  if (side.lengthSq() < 1e-7) side.crossVectors(UP, axis);
+  if (side.lengthSq() < 1e-7) side.copy(X);
+  side.normalize();
+  const n = new THREE.Vector3().crossVectors(axis, side).normalize();
+  if (n.dot(proxyNormal) < 0) n.multiplyScalar(-1);
+
+  const start = center.clone().addScaledVector(axis, -length * 0.47);
+  const end = center.clone().addScaledVector(axis, length * 0.53);
+  const rachisWidth = Math.max(0.005, length * 0.012);
+  addQuad(target,
+    start.clone().addScaledVector(side, rachisWidth),
+    end.clone().addScaledVector(side, rachisWidth * 0.56),
+    end.clone().addScaledVector(side, -rachisWidth * 0.56),
+    start.clone().addScaledVector(side, -rachisWidth), n, variation * 0.7 + 0.15);
+
+  const pairCount = rng.next() < 0.38 ? 7 : 6;
+  for (let i = 0; i < pairCount; i++) {
+    const t = (i + 0.55) / pairCount;
+    const bend = Math.sin(t * Math.PI) * rng.signed(length * 0.035);
+    const anchor = start.clone().lerp(end, t).addScaledVector(side, bend);
+    const leafletLength = length * rng.range(0.145, 0.205) * (0.84 + Math.sin(t * Math.PI) * 0.18);
+    const leafletWidth = leafletLength * rng.range(0.25, 0.34);
+    const forward = axis.clone().multiplyScalar(rng.range(0.26, 0.44));
+    for (const sign of [-1, 1]) {
+      const leafAxis = forward.clone().addScaledVector(side, sign * rng.range(0.82, 1.0)).addScaledVector(UP, rng.range(-0.08, 0.12)).normalize();
+      const leafSide = new THREE.Vector3().crossVectors(n, leafAxis).normalize();
+      const leafCenter = anchor.clone().addScaledVector(side, sign * leafletLength * 0.12).addScaledVector(n, rng.signed(length * 0.015));
+      addLeafDiamond(target, leafCenter, leafAxis, leafSide, leafletLength, leafletWidth, proxyNormal, variation + sign * 0.015, length * 0.006);
+    }
+  }
 }
 
 function createGeometry(target) {
@@ -115,167 +165,159 @@ function createGeometry(target) {
   return geometry;
 }
 
+function parentFrame(parent, t) {
+  const origin = parent.curve.getPoint(t);
+  const tangent = parent.curve.getTangent(Math.min(0.995, Math.max(0.005, t))).normalize();
+  let radial = new THREE.Vector3(origin.x, 0, origin.z);
+  if (radial.lengthSq() < 1e-5) radial = new THREE.Vector3(tangent.x, 0, tangent.z);
+  if (radial.lengthSq() < 1e-5) radial.copy(X);
+  radial.normalize();
+  const side = new THREE.Vector3().crossVectors(UP, radial).normalize();
+  return { origin, tangent, radial, side };
+}
+
+function growChild(parent, id, order, t, length, sideSign, rng, radiusScale, upwardBias = 0.32) {
+  const { origin, tangent, radial, side } = parentFrame(parent, t);
+  const lateral = side.clone().multiplyScalar(sideSign * rng.range(0.50, 0.92));
+  const outward = radial.clone().multiplyScalar(rng.range(0.28, 0.72));
+  const up = UP.clone().multiplyScalar(rng.range(upwardBias * 0.65, upwardBias * 1.28));
+  const dir = tangent.clone().multiplyScalar(rng.range(0.12, 0.34)).add(lateral).add(outward).add(up).normalize();
+  const end = origin.clone().addScaledVector(dir, length);
+  const p1 = origin.clone().addScaledVector(tangent, length * 0.13).addScaledVector(UP, length * 0.035);
+  const p2 = origin.clone().lerp(end, 0.68).addScaledVector(side, sideSign * length * rng.range(0.035, 0.095)).addScaledVector(UP, length * rng.range(0.015, 0.065));
+  return curveBranch({
+    id, parent: parent.id, order, p0: origin, p1, p2, p3: end,
+    radius0: parent.radius0 * radiusScale * (1 - t * 0.27),
+    radius1: parent.radius1 * radiusScale * 0.72,
+    foliageWeight: rng.range(0.84, 1.17)
+  });
+}
+
 function buildBranchGraph(params) {
   const { seed, maturity, openness } = params;
-  const rng = new RNG(seed);
   const height = THREE.MathUtils.lerp(3.0, 7.55, maturity);
-  const spread = THREE.MathUtils.lerp(2.1, 7.55, Math.pow(maturity, 1.08)) * openness;
+  const spread = THREE.MathUtils.lerp(2.2, 7.55, Math.pow(maturity, 1.06)) * openness;
   const branches = [];
-  const leafSites = [];
+  const foliageSites = [];
   const leaders = [];
 
-  const azimuths = [0.10, 2.12, 4.31];
-  const leaderReach = [0.34, 0.47, 0.38];
-  const leaderHeight = [0.92, 0.76, 0.97];
+  const azimuths = [0.18, 2.18, 4.35];
+  const leaderReach = [0.39, 0.48, 0.42];
+  const leaderHeight = [0.88, 0.78, 0.94];
 
   for (let i = 0; i < 3; i++) {
-    const local = new RNG(hashSeed(seed, `leader:${i}`));
-    const a = azimuths[i] + local.signed(0.14);
-    const baseOffset = new THREE.Vector3(Math.cos(a) * 0.08, 0, Math.sin(a) * 0.08);
-    const tip = new THREE.Vector3(Math.cos(a) * spread * leaderReach[i], height * (leaderHeight[i] + local.signed(0.025)), Math.sin(a) * spread * leaderReach[i]);
-    const p1 = baseOffset.clone().add(new THREE.Vector3(Math.cos(a) * spread * 0.05, height * 0.26, Math.sin(a) * spread * 0.05));
-    const p2 = new THREE.Vector3(Math.cos(a + local.signed(0.08)) * tip.length() * 0.72, tip.y * 0.73, Math.sin(a + local.signed(0.08)) * tip.length() * 0.72);
-    p2.x = tip.x * 0.68 + local.signed(spread * 0.05);
-    p2.z = tip.z * 0.68 + local.signed(spread * 0.05);
+    const rng = new RNG(hashSeed(seed, `leader:${i}`));
+    const a = azimuths[i] + rng.signed(0.17);
+    const p0 = new THREE.Vector3(Math.cos(a) * 0.055, 0, Math.sin(a) * 0.055);
+    const tip = new THREE.Vector3(Math.cos(a) * spread * leaderReach[i], height * (leaderHeight[i] + rng.signed(0.025)), Math.sin(a) * spread * leaderReach[i]);
+    const p1 = new THREE.Vector3(Math.cos(a) * spread * 0.045, height * 0.18, Math.sin(a) * spread * 0.045);
+    const p2 = new THREE.Vector3(tip.x * 0.60 + rng.signed(spread * 0.055), tip.y * 0.67, tip.z * 0.60 + rng.signed(spread * 0.055));
     const leader = curveBranch({
-      id: `leader:${i}`, order: 0,
-      p0: baseOffset, p1, p2, p3: tip,
-      radius0: THREE.MathUtils.lerp(0.065, 0.145, maturity),
-      radius1: THREE.MathUtils.lerp(0.025, 0.052, maturity)
+      id:`leader:${i}`, order:0, p0,p1,p2,p3:tip,
+      radius0: THREE.MathUtils.lerp(0.055, 0.125, maturity),
+      radius1: THREE.MathUtils.lerp(0.018, 0.041, maturity)
     });
     branches.push(leader); leaders.push(leader);
 
-    const secondaryCount = maturity < 0.62 ? 3 : 5;
+    const secondaryCount = maturity < 0.62 ? 4 : 6;
     for (let j = 0; j < secondaryCount; j++) {
       const srng = new RNG(hashSeed(seed, `secondary:${i}:${j}`));
-      const attachT = 0.31 + j * (0.56 / Math.max(1, secondaryCount - 1)) + srng.signed(0.025);
-      const origin = leader.curve.getPoint(attachT);
-      const pt = leader.curve.getTangent(attachT).normalize();
-      const radial = new THREE.Vector3(origin.x, 0, origin.z).normalize();
-      const side = new THREE.Vector3().crossVectors(UP, radial.lengthSq() > 0.01 ? radial : pt).normalize();
-      const sign = j % 2 ? -1 : 1;
-      const length = spread * srng.range(0.20, 0.34) * (0.88 + attachT * 0.18);
-      const horizontal = radial.multiplyScalar(srng.range(0.48, 0.78)).addScaledVector(side, sign * srng.range(0.42, 0.82)).normalize();
-      const rise = srng.range(0.30, 0.66);
-      const dir = horizontal.multiplyScalar(Math.sqrt(1 - rise * rise)).addScaledVector(UP, rise).normalize();
-      const end = origin.clone().addScaledVector(dir, length);
-      end.y = Math.min(height * 0.98, end.y);
-      const p1s = origin.clone().addScaledVector(pt, length * 0.14).addScaledVector(UP, length * 0.10);
-      const p2s = THREE.Vector3.prototype.lerp.call(origin.clone(), end, 0.68).addScaledVector(side, sign * length * 0.09).addScaledVector(UP, length * 0.08);
-      const secondary = curveBranch({
-        id: `secondary:${i}:${j}`, parent: leader.id, order: 1,
-        p0: origin, p1: p1s, p2: p2s, p3: end,
-        radius0: leader.radius0 * (0.52 - attachT * 0.18),
-        radius1: leader.radius1 * 0.52,
-        leafWeight: srng.range(0.9, 1.15)
-      });
-      branches.push(secondary);
-      leafSites.push({ branch: secondary, t: 0.76, weight: 0.72 }, { branch: secondary, t: 1.0, weight: 1.0 });
+      const attachT = 0.24 + j * (0.64 / Math.max(1, secondaryCount - 1)) + srng.signed(0.022);
+      const length = spread * srng.range(0.18, 0.31) * (0.90 + attachT * 0.16);
+      const sec = growChild(leader, `secondary:${i}:${j}`, 1, attachT, length, j % 2 ? -1 : 1, srng, 0.50, srng.range(0.22,0.46));
+      branches.push(sec);
+      foliageSites.push({ branch:sec, t:0.58, weight:0.48 }, { branch:sec, t:0.80, weight:0.66 }, { branch:sec, t:0.98, weight:0.84 });
 
-      if (maturity > 0.56) {
-        const tertiaryCount = j === secondaryCount - 1 ? 2 : 1;
-        for (let k = 0; k < tertiaryCount; k++) {
-          const trng = new RNG(hashSeed(seed, `tertiary:${i}:${j}:${k}`));
-          const tt = 0.58 + k * 0.20 + trng.signed(0.03);
-          const o = secondary.curve.getPoint(tt);
-          const tangent = secondary.curve.getTangent(tt).normalize();
-          const tside = new THREE.Vector3().crossVectors(UP, tangent).normalize();
-          const tlen = length * trng.range(0.34, 0.52);
-          const tdir = tangent.clone().multiplyScalar(0.42).addScaledVector(tside, (k ? -1 : 1) * trng.range(0.55, 0.84)).addScaledVector(UP, trng.range(0.18, 0.42)).normalize();
-          const e = o.clone().addScaledVector(tdir, tlen);
-          const tertiary = curveBranch({
-            id: `tertiary:${i}:${j}:${k}`, parent: secondary.id, order: 2,
-            p0: o,
-            p1: o.clone().addScaledVector(tangent, tlen * 0.16),
-            p2: THREE.Vector3.prototype.lerp.call(o.clone(), e, 0.72).addScaledVector(UP, tlen * 0.06),
-            p3: e,
-            radius0: secondary.radius0 * 0.52,
-            radius1: secondary.radius1 * 0.46,
-            leafWeight: trng.range(0.95, 1.2)
-          });
-          branches.push(tertiary);
-          leafSites.push({ branch: tertiary, t: 1.0, weight: 0.78 });
+      const tertiaryCount = maturity < 0.58 ? 1 : 2;
+      for (let k = 0; k < tertiaryCount; k++) {
+        const trng = new RNG(hashSeed(seed, `tertiary:${i}:${j}:${k}`));
+        const tt = 0.50 + k * 0.27 + trng.signed(0.025);
+        const tertiary = growChild(sec, `tertiary:${i}:${j}:${k}`, 2, tt, length * trng.range(0.35,0.54), (j+k)%2 ? -1:1, trng, 0.47, trng.range(0.13,0.34));
+        branches.push(tertiary);
+        foliageSites.push({ branch:tertiary, t:0.70, weight:0.58 }, { branch:tertiary, t:0.98, weight:0.76 });
+
+        if (maturity > 0.72 && (j + k) % 2 === 0) {
+          const qrng = new RNG(hashSeed(seed, `twig:${i}:${j}:${k}`));
+          const qt = qrng.range(0.57,0.79);
+          const twig = growChild(tertiary, `twig:${i}:${j}:${k}`, 3, qt, length * qrng.range(0.16,0.28), qrng.next()<0.5?-1:1, qrng, 0.42, qrng.range(0.08,0.22));
+          branches.push(twig);
+          foliageSites.push({ branch:twig, t:0.96, weight:0.60 });
         }
       }
     }
   }
 
-  // A few deliberate bridge sites make the crown feel continuous without filling its characteristic voids.
-  for (const leader of leaders) leafSites.push({ branch: leader, t: 0.92, weight: 0.70 });
-  return { branches, leafSites, height, spread };
+  // Sparse bridge sites make the crown continuous without erasing the open center.
+  for (const leader of leaders) foliageSites.push({ branch:leader, t:0.90, weight:0.40 });
+  return { branches, foliageSites, height, spread };
 }
 
-function buildFoliage(leafSites, params) {
-  const target = { positions: [], normals: [], variation: [], indices: [] };
-  const flowers = { positions: [], normals: [], variation: [], indices: [] };
-  const { seed, density, sprayScale, openness, maturity } = params;
-  let brushCount = 0;
+function buildFoliage(foliageSites, params) {
+  const foliage = makeTarget();
+  const flowers = makeTarget();
+  const { seed, density, sprayScale, maturity } = params;
+  let sprayCount = 0;
   let flowerCount = 0;
 
-  leafSites.forEach((site, siteIndex) => {
-    const rng = new RNG(hashSeed(seed, `lobe:${site.branch.id}:${site.t}`));
-    const center = site.branch.curve.getPoint(Math.min(0.999, site.t));
-    const tangent = site.branch.curve.getTangent(Math.min(0.995, Math.max(0.05, site.t))).normalize();
-    const basis = tangentBasis(tangent);
-    const baseWidth = THREE.MathUtils.lerp(0.34, 0.68, maturity) * site.weight * openness;
-    const radii = new THREE.Vector3(baseWidth * rng.range(0.88, 1.18), baseWidth * rng.range(0.46, 0.68), baseWidth * rng.range(0.40, 0.62));
-    const count = Math.max(10, Math.round(rng.range(24, 38) * density * site.weight));
+  for (const site of foliageSites) {
+    const rng = new RNG(hashSeed(seed, `foliage:${site.branch.id}:${site.t}`));
+    const center = site.branch.curve.getPoint(Math.min(0.997,site.t));
+    const tangent = site.branch.curve.getTangent(Math.min(0.995,Math.max(0.05,site.t))).normalize();
+    const { u, v } = tangentBasis(tangent);
+    const cloudRadius = THREE.MathUtils.lerp(0.24,0.54,maturity) * site.weight;
+    const sprays = Math.max(1, Math.round(rng.range(1.6,3.2) * density * (0.72 + site.weight)));
 
-    for (let i = 0; i < count; i++) {
-      const z = 1 - 2 * ((i + 0.5) / count);
-      const rr = Math.sqrt(Math.max(0, 1 - z * z));
-      const theta = i * GOLDEN_ANGLE + rng.signed(0.18);
-      const localDir = new THREE.Vector3(rr * Math.cos(theta), z, rr * Math.sin(theta));
-      const shell = rng.range(0.42, 1.06);
-      const offset = basis.u.clone().multiplyScalar(localDir.x * radii.x * shell)
-        .addScaledVector(UP, localDir.y * radii.y * shell)
-        .addScaledVector(basis.v, localDir.z * radii.z * shell);
+    for (let s = 0; s < sprays; s++) {
+      const theta = (s + rng.next()) * GOLDEN_ANGLE;
+      const vertical = rng.range(-0.52,0.62);
+      const radial = Math.sqrt(Math.max(0,1-vertical*vertical));
+      const shell = rng.range(0.18,1.0);
+      const offset = u.clone().multiplyScalar(Math.cos(theta)*radial*cloudRadius*shell)
+        .addScaledVector(UP, vertical*cloudRadius*0.72*shell)
+        .addScaledVector(v, Math.sin(theta)*radial*cloudRadius*0.72*shell);
       const p = center.clone().add(offset);
-      const proxy = offset.clone().normalize().multiplyScalar(0.58)
-        .addScaledVector(UP, 0.24)
-        .addScaledVector(tangent, 0.18).normalize();
+      const proxy = offset.lengthSq()>1e-6 ? offset.clone().normalize() : tangent.clone();
+      proxy.multiplyScalar(0.46).addScaledVector(UP,0.22).addScaledVector(tangent,0.32).normalize();
+      let direction = tangent.clone().multiplyScalar(rng.range(0.52,0.82))
+        .addScaledVector(u,rng.signed(0.54)).addScaledVector(v,rng.signed(0.42)).addScaledVector(UP,rng.range(-0.10,0.26)).normalize();
+      const length = THREE.MathUtils.lerp(0.28,0.50,maturity) * sprayScale * rng.range(0.72,1.20) * (0.82+site.weight*0.23);
       const variation = rng.next();
-      const width = THREE.MathUtils.lerp(0.19, 0.34, maturity) * sprayScale * rng.range(0.72, 1.28);
-      const height = width * rng.range(0.28, 0.46);
-      addBrush(target, p, proxy, width, height, rng.range(-Math.PI, Math.PI), variation, 0.12);
-      brushCount++;
+      addCompoundSpray(foliage,p,direction,proxy,length,rng,variation);
+      sprayCount++;
 
-      if (localDir.y > -0.15 && i % 6 === 0 && rng.next() < 0.72) {
-        const fp = p.clone().addScaledVector(proxy, width * 0.08);
-        addBrush(flowers, fp, proxy, width * 0.50, height * 0.78, rng.range(-Math.PI, Math.PI), rng.next(), 0.05);
-        flowerCount++;
+      if (rng.next() < 0.48) {
+        const flowerN = 1 + (rng.next()<0.34 ? 1:0);
+        for (let f=0; f<flowerN; f++) {
+          const fp = p.clone().addScaledVector(direction,length*rng.range(0.10,0.42)).addScaledVector(proxy,rng.range(0.015,0.045));
+          addBrush(flowers,fp,proxy,length*rng.range(0.13,0.19),length*rng.range(0.09,0.13),rng.range(-Math.PI,Math.PI),rng.next(),0.03);
+          flowerCount++;
+        }
       }
     }
-  });
-
-  return { foliage: createGeometry(target), flowers: createGeometry(flowers), brushCount, flowerCount };
+  }
+  return { foliage:createGeometry(foliage), flowers:createGeometry(flowers), sprayCount, flowerCount };
 }
 
 export function buildDesertMuseum(params) {
   const graph = buildBranchGraph(params);
-  const wood = { positions: [], normals: [], variation: [], indices: [] };
-  const outline = { positions: [], normals: [], variation: [], indices: [] };
-  graph.branches.forEach(branch => { addBranchTube(wood, branch, 1.0); addBranchTube(outline, branch, 1.10); });
-  const foliage = buildFoliage(graph.leafSites, params);
+  const wood = makeTarget();
+  const outline = makeTarget();
+  for (const branch of graph.branches) {
+    addBranchTube(wood,branch,1.0);
+    // Outline the structural skeleton, not every fine twig.
+    if (branch.order <= 1) addBranchTube(outline,branch,1.065);
+  }
+  const crown = buildFoliage(graph.foliageSites,params);
+  const woodGeom = createGeometry(wood);
+  const outlineGeom = createGeometry(outline);
   const report = {
-    schema: 'threejs-palo-verde/1',
-    seed: params.seed,
-    maturity: params.maturity,
-    targetHeightM: graph.height,
-    targetSpreadM: graph.spread,
-    branches: graph.branches.length,
-    foliageBrushes: foliage.brushCount,
-    flowerBrushes: foliage.flowerCount,
-    triangles: (wood.indices.length + outline.indices.length + foliage.foliage.index.count + foliage.flowers.index.count) / 3,
-    lod: 0,
-    calendarCalibrated: false
+    schema:'threejs-palo-verde/1', seed:params.seed, maturity:params.maturity,
+    targetHeightM:graph.height, targetSpreadM:graph.spread,
+    branches:graph.branches.length, foliageBrushes:crown.sprayCount,
+    flowerBrushes:crown.flowerCount,
+    triangles:(woodGeom.index.count+outlineGeom.index.count+crown.foliage.index.count+crown.flowers.index.count)/3,
+    lod:0, calendarCalibrated:false,
+    foliageRepresentation:'opaque compound pinna sprays'
   };
-  return {
-    wood: createGeometry(wood),
-    outline: createGeometry(outline),
-    foliage: foliage.foliage,
-    flowers: foliage.flowers,
-    flowerCount: foliage.flowerCount,
-    report
-  };
+  return { wood:woodGeom, outline:outlineGeom, foliage:crown.foliage, flowers:crown.flowers, flowerCount:crown.flowerCount, report };
 }
