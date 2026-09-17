@@ -1,0 +1,21 @@
+{
+  "slice": "compact-foliage-group-07",
+  "sources": {
+    "northstar-foliage-group.tscn": {
+      "sha256": "de19724419ab1f9bde28d3d235f55b1802fba3ae76d435085662dae6b02c9be6",
+      "bytes": 200
+    },
+    "presentation/northstar/spatial_group_study.gd": {
+      "sha256": "b798bced007daeea1478f113bff0ee80edb28083b9e7236a7666fb844eea1341",
+      "bytes": 939
+    },
+    "presentation/northstar/foliage/compact_group.gd": {
+      "sha256": "1f7d2325d0c79874007e6dded860d6a647140f99b70fd6e92084936720c65157",
+      "bytes": 7291
+    },
+    "presentation/northstar/foliage/compact_group.gdshader": {
+      "sha256": "ef53599b47d58c1b535d669c18e8c01ba7ab7696ae4f69a1eb31abb73e0aa48c",
+      "bytes": 597
+    }
+  }
+}
