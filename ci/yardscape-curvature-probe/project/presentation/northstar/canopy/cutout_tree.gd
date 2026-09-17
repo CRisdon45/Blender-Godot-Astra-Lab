@@ -9,7 +9,10 @@ func configure(t: Dictionary) -> void:
 	super.configure(t)
 	if shared_coverage==null:
 		var image:=Image.new()
-		assert(image.load_png_from_buffer(Marshalls.base64_to_raw(COVERAGE_PNG))==OK)
+		var error:=image.load_png_from_buffer(Marshalls.base64_to_raw(COVERAGE_PNG))
+		if error!=OK:
+			push_error("Cannot decode authored canopy coverage")
+			return
 		image.generate_mipmaps()
 		shared_coverage=ImageTexture.create_from_image(image)
 	var paint: ShaderMaterial=crown.material_override
