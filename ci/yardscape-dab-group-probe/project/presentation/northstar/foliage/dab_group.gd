@@ -35,12 +35,12 @@ func configure(seed_value:int,radius:float,height:float)->void:
 		for j in offsets.size():
 			var at:Vector3=centers[cluster]+offsets[j]
 			at+=Vector3(rng.randf_range(-.018,.018),rng.randf_range(-.012,.018),rng.randf_range(-.018,.018))
-			var outward:=Vector3(at.x,at.y-.30,at.z).normalized()
+			var outward:Vector3=Vector3(at.x,at.y-.30,at.z).normalized()
 			var direction:Vector3=(outward*.72+Vector3.UP*.45+Vector3(rng.randf_range(-.15,.15),0,rng.randf_range(-.15,.15))).normalized()
-			var width:=radius*rng.randf_range(.095,.135)
-			var length:=height*rng.randf_range(.065,.095)
-			var thickness:=radius*rng.randf_range(.050,.075)
-			var tone:=tones[cluster]+rng.randf_range(-.045,.045)
+			var width:float=radius*rng.randf_range(.095,.135)
+			var length:float=height*rng.randf_range(.065,.095)
+			var thickness:float=radius*rng.randf_range(.050,.075)
+			var tone:float=float(tones[cluster])+rng.randf_range(-.045,.045)
 			_dab(at,direction,rng.randf_range(-PI,PI),width,length,thickness,tone,radius,height,rng.randf()*TAU)
 			count+=1
 	foliage=_finish("DabFoliage")
