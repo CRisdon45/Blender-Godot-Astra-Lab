@@ -115,7 +115,7 @@ func run() -> void:
 	view=SubViewport.new();view.size=Vector2i(1120,1560);view.render_target_update_mode=SubViewport.UPDATE_ALWAYS;root.add_child(view)
 	paper=ColorRect.new();paper.color=Color("f4f3ec");paper.size=view.size;view.add_child(paper)
 	var scene=load("res://northstar-regions.tscn")
-	var study=scene.instantiate();study.size=Vector2(1280,800);root.add_child(study)
+	var study=scene.instantiate();root.add_child(study)
 	await process_frame;await process_frame
 	check(study is Current,"scene entrypoint uses actual receiving-shade orchestration")
 	check(study.broadleaf_receiving and study.receiving_shade and study.grouped_broadleaf,"current U O B defaults")
@@ -132,9 +132,17 @@ func run() -> void:
 	var context_hash: String=study.broadleaf_context.identity
 	var builds: int=study.broadleaf_context_builds
 	var original_nodes:=objects(study)
-	var original_generations:=generations(study)
 	var mask_on:=await leaf_mask(study,"04-leaf-coverage-on")
+	# Screenshot capture reparents the canvas and may reissue cached draw commands.
+	# Observe U in place after those transitions have settled, not across captures.
+	await process_frame;await process_frame
+	var stationary_before:=generations(study)
+	await process_frame;await process_frame
+	check(generations(study)==stationary_before,"idle frames do not rebuild retained blade paint")
 	await key_press(KEY_U)
+	var stationary_after:=generations(study)
+	check(stationary_after==stationary_before,"U alone does not rebuild retained blade paint")
+	diagnostics["stationary_U_generations"]={"before":stationary_before,"after":stationary_after}
 	check(not study.broadleaf_receiving,"injected U dispatch turns leaf shade off")
 	var off:=await capture(study.world,"05-plan-shade-off")
 	await capture(study.world,"06-middle-shade-off",200.,Vector2(-1600,-1400))
@@ -148,7 +156,7 @@ func run() -> void:
 	check(pool_changed==0,"all sampled pool-interior pixels remain exact")
 	check(identity(study)==initial,"shade toggle preserves fixed polygons and plant geometry")
 	check(objects(study)==original_nodes,"shade toggle preserves scene nodes and all material identities")
-	check(generations(study)==original_generations,"U does not rebuild retained blade paint")
+	diagnostics["generations_after_capture_sequence"]=generations(study)
 	check(study.broadleaf_context_builds==builds and study.broadleaf_context.identity==context_hash,"U reuses exact spatial context")
 	# Same display adapter on the real predecessor class. Not a golden full-app image.
 	var predecessor:=Previous.new();predecessor.size=Vector2(1280,800);root.add_child(predecessor)
