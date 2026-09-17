@@ -1,0 +1,51 @@
+name: Public dab soft diffuse proof
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-dab-soft-probe/**', '.github/workflows/yardscape-public-dab-soft.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dab-soft-diffuse-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  soft:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+            ci/yardscape-dab-soft-probe
+      - name: Verify reviewed candidate boundary
+        run: python ci/yardscape-dab-soft-probe/run_soft.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Retained hierarchy-value regression
+        run: python ci/yardscape-dab-value-probe/run_value.py
+      - name: Native soft diffuse comparison
+        run: python ci/yardscape-dab-soft-probe/run_soft.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dab-soft-diffuse-evidence
+          path: ${{ runner.temp }}/dab-soft-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dab-value-regression
+          path: ${{ runner.temp }}/dab-value-evidence
+          retention-days: 7
+          if-no-files-found: warn
