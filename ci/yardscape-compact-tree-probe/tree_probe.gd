@@ -1,7 +1,7 @@
 extends SceneTree
 const Current=preload("res://presentation/northstar/spatial_compact_tree_study.gd")
 const Baseline=preload("res://presentation/northstar/spatial_material_study.gd")
-const Tree=preload("res://presentation/northstar/foliage/compact_tree.gd")
+const CompactTree=preload("res://presentation/northstar/foliage/compact_tree.gd")
 var study
 var output:String
 var run_id:String
@@ -42,11 +42,11 @@ func run()->void:
 	check(study.compact_tree.stats.visible_triangles<18000,"first assembly remains under 18k visible indexed triangles")
 	check(not study.compact_tree.stats.alpha_blended,"whole tree uses opaque group geometry")
 	var signature:String=study.compact_tree.geometry_signature()
-	var clone:=Tree.new();clone.configure(study.document.tree)
+	var clone:=CompactTree.new();clone.configure(study.document.tree)
 	check(clone.geometry_signature()==signature,"same source record reproduces exact assembled tree")
 	clone.free()
-	study._choose("Plan");var plan:=await capture(study,"01-plan-compact")
-	study._choose("Orbit");study._choose("Perspective");var orbit:=await capture(study,"02-courtyard-compact")
+	study._choose("Plan");await capture(study,"01-plan-compact")
+	study._choose("Orbit");study._choose("Perspective");await capture(study,"02-courtyard-compact")
 	set_close(study,.55,.28,7.2);var front:=await capture(study,"03-close-front")
 	set_close(study,.55+PI,.28,7.2);await capture(study,"04-close-reverse")
 	set_close(study,.55+PI*.5,.40,7.2);await capture(study,"05-close-quarter")
@@ -55,13 +55,12 @@ func run()->void:
 	check(digest(afternoon)!=digest(front),"same assembled tree responds to changed sunlight")
 	study._choose("Morning");check(digest(front)==digest(await capture(study,"08-morning-return")),"morning return restores exact close image")
 	check(study.compact_tree.geometry_signature()==signature,"camera and light review never regenerates tree")
-	# Capture the untouched structural proxy with the same Plan and default orbit framing.
 	study.queue_free();await process_frame;await process_frame
 	var baseline:=Baseline.new();root.add_child(baseline);for i in 3:await process_frame
 	baseline._choose("Plan");await capture(baseline,"09-plan-proxy")
 	baseline._choose("Orbit");baseline._choose("Perspective");await capture(baseline,"10-courtyard-proxy")
 	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,
-		"pixel_hashes":hashes,"candidate":study if false else {"recipe":"compact-group-tree/1","groups":16,"visible_triangles":14164,"visible_meshes":33,"alpha_blended":false},
+		"pixel_hashes":hashes,"candidate":{"recipe":"compact-group-tree/1","groups":16,"visible_triangles":14164,"visible_meshes":33,"alpha_blended":false},
 		"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),
 		"scope":"first whole-tree visual assembly from compact group; generic, not species or production asset",
 		"tablet_performance_tested":false,"artistic_acceptance":"not_evaluated"}
