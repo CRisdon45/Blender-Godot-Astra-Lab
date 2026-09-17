@@ -38,19 +38,23 @@ func _apply_value_materials() -> void:
 		var primary: Node3D = dab_tree.groups[family*3]
 		var radial := Vector2(primary.position.x, primary.position.z)
 		if radial.length_squared() < 1e-8: radial = Vector2.RIGHT
-		family_biases.append(clampf(radial.normalized().dot(source_direction)*.075,-.075,.075))
+		var alignment: float = radial.normalized().dot(source_direction)
+		var band: float = .0
+		if alignment > .28: band = .095
+		elif alignment < -.28: band = -.095
+		family_biases.append(band)
 	for i in dab_tree.groups.size():
 		var family_value := 0.0
 		var role_value := 0.0
 		if i < 15:
 			family_value = family_biases[int(i/3)]
-			role_value = .010 if i%3==0 else -.005
+			role_value = .008 if i%3==0 else -.004
 		else:
 			# Leader stays near the crown-wide middle value so it does not become a beacon.
 			var average := 0.0
 			for value in family_biases: average += value
 			family_value = average/5.0
-			role_value = .018
+			role_value = .006
 		_family_values.append(family_value)
 		_role_values.append(role_value)
 		var group: Node3D = dab_tree.groups[i]
