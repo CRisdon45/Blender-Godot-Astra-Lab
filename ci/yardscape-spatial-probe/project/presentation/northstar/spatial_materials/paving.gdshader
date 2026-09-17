@@ -4,7 +4,7 @@ render_mode diffuse_lambert, specular_disabled;
 // World metres keep the four deck meshes aligned. No camera/time repainting.
 uniform float seed = 19.0;
 uniform vec2 slab_size = vec2(0.6096,0.3048);
-uniform vec3 paper_color : source_color = vec3(.958,.953,.928);
+uniform vec3 paper_color : source_color = vec3(.80,.765,.695);
 uniform vec3 ink_color : source_color = vec3(.21,.235,.205);
 uniform bool coping = false;
 uniform vec2 half_size = vec2(1.0);
@@ -29,7 +29,7 @@ void fragment(){
  vec2 footprint=max(fwidth(p),vec2(.00005));
  float passage=field(p*vec2(.38,.70)+vec2(7.,-3.));
  float reserve=smoothstep(.46,.66,field(p*vec2(.45,.26)+31.));
- float body=(.035+.105*smoothstep(.30,.67,passage))*(1.-.70*reserve);
+ float body=(.055+.16*smoothstep(.30,.67,passage))*(1.-.70*reserve);
  body*=.86+.20*hash_value(cell);
  vec3 rgb=paper_color*exp(-body*vec3(.53,.76,1.09));
  float nearest=min(hdist,vdist);

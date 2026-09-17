@@ -13,5 +13,5 @@ void fragment(){
  float line=(1.-smoothstep(.018,.018+aa,ridge))*smoothstep(.62,.87,n(media*1.8));
  float grazing=pow(1.-clamp(dot(normalize(NORMAL),normalize(VIEW)),0.,1.),3.);
  ALBEDO=mix(tint,highlight,line*.75);
- ALPHA=.075+.13*grazing+line*.08;ROUGHNESS=1.;
+ ALPHA=.15+.27*grazing+line*.10;ROUGHNESS=1.;
 }

@@ -1,13 +1,13 @@
 {
-  "slice": "spatial-material-transfer-03",
-  "sources": {
-    "northstar-spatial-materials.tscn": {"sha256":"9777b7b4c3c81624eb9d7a9a3f1c8b4348a766c88a4cfc3ce4f0799f79d68256","bytes":206,"role":"candidate_exact"},
-    "presentation/northstar/spatial_study.gd": {"sha256":"a33ca57b13a9e9e894b90e3aeb68ce95684652440b3d5d0f03a95f2f4ddc6ebc","bytes":11458,"role":"display_adapter"},
-    "presentation/northstar/spatial_fixture.gd": {"sha256":"8a325210427a245aade0a64509b143822f3a28d233424040c8f471bd4208819b","bytes":948,"role":"display_adapter"},
-    "presentation/northstar/spatial_material_study.gd": {"sha256":"17b4c6954f90bec7d6f93af583416e8c8afeb1a674d2934cda2aacf0d11accec","bytes":3482,"role":"candidate_exact"},
-    "presentation/northstar/spatial_materials/water_surface.gdshader": {"sha256":"936a895664f63c2f6dc1dff1e9b0aec7948455573ac0f1b9050b91ea644bed1b","bytes":930,"role":"candidate_exact"},
-    "presentation/northstar/spatial_materials/paving.gdshader": {"sha256":"7a1bb29e303559dca19446b2aee9530b61d456e4b7bc271b4bd565391fc059d6","bytes":2590,"role":"candidate_exact"},
-    "presentation/northstar/spatial_materials/basin.gdshader": {"sha256":"5edc2c2e1dce32c86e82bc9cbaaa977b82fe95ff8e8c3ed6faa339027c911bfb","bytes":2404,"role":"candidate_exact"}
+  "slice":"spatial-material-transfer-03",
+  "sources":{
+    "northstar-spatial-materials.tscn":{"sha256":"9777b7b4c3c81624eb9d7a9a3f1c8b4348a766c88a4cfc3ce4f0799f79d68256","bytes":206,"role":"candidate_exact"},
+    "presentation/northstar/spatial_study.gd":{"sha256":"a33ca57b13a9e9e894b90e3aeb68ce95684652440b3d5d0f03a95f2f4ddc6ebc","bytes":11458,"role":"display_adapter"},
+    "presentation/northstar/spatial_fixture.gd":{"sha256":"8a325210427a245aade0a64509b143822f3a28d233424040c8f471bd4208819b","bytes":948,"role":"display_adapter"},
+    "presentation/northstar/spatial_material_study.gd":{"sha256":"17b4c6954f90bec7d6f93af583416e8c8afeb1a674d2934cda2aacf0d11accec","bytes":3482,"role":"candidate_exact"},
+    "presentation/northstar/spatial_materials/water_surface.gdshader":{"sha256":"75033d43409ad0d69651c19af6d69b934189d74bdf17d7ba38ab97e90a16cfef","bytes":929,"role":"candidate_exact"},
+    "presentation/northstar/spatial_materials/paving.gdshader":{"sha256":"14e9e2b7fac0fade3215169cdc87e11bab58985f217575f2a57c4dbb363c863f","bytes":2588,"role":"candidate_exact"},
+    "presentation/northstar/spatial_materials/basin.gdshader":{"sha256":"c284ca64aee597db01a9002ac98d4089ad68482386b7de7cf97f284ff964a5dc","bytes":2453,"role":"candidate_exact"}
   },
   "native_scope":"renderer and camera over explicit synthetic display adapter; not private edit/save/undo implementation"
 }

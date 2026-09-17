@@ -37,10 +37,10 @@ void fragment(){
  rgb*=.89+.20*smoothstep(.30,.70,value);
  float deposit=exp(-abs(value-.48)*80.)*.055;
  rgb*=exp(-deposit*vec3(.9,.40,.30));
- float edge=caustic_edge(p*2.8+warp*.64);
+ float edge=caustic_edge(p*2.25+warp*.90);
  float aa=max(fwidth(edge),.006);
  float net=1.-smoothstep(.018,.018+aa,edge);
- float density=.43+.20*wash(p*1.2+19.);
+ float density=(.22+.22*wash(p*1.2+19.))*(.45+.55*smoothstep(.32,.69,wash(p*.85+21.)));
  rgb=mix(rgb,light_color,net*density);
  // Do not color the above-water wall as though it were submerged.
  rgb=mix(wall_color,rgb,smoothstep(-.005,.025,water_level-world_point.y));
