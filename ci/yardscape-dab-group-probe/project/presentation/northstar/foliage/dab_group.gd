@@ -2,7 +2,7 @@ extends Node3D
 ## Compact generic group made from small asymmetric 3D paint dabs around twig gestures.
 ## Dabs are visual marks, not literal leaves, cards, billboards or botanical organs.
 const Paint = preload("res://presentation/northstar/foliage/compact_group.gdshader")
-const RECIPE := "volumetric-paint-dabs/1"
+const RECIPE := "volumetric-paint-dabs/2"
 var descriptor:Dictionary={}
 var foliage:MeshInstance3D
 var twig:MeshInstance3D
@@ -24,22 +24,24 @@ func configure(seed_value:int,radius:float,height:float)->void:
 	for path in stems:_tube(path,radius*.030,radius*.010,radius,height)
 	twig=_finish("TwigGesture")
 	var bark:=StandardMaterial3D.new();bark.albedo_color=Color("665541");bark.roughness=1.;twig.material_override=bark
-	var centers=[Vector3(-.16,.38,.08),Vector3(.16,.37,-.08),Vector3(.00,.49,.04),Vector3(.02,.39,.17)]
+	# Same four clusters and six dabs per cluster as v1. Only their spatial
+	# footprint and mark dimensions grow to match the compact control more fairly.
+	var centers=[Vector3(-.18,.38,.09),Vector3(.18,.37,-.09),Vector3(.00,.50,.04),Vector3(.02,.39,.19)]
 	var tones=PackedFloat32Array([.46,.51,.56,.49])
 	var offsets=[
-		Vector3(-.09,-.035,.03),Vector3(.08,-.025,-.04),Vector3(-.04,.055,-.07),
-		Vector3(.045,.065,.055),Vector3(-.075,.075,.015),Vector3(.085,.060,.020)
+		Vector3(-.112,-.044,.038),Vector3(.100,-.031,-.050),Vector3(-.050,.069,-.088),
+		Vector3(.056,.081,.069),Vector3(-.094,.094,.019),Vector3(.106,.075,.025)
 	]
 	var count:=0
 	for cluster in centers.size():
 		for j in offsets.size():
 			var at:Vector3=centers[cluster]+offsets[j]
-			at+=Vector3(rng.randf_range(-.018,.018),rng.randf_range(-.012,.018),rng.randf_range(-.018,.018))
+			at+=Vector3(rng.randf_range(-.020,.020),rng.randf_range(-.014,.020),rng.randf_range(-.020,.020))
 			var outward:Vector3=Vector3(at.x,at.y-.30,at.z).normalized()
 			var direction:Vector3=(outward*.72+Vector3.UP*.45+Vector3(rng.randf_range(-.15,.15),0,rng.randf_range(-.15,.15))).normalized()
-			var width:float=radius*rng.randf_range(.095,.135)
-			var length:float=height*rng.randf_range(.065,.095)
-			var thickness:float=radius*rng.randf_range(.050,.075)
+			var width:float=radius*rng.randf_range(.120,.165)
+			var length:float=height*rng.randf_range(.082,.112)
+			var thickness:float=radius*rng.randf_range(.060,.088)
 			var tone:float=float(tones[cluster])+rng.randf_range(-.045,.045)
 			_dab(at,direction,rng.randf_range(-PI,PI),width,length,thickness,tone,radius,height,rng.randf()*TAU)
 			count+=1
