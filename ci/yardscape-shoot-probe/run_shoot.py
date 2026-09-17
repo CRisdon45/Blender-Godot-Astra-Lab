@@ -10,7 +10,7 @@ def verify():
     spec=importlib.util.spec_from_file_location('spatial_verify',SPATIAL/'run_spatial.py')
     module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
     spatial=module.verify()
-    expected={'northstar-spatial-shoot.tscn','presentation/northstar/spatial_shoot_study.gd','presentation/northstar/shoot/compact_shoot.gd','presentation/northstar/shoot/shoot_foliage.gdshader','tests/shoot_probe.gd'}
+    expected={'northstar-spatial-shoot.tscn','presentation/northstar/spatial_shoot_study.gd','presentation/northstar/shoot/compact_shoot.gd','presentation/northstar/shoot/shoot_foliage.gdshader','tests/shoot_probe.gd','tests/bootstrap_probe.gd'}
     actual={p.relative_to(ROOT/'project').as_posix() for p in (ROOT/'project').rglob('*') if p.is_file()}
     if actual!=expected: raise ValueError('Unexpected shoot source expansion')
     for name in actual:
@@ -24,6 +24,17 @@ def verify():
             code=re.sub(r'//[^\n]*','',text)
             if re.search(r'\b(TIME|SCREEN_UV|ALPHA|EMISSION|hint_screen_texture|hint_depth_texture)\b|\bVERTEX\s*=',code): raise ValueError('Unreviewed foliage shading mode')
     return spatial
+
+def run_cmd(command,env,logpath,timeout):
+    try:
+        with logpath.open('w') as log:
+            result=subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=timeout,check=False)
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError('Timed out: '+command[-1]) from exc
+    text=logpath.read_text(errors='replace')
+    print(text[-16000:])
+    if result.returncode or re.search(r'SCRIPT ERROR:|SHADER ERROR:|ERROR:',text):
+        raise RuntimeError('Native failure: '+logpath.name)
 
 def run():
     spatial=verify()
@@ -56,10 +67,10 @@ renderer/rendering_method="gl_compatibility"
     env.update(YARDSCAPE_SHOOT_OUTPUT=str(inside),YARDSCAPE_SHOOT_RUN_ID=run_id,LIBGL_ALWAYS_SOFTWARE='1',GODOT_SILENCE_ROOT_WARNING='1')
     status='failed'
     try:
-        for logname,cmd in [('preflight.log',[str(engine),'--headless','--path',str(stage),'--script','res://tests/shoot_probe.gd','--check-only']),('console.log',['xvfb-run','-a',str(engine),'--path',str(stage),'--audio-driver','Dummy','--script','res://tests/shoot_probe.gd'])]:
-            with (out/logname).open('w') as log:r=subprocess.run(cmd,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=75,check=False)
-            text=(out/logname).read_text(errors='replace');print(text[-16000:])
-            if r.returncode or re.search(r'SCRIPT ERROR:|SHADER ERROR:|ERROR:',text): raise RuntimeError('Native failure '+logname)
+        run_cmd([str(engine),'--headless','--path',str(stage),'--script','res://tests/bootstrap_probe.gd'],env,out/'bootstrap.log',30)
+        if not (inside/'stage-10-done.txt').is_file(): raise RuntimeError('Bootstrap quit without final stage marker')
+        run_cmd([str(engine),'--headless','--path',str(stage),'--script','res://tests/shoot_probe.gd','--check-only'],env,out/'preflight.log',25)
+        run_cmd(['xvfb-run','-a',str(engine),'--path',str(stage),'--audio-driver','Dummy','--script','res://tests/shoot_probe.gd'],env,out/'console.log',75)
         report=json.loads((inside/'report.json').read_text())
         if report.get('run_id')!=run_id or not report.get('passed') or report.get('failures'): raise RuntimeError('Missing, stale or failed report')
         if not report.get('adapter') or report['adapter']=='Dummy': raise RuntimeError('No real framebuffer')
@@ -67,8 +78,8 @@ renderer/rendering_method="gl_compatibility"
         status='compact_shoot_passed'
     finally:
         for p in inside.iterdir():
-            if p.name=='report.json' or re.fullmatch(r'\d\d-[a-z-]+\.png',p.name): shutil.copyfile(p,out/p.name)
-        manifest={"status":status,"run_id":run_id,"engine":version,"engine_sha256":ENGINE_SHA,"public_commit":os.environ.get('GITHUB_SHA'),"spatial_sources":spatial['sources'],"runner_sha256":sha(Path(__file__)),"source_sha256":{p.relative_to(ROOT/'project').as_posix():sha(p) for p in sorted((ROOT/'project').rglob('*')) if p.is_file()},"output_sha256":{p.name:sha(p) for p in sorted(out.glob('*.png'))}}
+            if p.name=='report.json' or re.fullmatch(r'(?:\d\d-[a-z-]+\.png|stage-\d\d-[a-z-]+\.txt)',p.name): shutil.copyfile(p,out/p.name)
+        manifest={"status":status,"run_id":run_id,"engine":version,"engine_sha256":ENGINE_SHA,"public_commit":os.environ.get('GITHUB_SHA'),"spatial_sources":spatial['sources'],"runner_sha256":sha(Path(__file__)),"source_sha256":{p.relative_to(ROOT/'project').as_posix():sha(p) for p in sorted((ROOT/'project').rglob('*')) if p.is_file()},"output_sha256":{p.name:sha(p) for p in sorted(out.glob('*.png'))},"startup_markers":[p.name for p in sorted(out.glob('stage-*.txt'))]}
         (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print('Compact shoot native look complete; no whole-tree or tablet acceptance.')
 if __name__=='__main__':
