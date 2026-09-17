@@ -36,17 +36,29 @@ func close_view(reverse: bool=false,top: bool=false) -> void:
 func finite_tree() -> bool:
 	var t: Dictionary=study.document.tree
 	var root_point:=Vector3(t.x,t.base_elevation,-t.y)
+	var maximum_radial:=0.0
+	var minimum_y:=INF
+	var maximum_y:=-INF
+	var radial_limit:=float(t.crown_radius)*1.12
+	var lower_limit:=float(t.base_elevation)-.01
+	var upper_limit:=float(t.base_elevation)+float(t.height)+.08
+	var radial_overruns:=0
+	var vertical_overruns:=0
 	for shoot in study.interleaved_tree.shoots:
 		for node in [shoot.twig,shoot.foliage]:
 			var arrays: Array=node.mesh.surface_get_arrays(0)
 			for p in arrays[Mesh.ARRAY_VERTEX]:
 				if not p.is_finite():return false
 				var world: Vector3=shoot.global_transform*p
-				if Vector2(world.x-root_point.x,world.z-root_point.z).length()>float(t.crown_radius)*1.12:return false
-				if world.y<t.base_elevation-.01 or world.y>t.base_elevation+t.height+.08:return false
+				var radial:=Vector2(world.x-root_point.x,world.z-root_point.z).length()
+				maximum_radial=maxf(maximum_radial,radial)
+				minimum_y=minf(minimum_y,world.y);maximum_y=maxf(maximum_y,world.y)
+				if radial>radial_limit:radial_overruns+=1
+				if world.y<lower_limit or world.y>upper_limit:vertical_overruns+=1
 			for n in arrays[Mesh.ARRAY_NORMAL]:
 				if not n.is_finite() or absf(n.length()-1.)>.003:return false
-	return true
+	diagnostics["envelope"]={"max_radial":maximum_radial,"radial_limit":radial_limit,"radial_overrun_vertices":radial_overruns,"min_y":minimum_y,"max_y":maximum_y,"lower_limit":lower_limit,"upper_limit":upper_limit,"vertical_overrun_vertices":vertical_overruns}
+	return radial_overruns==0 and vertical_overruns==0
 func run() -> void:
 	output=OS.get_environment("YARDSCAPE_TREE_OUTPUT");run_id=OS.get_environment("YARDSCAPE_TREE_RUN_ID")
 	if run_id.length()!=36 or not output.begins_with(ProjectSettings.globalize_path("res://.local/")):
