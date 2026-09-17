@@ -1,8 +1,8 @@
 extends Node3D
-## Three compact shoot gestures carrying fifteen small closed foliage hints.
+## Five compact shoot gestures carrying twenty-five small closed foliage hints.
 ## Generic visual component; not a species or literal canopy leaf inventory.
 const Paint = preload("res://presentation/northstar/foliage/compact_group.gdshader")
-const RECIPE := "three-shoot-group/1"
+const RECIPE := "five-shoot-group/2"
 var descriptor:Dictionary={}
 var foliage:MeshInstance3D
 var twig:MeshInstance3D
@@ -18,13 +18,15 @@ func configure(seed_value:int,radius:float,height:float)->void:
 	var rng:=RandomNumberGenerator.new()
 	rng.seed=seed_value
 	var paths:Array[PackedVector3Array]=[
-		PackedVector3Array([Vector3.ZERO,Vector3(.01,.18,.01),Vector3(-.05,.38,.04),Vector3(-.10,.56,.08)]),
-		PackedVector3Array([Vector3(.02,.05,0),Vector3(.10,.20,-.02),Vector3(.22,.36,-.08),Vector3(.31,.49,-.13)]),
-		PackedVector3Array([Vector3(-.02,.07,0),Vector3(-.11,.22,.04),Vector3(-.24,.35,.09),Vector3(-.30,.48,.12)])
+		PackedVector3Array([Vector3.ZERO,Vector3(.01,.13,.00),Vector3(.01,.28,.02),Vector3(.00,.42,.04)]),
+		PackedVector3Array([Vector3(.01,.03,0),Vector3(.11,.13,.03),Vector3(.23,.25,.07),Vector3(.34,.34,.11)]),
+		PackedVector3Array([Vector3(-.01,.03,0),Vector3(-.12,.14,.02),Vector3(-.24,.25,.06),Vector3(-.34,.35,.10)]),
+		PackedVector3Array([Vector3(.00,.04,-.01),Vector3(.08,.15,-.10),Vector3(.16,.27,-.22),Vector3(.22,.37,-.33)]),
+		PackedVector3Array([Vector3(.00,.04,.01),Vector3(-.08,.15,.10),Vector3(-.16,.27,.22),Vector3(-.22,.37,.33)])
 	]
-	var tones:PackedFloat32Array=PackedFloat32Array([.51,.46,.55])
+	var tones:PackedFloat32Array=PackedFloat32Array([.52,.46,.55,.49,.57])
 	for path in paths:
-		_tube(path,radius*.028,radius*.010,radius,height)
+		_tube(path,radius*.024,radius*.008,radius,height)
 	twig=_finish("ShootGesture")
 	var bark:=StandardMaterial3D.new()
 	bark.albedo_color=Color("665541")
@@ -40,14 +42,14 @@ func configure(seed_value:int,radius:float,height:float)->void:
 				side=tangent.cross(Vector3.FORWARD)
 			side=side.normalized()
 			for sign_value in [-1.,1.]:
-				var center:Vector3=path[node_index]+side*sign_value*.045+Vector3.UP*.012
-				var direction:Vector3=(tangent*.42+side*sign_value*.88+Vector3.UP*.16).normalized()
-				var scale_value:=1.0 if node_index==1 else .86
+				var center:Vector3=path[node_index]+side*sign_value*.030+Vector3.UP*.008
+				var direction:Vector3=(tangent*.38+side*sign_value*.91+Vector3.UP*.12).normalized()
+				var scale_value:=1.0 if node_index==1 else .84
 				var tone:=tones[s]+rng.randf_range(-.035,.035)
-				_leaf(center,direction,sign_value*.25+rng.randf_range(-.12,.12),scale_value,tone,radius,height)
+				_leaf(center,direction,sign_value*.22+rng.randf_range(-.14,.14),scale_value,tone,radius,height)
 				leaflets+=1
-		var terminal_direction:Vector3=(path[-1]-path[-2]+Vector3.UP*.08).normalized()
-		_leaf(path[-1],terminal_direction,rng.randf_range(-.25,.25),.78,tones[s]+rng.randf_range(-.03,.03),radius,height)
+		var terminal_direction:Vector3=(path[-1]-path[-2]+Vector3.UP*.07).normalized()
+		_leaf(path[-1],terminal_direction,rng.randf_range(-.28,.28),.76,tones[s]+rng.randf_range(-.03,.03),radius,height)
 		leaflets+=1
 	foliage=_finish("ShootFoliage")
 	var paint:=ShaderMaterial.new()
@@ -70,16 +72,17 @@ func _leaf(center:Vector3,direction:Vector3,roll:float,scale_value:float,tone:fl
 	var basis:=_basis_from(direction,roll)
 	var center_world:=Vector3(center.x*radius,center.y*height,center.z*radius)
 	var first:=_v.size()
-	var stations:=4
 	var sides:=5
-	var length:=height*.19*scale_value
-	var width:=radius*.085*scale_value
-	var thickness:=radius*.026*scale_value
-	for j in stations:
-		var t:=float(j)/float(stations-1)
-		var axial:=(t-.46)*length
-		var swell:=pow(maxf(0.,sin(PI*t)),.72)
-		var bend:=sin(PI*t)*length*.07
+	var length:=height*.145*scale_value
+	var width:=radius*.060*scale_value
+	var thickness:=radius*.020*scale_value
+	var start_tip:=center_world+basis*Vector3(0,-length*.46,0)
+	_v.append(start_tip);_n.append(Vector3.ZERO);_colors.append(Color(tone,tone,tone,1))
+	for ring in 2:
+		var t:=.34 if ring==0 else .68
+		var axial:=lerpf(-length*.46,length*.54,t)
+		var swell:=sin(PI*t)
+		var bend:=sin(PI*t)*length*.065
 		for k in sides:
 			var a:=TAU*float(k)/sides
 			var asym:=1.+.07*sin(a*3.+roll)
@@ -87,17 +90,20 @@ func _leaf(center:Vector3,direction:Vector3,roll:float,scale_value:float,tone:fl
 			_v.append(center_world+basis*local)
 			_n.append(Vector3.ZERO)
 			_colors.append(Color(tone,tone,tone,1))
-	for j in stations-1:
-		for k in sides:
-			var a:=first+j*sides+k
-			var b:=first+j*sides+(k+1)%sides
-			var c:=a+sides
-			var d:=b+sides
-			_ix.append_array(PackedInt32Array([a,c,b,b,c,d]))
-	for k in range(1,sides-1):
-		_ix.append_array(PackedInt32Array([first,first+k+1,first+k]))
-		var e:=first+(stations-1)*sides
-		_ix.append_array(PackedInt32Array([e,e+k,e+k+1]))
+	var end_tip:=_v.size()
+	_v.append(center_world+basis*Vector3(0,length*.54,0));_n.append(Vector3.ZERO);_colors.append(Color(tone,tone,tone,1))
+	for k in sides:
+		_ix.append_array(PackedInt32Array([first,first+1+(k+1)%sides,first+1+k]))
+	var ring_a:=first+1
+	var ring_b:=ring_a+sides
+	for k in sides:
+		var a:=ring_a+k
+		var b:=ring_a+(k+1)%sides
+		var c:=ring_b+k
+		var d:=ring_b+(k+1)%sides
+		_ix.append_array(PackedInt32Array([a,c,b,b,c,d]))
+	for k in sides:
+		_ix.append_array(PackedInt32Array([end_tip,ring_b+k,ring_b+(k+1)%sides]))
 	_recompute_normals(first,_v.size())
 
 func _tube(path:PackedVector3Array,start_radius:float,end_radius:float,radius:float,height:float)->void:
