@@ -1,21 +1,10 @@
 {
   "slice": "compact-foliage-group-07",
   "sources": {
-    "northstar-foliage-group.tscn": {
-      "sha256": "de19724419ab1f9bde28d3d235f55b1802fba3ae76d435085662dae6b02c9be6",
-      "bytes": 200
-    },
-    "presentation/northstar/spatial_group_study.gd": {
-      "sha256": "b798bced007daeea1478f113bff0ee80edb28083b9e7236a7666fb844eea1341",
-      "bytes": 939
-    },
-    "presentation/northstar/foliage/compact_group.gd": {
-      "sha256": "55dbc4ebe97300c20d1718d263a78e66958fd3b4bfbe21555b1a0299cffb5582",
-      "bytes": 7070
-    },
-    "presentation/northstar/foliage/compact_group.gdshader": {
-      "sha256": "ef53599b47d58c1b535d669c18e8c01ba7ab7696ae4f69a1eb31abb73e0aa48c",
-      "bytes": 597
-    }
-  }
+    "northstar-foliage-group.tscn": {"role":"candidate_scene"},
+    "presentation/northstar/spatial_group_study.gd": {"role":"candidate_wrapper"},
+    "presentation/northstar/foliage/compact_group.gd": {"role":"candidate_geometry"},
+    "presentation/northstar/foliage/compact_group.gdshader": {"role":"candidate_material"}
+  },
+  "identity_policy":"public Git commit pins reviewed source bytes; executed SHA-256 values are written into each evidence manifest"
 }
