@@ -24,14 +24,15 @@ def verify():
             if not any((d/'project'/ref).is_file() for d in (ROOT,PREVIOUS,SPATIAL)):raise ValueError('Unresolved '+ref)
     return manifest,previous,spatial
 
-def run(full=False):
+def run(full=False, baseline=False):
     manifest,previous,spatial=verify()
     if os.environ.get('GITHUB_ACTIONS')!='true' or sys.platform!='linux':raise RuntimeError('Native execution restricted to public Linux worker')
     engine=Path(os.environ['GODOT_BIN']).resolve()
     if sha(engine)!=ENGINE_SHA:raise ValueError('Engine hash mismatch')
     version=subprocess.run([str(engine),'--version'],capture_output=True,text=True,check=True,timeout=20).stdout.strip()
     if version!=PIN:raise ValueError('Engine version mismatch')
-    stage=Path(os.environ['RUNNER_TEMP'])/('curvature-full' if full else 'curvature-look')
+    label='curvature-baseline' if baseline else 'curvature-full' if full else 'curvature-look'
+    stage=Path(os.environ['RUNNER_TEMP'])/label
     if stage.exists():raise FileExistsError('Fresh stage required')
     shutil.copytree(SPATIAL/'project',stage)
     for directory in (PREVIOUS,ROOT):
@@ -43,16 +44,16 @@ def run(full=False):
         # scene, subclass, and generator in the staged copy, not the old seed tests.
         probe=(PREVIOUS/'canopy_probe.gd').read_text()
         replacements={'res://presentation/northstar/spatial_canopy_study.gd':'res://presentation/northstar/spatial_curved_canopy_study.gd',
-                      'res://presentation/northstar/canopy/illustrative_tree.gd':'res://presentation/northstar/canopy/curved_tree.gd',
+                      'res://presentation/northstar/canopy/illustrative_tree.gd':'res://presentation/northstar/canopy/cutout_tree.gd',
                       'res://northstar-spatial-canopy.tscn':'res://northstar-spatial-curved-canopy.tscn'}
-        for old,new in replacements.items():
+        for old,new in ({} if baseline else replacements).items():
             if probe.count(old)!=1:raise ValueError('Unexpected upstream probe structure')
             probe=probe.replace(old,new)
     else:probe=(ROOT/'quick_probe.gd').read_text()
     (stage/'tests/curvature_probe.gd').write_text(probe)
     (stage/'project.godot').write_text('config_version=5\n[application]\nconfig/name="Public curvature comparison"\n[display]\nwindow/size/viewport_width=1280\nwindow/size/viewport_height=900\n[rendering]\nrenderer/rendering_method="gl_compatibility"\n')
     inside=stage/'.local/output';inside.mkdir(parents=True)
-    out=Path(os.environ['RUNNER_TEMP'])/('curvature-full-evidence' if full else 'curvature-look-evidence');out.mkdir(exist_ok=False)
+    out=Path(os.environ['RUNNER_TEMP'])/(label+'-evidence');out.mkdir(exist_ok=False)
     run_id=str(uuid.uuid4())
     env={k:v for k,v in os.environ.items() if not k.startswith(('PLAN_TRACE_','YARDSCAPE_','GODOT_MCP_'))}
     env.update(YARDSCAPE_CANOPY_OUTPUT=str(inside),YARDSCAPE_CANOPY_RUN_ID=run_id,LIBGL_ALWAYS_SOFTWARE='1',GODOT_SILENCE_ROOT_WARNING='1')
@@ -65,15 +66,15 @@ def run(full=False):
         report=json.loads((inside/'report.json').read_text())
         if report.get('run_id')!=run_id or not report.get('passed') or report.get('failures'):raise ValueError('Failed or stale report')
         if not report.get('adapter') or report['adapter']=='Dummy':raise ValueError('No real framebuffer')
-        if len(list(inside.glob('*.png')))!=(27 if full else 8):raise ValueError('Unexpected capture count')
+        if len(list(inside.glob('*.png')))!=(27 if full else 10):raise ValueError('Unexpected capture count')
         status='passed'
     finally:
         for p in inside.iterdir():
             if p.name=='report.json' or re.fullmatch(r'(?:\d\d-[a-z-]+|motion-\d\d)\.png',p.name):shutil.copyfile(p,out/p.name)
-        manifest.update(status=status,full_probe=full,run_id=run_id,public_commit=os.environ.get('GITHUB_SHA'),engine=version,engine_sha256=ENGINE_SHA,
+        manifest.update(status=status,full_probe=full,folded_baseline=baseline,run_id=run_id,public_commit=os.environ.get('GITHUB_SHA'),engine=version,engine_sha256=ENGINE_SHA,
                         previous_sources=previous['sources'],spatial_sources=spatial['sources'],runner_sha256=sha(Path(__file__)),
                         probe_sha256=hashlib.sha256(probe.encode()).hexdigest(),output_sha256={p.name:sha(p) for p in sorted(out.glob('*.png'))})
         (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 if __name__=='__main__':
     if '--verify-only' in sys.argv:verify();print('Curvature sources and retained dependencies verified')
-    else:run('--full' in sys.argv)
+    else:run('--full' in sys.argv,'--baseline' in sys.argv)

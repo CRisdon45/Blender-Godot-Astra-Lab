@@ -2,6 +2,7 @@ extends "res://presentation/northstar/canopy/illustrative_tree.gd"
 ## Curvature/orientation comparison only. Inherited branch bytes and group
 ## anchors stay fixed. Sixty-four opaque sprays, not sixty-four literal leaves.
 const CURVED_RECIPE = "curved-foliage-groups/3"
+var _surface_uv := PackedVector2Array()
 
 func configure(t: Dictionary) -> void:
 	super.configure(t)
@@ -45,6 +46,7 @@ func _mass(center: Vector3, extent: Vector3, angle: float, phase: float) -> void
 					var dx := -.88*x+.19*z
 					var dz := -.36*z+.19*x+.16*cos(2.*z+phase)
 					var normal := (rotation*Vector3(-dx,1.,-dz*rx/rz)*sign_value).normalized()
+					_surface_uv.append(Vector2(x*.5+.5,z*.5+.5))
 					_v.append(point)
 					_n.append(normal.lerp(guide,.56).normalized())
 			var base := start+face*stride
@@ -63,3 +65,13 @@ func _mass(center: Vector3, extent: Vector3, angle: float, phase: float) -> void
 
 func _triangle(a: int,b: int,c: int,reverse: bool) -> void:
 	_ix.append_array(PackedInt32Array([a,c,b] if reverse else [a,b,c]))
+
+func _finish(label: String) -> MeshInstance3D:
+	if label=="BranchGesture": return super._finish(label)
+	var arrays:=[];arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX]=_v;arrays[Mesh.ARRAY_NORMAL]=_n;arrays[Mesh.ARRAY_INDEX]=_ix
+	arrays[Mesh.ARRAY_TEX_UV]=_surface_uv
+	var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
+	var node:=MeshInstance3D.new();node.name=label;node.mesh=mesh;add_child(node)
+	_v=PackedVector3Array();_n=PackedVector3Array();_ix=PackedInt32Array();_surface_uv=PackedVector2Array()
+	return node

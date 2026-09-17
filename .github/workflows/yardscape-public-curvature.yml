@@ -10,9 +10,9 @@ concurrency:
   group: curvature-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  quick-look:
+  comparison:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -24,11 +24,32 @@ jobs:
             ci/yardscape-curvature-probe
       - run: python ci/yardscape-curvature-probe/run_curvature.py --verify-only
       - run: python ci/yardscape-renderer/install_godot.py
-      - run: python ci/yardscape-curvature-probe/run_curvature.py
+      - name: Quick folded and cutout comparison
+        run: python ci/yardscape-curvature-probe/run_curvature.py
+      - name: Retained folded canopy through factory seam
+        if: success() || failure()
+        run: python ci/yardscape-curvature-probe/run_curvature.py --full --baseline
+      - name: Full candidate canopy checks
+        if: success() || failure()
+        run: python ci/yardscape-curvature-probe/run_curvature.py --full
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: curvature-quick-look
           path: ${{ runner.temp }}/curvature-look-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: curvature-folded-regression
+          path: ${{ runner.temp }}/curvature-baseline-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: curvature-full-evidence
+          path: ${{ runner.temp }}/curvature-full-evidence
           retention-days: 7
           if-no-files-found: warn

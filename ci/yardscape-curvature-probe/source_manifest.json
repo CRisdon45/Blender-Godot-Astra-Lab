@@ -1,9 +1,11 @@
 {
-  "slice": "spatial-canopy-curvature-05",
-  "sources": {
-    "presentation/northstar/canopy/curved_tree.gd": {"sha256":"55d498e0607d5d220dc40de3e58f39c66d774ddaa5613e6085f682c4a82c6ce2","bytes":2805},
-    "presentation/northstar/spatial_curved_canopy_study.gd": {"sha256":"485b37cdbbc5922ddd52b777bdd7125799bb1e02e87d1ef11ca7c6f8262f8440","bytes":281},
-    "northstar-spatial-curved-canopy.tscn": {"sha256":"8f56af6ec8e117ef15be021416fc5dee3000fd727343ee1f6ec90d81f2d3d88d","bytes":215},
-    "presentation/northstar/spatial_canopy_study.gd": {"sha256":"1c3197b850dd061e8d79c2daefc8b0741f6d7756c58826391cafb7f1d9cb3f5c","bytes":1740}
+  "slice":"spatial-canopy-curvature-05",
+  "sources":{
+    "northstar-spatial-curved-canopy.tscn":{"sha256":"8f56af6ec8e117ef15be021416fc5dee3000fd727343ee1f6ec90d81f2d3d88d","bytes":215},
+    "presentation/northstar/canopy/curved_tree.gd":{"sha256":"31551dc3b7afa9a1d73ee4bbcd29e87cb3cc543f9872b00379b36917f64727b9","bytes":3458},
+    "presentation/northstar/canopy/cutout_foliage.gdshader":{"sha256":"374031b4c987c42357c7ad70c9fb3ad85ccf418680de8b4be4f75b472cb42c93","bytes":1015},
+    "presentation/northstar/canopy/cutout_tree.gd":{"sha256":"50a4ae9198ee49b911494d1fb630a1d349e43af6f5a1e0b65f722cf719365819","bytes":4379},
+    "presentation/northstar/spatial_canopy_study.gd":{"sha256":"1c3197b850dd061e8d79c2daefc8b0741f6d7756c58826391cafb7f1d9cb3f5c","bytes":1740},
+    "presentation/northstar/spatial_curved_canopy_study.gd":{"sha256":"4448aa00954a2cb2fbfd2966046e5817a7f03c4561b6ad2b1f7f64c5d5632014","bytes":285}
   }
 }

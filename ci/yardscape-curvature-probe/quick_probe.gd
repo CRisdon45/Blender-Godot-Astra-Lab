@@ -46,6 +46,12 @@ func run() -> void:
 	await grab("05-close-folded",false);await grab("06-close-curved",true)
 	study.yaw+=PI;study._update_camera()
 	await grab("07-reverse-folded",false);await grab("08-reverse-curved",true)
+	study.yaw-=PI;study._update_camera()
+	study.illustrative_tree.crown.material_override.set_shader_parameter("coverage_enabled",false)
+	await grab("09-close-unmasked",true)
+	study.illustrative_tree.crown.material_override.set_shader_parameter("coverage_enabled",true)
+	await grab("10-cutout-return",true)
+	check(hashes["10-cutout-return"]==hashes["06-close-curved"],"cutout toggle exactly restores image")
 	var report: Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,"pixel_hashes":hashes,"adapter":RenderingServer.get_video_adapter_name(),"engine":Engine.get_version_info().string,"candidate":study.illustrative_tree.stats,"baseline":old.stats,"scope":"quick curvature/orientation comparison, not full regression","artistic_acceptance":"not_evaluated"}
 	var f:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE)
 	if f==null:push_error("Cannot retain report");quit(1);return
