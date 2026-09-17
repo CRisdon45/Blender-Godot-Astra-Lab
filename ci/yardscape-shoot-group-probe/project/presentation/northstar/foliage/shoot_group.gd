@@ -23,10 +23,16 @@ func configure(seed_value:int,radius:float,height:float)->void:
 		PackedVector3Array([Vector3(-.02,.07,0),Vector3(-.11,.22,.04),Vector3(-.24,.35,.09),Vector3(-.30,.48,.12)])
 	]
 	var tones:PackedFloat32Array=PackedFloat32Array([.51,.46,.55])
+	for path in paths:
+		_tube(path,radius*.028,radius*.010,radius,height)
+	twig=_finish("ShootGesture")
+	var bark:=StandardMaterial3D.new()
+	bark.albedo_color=Color("665541")
+	bark.roughness=1.
+	twig.material_override=bark
 	var leaflets:=0
 	for s in paths.size():
 		var path:=paths[s]
-		_tube(path,radius*.028,radius*.010,radius,height)
 		for node_index in [1,2]:
 			var tangent:Vector3=(path[node_index+1]-path[node_index-1]).normalized()
 			var side:=tangent.cross(Vector3.UP)
@@ -43,11 +49,6 @@ func configure(seed_value:int,radius:float,height:float)->void:
 		var terminal_direction:Vector3=(path[-1]-path[-2]+Vector3.UP*.08).normalized()
 		_leaf(path[-1],terminal_direction,rng.randf_range(-.25,.25),.78,tones[s]+rng.randf_range(-.03,.03),radius,height)
 		leaflets+=1
-	twig=_finish("ShootGesture")
-	var bark:=StandardMaterial3D.new()
-	bark.albedo_color=Color("665541")
-	bark.roughness=1.
-	twig.material_override=bark
 	foliage=_finish("ShootFoliage")
 	var paint:=ShaderMaterial.new()
 	paint.shader=Paint
