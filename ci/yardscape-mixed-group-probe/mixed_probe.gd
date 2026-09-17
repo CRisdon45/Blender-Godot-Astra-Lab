@@ -10,7 +10,9 @@ var checks:Array=[]
 var failures:Array=[]
 var hashes:Dictionary={}
 func _initialize()->void:call_deferred("run")
-func check(ok:bool,label:String)->void:checks.append({"name":label,"passed":ok});if not ok:failures.append(label)
+func check(ok:bool,label:String)->void:
+	checks.append({"name":label,"passed":ok})
+	if not ok:failures.append(label)
 func digest(image:Image)->String:return image.get_data().hex_encode().sha256_text()
 func capture(name:String,mixed_visible:bool)->Image:
 	study.group.visible=mixed_visible;baseline.visible=not mixed_visible
@@ -25,6 +27,10 @@ func capture(name:String,mixed_visible:bool)->Image:
 func set_view(yaw:float,pitch:float,distance:float,top:bool=false)->void:
 	study.target=study.group.position+Vector3(0,.08,0);study.plan_locked=false;study.perspective=not top;study.yaw=yaw;study.pitch=pitch;study.distance=distance;study._update_camera()
 	if top:study.camera.position=study.target+Vector3.UP*6.;study.camera.look_at(study.target,Vector3(0,0,-1))
+func set_courtyard_plan()->void:
+	study.plan_locked=true;study.perspective=false;study.target=Vector3(5.,0.,-7.5);study.plan_size=20.;study._update_camera()
+func set_courtyard_oblique()->void:
+	study.plan_locked=false;study.perspective=true;study.target=Vector3(5.,0.,-7.);study.yaw=.55;study.pitch=.85;study.distance=22.;study._update_camera()
 func valid(group)->bool:
 	for node in [group.twig,group.foliage]:
 		var a:Array=node.mesh.surface_get_arrays(0)
@@ -50,7 +56,8 @@ func run()->void:
 	set_view(.55,1.49,5.,true);await capture("07-top-compact",false);await capture("08-top-mixed",true)
 	set_view(.55,.34,4.4);study._choose("Afternoon");var afternoon:=await capture("09-afternoon-mixed",true);check(digest(afternoon)!=digest(front),"mixed group relights with sun")
 	study._choose("Morning");check(digest(front)==digest(await capture("10-morning-return",true)),"morning return is exact")
-	study._choose("Plan");await capture("11-courtyard-plan",true);study._choose("Orbit");study._choose("Perspective");await capture("12-courtyard-oblique",true)
+	set_courtyard_plan();await capture("11-courtyard-plan",true)
+	set_courtyard_oblique();await capture("12-courtyard-oblique",true)
 	check(study.group.geometry_signature()==signature,"view/light comparisons never regenerate group")
 	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,"pixel_hashes":hashes,"candidate":study.group.stats,"baseline":baseline.stats,"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),"scope":"mixed small-volume plus selective-accent group versus prior compact literal group","whole_tree_tested":false,"tablet_performance_tested":false,"artistic_acceptance":"not_evaluated"}
 	var f:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE);if f==null:push_error("Cannot write report");quit(1);return
