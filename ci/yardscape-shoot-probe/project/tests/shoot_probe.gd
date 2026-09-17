@@ -12,15 +12,19 @@ func check(ok: bool,label: String) -> void:
 	if not ok: failures.append(label)
 func digest(image: Image) -> String: return image.get_data().hex_encode().sha256_text()
 func grab(name: String) -> Image:
+	print("SHOOT_STAGE capture_begin ",name)
 	var layers: Array=[]
 	for c in study.get_children():
 		if c is CanvasLayer: layers.append([c,c.visible]);c.visible=false
 	for i in 2: await process_frame
+	print("SHOOT_STAGE frame_ready ",name)
 	await RenderingServer.frame_post_draw
+	print("SHOOT_STAGE frame_drawn ",name)
 	var image:=root.get_texture().get_image();image.convert(Image.FORMAT_RGBA8)
 	check(image.save_png(output.path_join(name+".png"))==OK,"capture "+name)
 	hashes[name]=digest(image)
 	for pair in layers: pair[0].visible=pair[1]
+	print("SHOOT_STAGE capture_end ",name)
 	return image
 func isolate() -> Array:
 	var saved: Array=[]
@@ -55,12 +59,16 @@ func all_finite_and_bounded() -> bool:
 			if not n.is_finite() or absf(n.length()-1.)>.003: return false
 	return true
 func run() -> void:
+	print("SHOOT_STAGE run_enter")
 	output=OS.get_environment("YARDSCAPE_SHOOT_OUTPUT");run_id=OS.get_environment("YARDSCAPE_SHOOT_RUN_ID")
 	if run_id.length()!=36 or not output.begins_with(ProjectSettings.globalize_path("res://.local/")):
 		push_error("Fresh isolated shoot output required");quit(1);return
 	root.size=Vector2i(800,600)
+	print("SHOOT_STAGE before_scene")
 	study=load("res://northstar-spatial-shoot.tscn").instantiate();root.add_child(study)
+	print("SHOOT_STAGE scene_added")
 	for i in 2: await process_frame
+	print("SHOOT_STAGE scene_ready")
 	check(study.study_ready,"retained spatial courtyard initializes")
 	check(study.compact_shoot.stats.leaf_count==7,"compact group contains seven closed leaf forms")
 	check(not study.compact_shoot.stats.alpha_foliage,"first look uses no alpha foliage")
@@ -71,6 +79,7 @@ func run() -> void:
 	var foliage_arrays: Array=study.compact_shoot.foliage.mesh.surface_get_arrays(0)
 	check(foliage_arrays[Mesh.ARRAY_NORMAL].size()==foliage_arrays[Mesh.ARRAY_VERTEX].size(),"final-mesh normal count matches foliage vertices")
 	diagnostics["stats"]=study.compact_shoot.stats;diagnostics["source_tree_hash"]=source_hash
+	print("SHOOT_STAGE checks_ready")
 	var saved:=isolate()
 	isolated_camera("top");await grab("01-isolated-top")
 	isolated_camera("front");var front:=await grab("02-isolated-front")
@@ -90,4 +99,5 @@ func run() -> void:
 	var f:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE)
 	if f==null:push_error("Cannot retain shoot report");quit(1);return
 	f.store_string(JSON.stringify(report,"  "));f.close()
+	print("SHOOT_STAGE report_written failures=",failures)
 	study.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)
