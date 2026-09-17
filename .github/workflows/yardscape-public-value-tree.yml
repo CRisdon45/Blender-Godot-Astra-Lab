@@ -1,0 +1,40 @@
+name: Public dab tree hierarchy-value comparison
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-value-tree-probe/**', '.github/workflows/yardscape-public-value-tree.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dab-value-tree-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-value-tree-probe
+      - name: Verify reviewed material-only boundary
+        run: python ci/yardscape-value-tree-probe/run_value_tree.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native grouped values versus dab baseline
+        run: python ci/yardscape-value-tree-probe/run_value_tree.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dab-tree-value-evidence
+          path: ${{ runner.temp }}/dab-value-evidence
+          retention-days: 7
+          if-no-files-found: warn
