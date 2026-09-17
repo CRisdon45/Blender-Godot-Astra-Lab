@@ -55,7 +55,7 @@ func run()->void:
 	check(validity.triangles<1200,"compact group stays below 1200 indexed triangles")
 	check(study.group.stats.subforms==11 and study.group.stats.mesh_surfaces==2,"eleven interleaved forms plus one twig surface")
 	check(not study.group.stats.alpha_blended,"foliage uses closed opaque geometry, not alpha cards")
-	var aabb:=study.group.foliage.mesh.get_aabb().merge(study.group.twig.mesh.get_aabb())
+	var aabb:AABB=study.group.foliage.mesh.get_aabb().merge(study.group.twig.mesh.get_aabb())
 	diagnostics["aabb"]={"position":[aabb.position.x,aabb.position.y,aabb.position.z],"size":[aabb.size.x,aabb.size.y,aabb.size.z]}
 	check(aabb.size.x<study.group.descriptor.radius*1.65 and aabb.size.z<study.group.descriptor.radius*1.65,"group remains compact inside bounded crown fraction")
 	check(aabb.position.y>-.08 and aabb.end.y<study.group.descriptor.height*.90,"group stays vertically compact around branch tip")
