@@ -1,0 +1,14 @@
+{
+  "slice_id": "leaf-receiver-20260916-r1",
+  "source_sha256": {
+    "presentation/northstar/canopy.gdshader": "a145222a554fb8bf065b0cc2921770dfbec5d9451f530e68da067cb55612b236",
+    "presentation/northstar/plant.gd": "a85b3def6053673a800cd2218a463ea1fb30eed6aefd2cbe1e0db73a80a4319b",
+    "presentation/northstar/regions/broadleaf.gd": "bdfcafcd769cff03a9c3cdf4b730ee8e9f65c6fd240431167feedc42ce5ccabe",
+    "presentation/northstar/regions/broadleaf_receiver.gd": "6d8d946a2a862c1df10db8e688b64d8d4ff31808bef2eda390274e935a9d8923",
+    "presentation/northstar/regions/broadleaf_shade.gdshader": "47d90209bd69a8277799e2aecdfe418a3c44b2e5981b1d30572b4649363edd0c",
+    "presentation/northstar/regions/planting_context.gd": "37411ee0c83d39051aee9c4c40dc0316ec7e8ce49254bbba560e8f81ea630337",
+    "presentation/northstar/regions/received_shade.gdshaderinc": "d8143026f3928c84d8fb8017eee2e13b3c66bd98a312dedacfe1b610a7fd8854",
+    "presentation/northstar/stroke_mesh.gd": "e0c0e04f6f776c4ed070742182e37703cbf73eb5cf64e5fe515d8f89de2ee8c5"
+  },
+  "scope": "Eight renderer dependency files, no app model/persistence or history. Synthetic component tests are not full scene integration."
+}

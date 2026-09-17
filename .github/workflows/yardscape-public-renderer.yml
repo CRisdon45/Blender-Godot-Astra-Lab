@@ -1,0 +1,35 @@
+name: Public leaf renderer probe
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-renderer/**', '.github/workflows/yardscape-public-renderer.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-leaf-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  component:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: ci/yardscape-renderer
+      - name: Verify reviewed source slice
+        run: python ci/yardscape-renderer/run_probe.py --verify-only
+      - name: Install exact official pinned Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Check display prerequisites
+        run: command -v xvfb-run && command -v xauth
+      - name: Native Compatibility component framebuffer checks
+        run: python ci/yardscape-renderer/run_probe.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: public-leaf-component-evidence
+          path: ${{ runner.temp }}/public-leaf-artifacts
+          retention-days: 7
+          if-no-files-found: warn
