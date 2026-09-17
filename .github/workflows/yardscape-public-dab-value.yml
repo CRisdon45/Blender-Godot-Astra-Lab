@@ -1,0 +1,50 @@
+name: Public dab hierarchy-value proof
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-dab-value-probe/**', '.github/workflows/yardscape-public-dab-value.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dab-hierarchy-value-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  value:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+      - name: Verify reviewed candidate boundary
+        run: python ci/yardscape-dab-value-probe/run_value.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Retained dab-tree regression
+        run: python ci/yardscape-dab-tree-probe/run_dab_tree.py
+      - name: Native hierarchy-value comparison
+        run: python ci/yardscape-dab-value-probe/run_value.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dab-hierarchy-value-evidence
+          path: ${{ runner.temp }}/dab-value-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dab-hierarchy-baseline-regression
+          path: ${{ runner.temp }}/dab-tree-evidence
+          retention-days: 7
+          if-no-files-found: warn
