@@ -97,7 +97,7 @@ func _add_leaf(base: Vector3, axis: Vector3, length: float, width: float, index:
 	var side := tangent.cross(Vector3.UP).normalized()
 	if side.length_squared()<.08: side = tangent.cross(Vector3.RIGHT).normalized()
 	var lift := side.cross(tangent).normalized()
-	var roll := [-.48,.31,.52,-.28,.18,-.55,.08][index]
+	var roll: float = float([-.48,.31,.52,-.28,.18,-.55,.08][index])
 	var rolled_side := (side*cos(roll)+lift*sin(roll)).normalized()
 	var rolled_lift := tangent.cross(rolled_side).normalized()
 	var rings := 5
@@ -106,15 +106,15 @@ func _add_leaf(base: Vector3, axis: Vector3, length: float, width: float, index:
 	var start_tip := _v.size()
 	_v.append(base)
 	for r in rings:
-		var t := [.14,.31,.50,.69,.86][r]
-		var shape := pow(sin(PI*t),.72)
-		var center := base+tangent*length*t+rolled_lift*(sin(PI*t)*width*.20 + sin(TAU*t+index)*width*.035)
+		var t: float = float([.14,.31,.50,.69,.86][r])
+		var shape: float = pow(sin(PI*t),.72)
+		var center: Vector3 = base+tangent*length*t+rolled_lift*(sin(PI*t)*width*.20 + sin(TAU*t+index)*width*.035)
 		var ring_start := _v.size()
 		ring_starts.append(ring_start)
 		for k in around:
 			var a := TAU*float(k)/around
-			var p := center + rolled_side*(cos(a)*width*shape) + rolled_lift*(sin(a)*width*.22*shape)
-			_v.append(p)
+			var point: Vector3 = center + rolled_side*(cos(a)*width*shape) + rolled_lift*(sin(a)*width*.22*shape)
+			_v.append(point)
 	var end_tip := _v.size()
 	_v.append(base+tangent*length)
 	for k in around:
