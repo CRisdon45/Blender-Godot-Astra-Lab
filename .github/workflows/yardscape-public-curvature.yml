@@ -1,0 +1,34 @@
+name: Public canopy curvature comparison
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-curvature-probe/**', '.github/workflows/yardscape-public-curvature.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: curvature-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quick-look:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-curvature-probe
+      - run: python ci/yardscape-curvature-probe/run_curvature.py --verify-only
+      - run: python ci/yardscape-renderer/install_godot.py
+      - run: python ci/yardscape-curvature-probe/run_curvature.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: curvature-quick-look
+          path: ${{ runner.temp }}/curvature-look-evidence
+          retention-days: 7
+          if-no-files-found: warn
