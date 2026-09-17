@@ -40,6 +40,13 @@ func material_ids()->Array:
 	for group in study.dab_tree.groups:data.append(group.foliage.material_override.get_instance_id())
 	return data
 func values_copy()->PackedFloat32Array:return study.value_state().family.duplicate()
+func value_span(values:PackedFloat32Array)->float:
+	if values.is_empty():return 0.
+	var low:float=values[0]
+	var high:float=values[0]
+	for value in values:
+		low=minf(low,value);high=maxf(high,value)
+	return high-low
 func same_family_triplets(values:PackedFloat32Array)->bool:
 	for family in 5:
 		var base:float=values[family*3]
@@ -59,7 +66,7 @@ func run()->void:
 	var geometry:String=study.dab_tree.geometry_signature();var transforms:String=group_transforms();var source_hash:=JSON.stringify(study.document.tree,"",true,true).sha256_text()
 	var morning_values:=values_copy();diagnostics["morning_family_values"]=morning_values
 	check(same_family_triplets(morning_values),"three groups in each major branch family share one family value")
-	check(morning_values.max()-morning_values.min()>.03,"morning produces visible branch-family value range")
+	check(value_span(morning_values)>.03,"morning produces visible branch-family value range")
 	study.set_values_enabled(false);var baseline_materials:=material_ids()
 	plan();var plan_base:=await capture("01-plan-baseline")
 	study.set_values_enabled(true);var plan_value:=await capture("02-plan-values")
