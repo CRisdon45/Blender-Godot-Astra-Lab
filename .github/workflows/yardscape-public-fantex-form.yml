@@ -1,0 +1,43 @@
+name: Public Fan-Tex Ash macro-form proof
+on:
+  push:
+    branches:
+      - ci/yardscape-renderer-slice
+    paths:
+      - ci/yardscape-fantex-form-probe/**
+      - .github/workflows/yardscape-public-fantex-form.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fantex:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+            ci/yardscape-dab-batch-probe
+            ci/yardscape-fantex-form-probe
+      - name: Verify reviewed species-form boundary
+        run: python ci/yardscape-fantex-form-probe/run_fantex.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native Fan-Tex macro-form comparison
+        run: python ci/yardscape-fantex-form-probe/run_fantex.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: fantex-macro-form-evidence
+          path: /home/runner/work/_temp/fantex-form-evidence
+          retention-days: 7
+          if-no-files-found: warn
