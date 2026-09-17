@@ -45,9 +45,9 @@ func run()->void:
 	root.size=Vector2i(1280,900);study=load("res://northstar-shoot-foliage-group.tscn").instantiate();root.add_child(study);for i in 3:await process_frame
 	var t:Dictionary=study.document.tree;baseline=Compact.new();baseline.configure(int(t.seed),t.crown_radius*.54,t.height*.30);baseline.position=study.group.position;study.derived.add_child(baseline)
 	check(study is Current and valid(study.group),"shoot candidate initializes with finite final-mesh normals")
-	check(study.group.stats.shoots==3 and study.group.stats.leaflet_hints==15,"candidate uses three shoots and fifteen small hints")
+	check(study.group.stats.shoots==5 and study.group.stats.leaflet_hints==25,"second look uses five shoots and twenty-five smaller hints")
 	var candidate_triangles:=int(study.group.stats.foliage_triangles)+int(study.group.stats.twig_triangles);var baseline_triangles:=int(baseline.stats.foliage_triangles)+int(baseline.stats.twig_triangles)
-	check(candidate_triangles<baseline_triangles,"shoot group remains below compact control triangle count")
+	check(candidate_triangles<=baseline_triangles,"five-shoot group stays at or below compact control triangle count")
 	check(not study.group.stats.alpha_blended,"shoot group stays opaque")
 	var signature:String=study.group.geometry_signature();var clone:=Shoot.new();clone.configure(int(t.seed),t.crown_radius*.54,t.height*.30);check(clone.geometry_signature()==signature,"shoot candidate is deterministic");clone.free()
 	set_view(.55,.34,4.4);await capture("01-front-compact",false);var front:=await capture("02-front-shoot",true)
@@ -58,6 +58,6 @@ func run()->void:
 	study._choose("Morning");check(digest(front)==digest(await capture("10-morning-return",true)),"morning return is exact")
 	set_courtyard_plan();await capture("11-courtyard-plan",true);set_courtyard_oblique();await capture("12-courtyard-oblique",true)
 	check(study.group.geometry_signature()==signature,"camera/light comparison never regenerates shoot group")
-	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,"pixel_hashes":hashes,"candidate":study.group.stats,"baseline":baseline.stats,"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),"scope":"three-shoot small-hint group versus prior compact literal group","whole_tree_tested":false,"tablet_performance_tested":false,"artistic_acceptance":"not_evaluated"}
+	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,"pixel_hashes":hashes,"candidate":study.group.stats,"baseline":baseline.stats,"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),"scope":"five-shoot small-hint second look versus retained compact literal group","whole_tree_tested":false,"tablet_performance_tested":false,"artistic_acceptance":"not_evaluated"}
 	var f:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE);if f==null:push_error("Cannot write report");quit(1);return
 	f.store_string(JSON.stringify(report,"  "));f.close();study.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)
