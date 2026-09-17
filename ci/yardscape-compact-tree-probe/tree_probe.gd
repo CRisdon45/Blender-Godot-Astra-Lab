@@ -39,9 +39,11 @@ func run()->void:
 	check(study is Current and study.study_ready,"compact whole tree runs in retained material courtyard")
 	check(study.compact_tree.descriptor==study.document.tree,"whole tree retains exact source record")
 	check(study.compact_tree.groups.size()==16,"tree uses the sixteen retained branch anchors")
-	check(study.compact_tree.stats.visible_triangles<18000,"first assembly remains under 18k visible indexed triangles")
+	check(study.compact_tree.stats.primary_groups==5 and study.compact_tree.stats.secondary_groups==10,"hierarchy keeps five primary and ten secondary groups plus leader")
+	check(study.compact_tree.stats.visible_triangles<18000,"assembly remains under 18k visible indexed triangles")
 	check(not study.compact_tree.stats.alpha_blended,"whole tree uses opaque group geometry")
 	var signature:String=study.compact_tree.geometry_signature()
+	var candidate_stats:Dictionary=study.compact_tree.stats.duplicate(true)
 	var clone:=CompactTree.new();clone.configure(study.document.tree)
 	check(clone.geometry_signature()==signature,"same source record reproduces exact assembled tree")
 	clone.free()
@@ -60,9 +62,9 @@ func run()->void:
 	baseline._choose("Plan");await capture(baseline,"09-plan-proxy")
 	baseline._choose("Orbit");baseline._choose("Perspective");await capture(baseline,"10-courtyard-proxy")
 	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,
-		"pixel_hashes":hashes,"candidate":{"recipe":"compact-group-tree/1","groups":16,"visible_triangles":14164,"visible_meshes":33,"alpha_blended":false},
+		"pixel_hashes":hashes,"candidate":candidate_stats,
 		"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),
-		"scope":"first whole-tree visual assembly from compact group; generic, not species or production asset",
+		"scope":"second whole-tree visual assembly: branch-hierarchy scale/orientation only; generic, not species or production asset",
 		"tablet_performance_tested":false,"artistic_acceptance":"not_evaluated"}
 	var f:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE)
 	if f==null:push_error("Cannot write report");quit(1);return
