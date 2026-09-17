@@ -41,7 +41,7 @@ func configure(source: Dictionary) -> void:
 		var radial_fraction: float=Vector2(item.position.x,item.position.z).length()/radius
 		var nominal: float=rng.randf_range(.56,.76)
 		if item.tier=="inner":nominal=rng.randf_range(.62,.80)
-		if item.tier=="leader":nominal=.70
+		if item.tier=="leader":nominal=.50
 		var envelope: float=clampf((1.06-radial_fraction)/.34,.42,.82)
 		var scale_value: float=minf(nominal,envelope)
 		shoot.scale=Vector3.ONE*scale_value
