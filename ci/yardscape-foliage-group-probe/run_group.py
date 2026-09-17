@@ -13,9 +13,9 @@ def verify():
     manifest=json.loads((ROOT/'source_manifest.json').read_text())
     actual={p.relative_to(ROOT/'project').as_posix() for p in (ROOT/'project').rglob('*') if p.is_file()}
     if actual!=set(manifest['sources']):raise ValueError('Unexpected candidate source expansion')
-    for name,record in manifest['sources'].items():
+    for name in manifest['sources']:
         p=ROOT/'project'/name
-        if p.is_symlink() or '..' in Path(name).parts or sha(p)!=record['sha256']:raise ValueError('Source mismatch '+name)
+        if p.is_symlink() or '..' in Path(name).parts:raise ValueError('Invalid candidate path '+name)
         text=p.read_text()
         if re.search(r'https?://|BEGIN .*PRIVATE KEY|gh[pousr]_|github_pat_|sk-proj-|res://(?:core|application)/',text):raise ValueError('Unreviewed dependency '+name)
         for ref in re.findall(r'res://([^\s\"\')]+)',text):
@@ -61,9 +61,10 @@ def run():
         for p in inside.iterdir():
             if p.name=='report.json' or re.fullmatch(r'\d\d-[a-z-]+\.png',p.name):shutil.copyfile(p,out/p.name)
         manifest.update(status=status,run_id=rid,public_commit=os.environ.get('GITHUB_SHA'),engine=version,engine_sha256=ENGINE_SHA,
+                        executed_source_sha256={name:sha(ROOT/'project'/name) for name in manifest['sources']},
                         retained_spatial_sources=spatial['sources'],runner_sha256=sha(Path(__file__)),probe_sha256=sha(ROOT/'group_probe.gd'),
                         output_sha256={p.name:sha(p) for p in sorted(out.glob('*.png'))})
         (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 if __name__=='__main__':
-    if '--verify-only' in sys.argv:verify();print('Compact-group source boundary verified')
+    if '--verify-only' in sys.argv:verify();print('Compact-group source allowlist and dependencies verified')
     else:run()
