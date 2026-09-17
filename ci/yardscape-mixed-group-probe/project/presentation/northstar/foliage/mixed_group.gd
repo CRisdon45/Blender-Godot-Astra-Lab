@@ -28,7 +28,8 @@ func configure(seed_value:int,radius:float,height:float)->void:
 		[Vector3(-.18,.46,-.05),Vector3(.23,.105,.18),.43,4.0]
 	]
 	for i in masses.size():
-		var m=masses[i];_puff(m[0],m[1],float(m[3])+rng.randf_range(-.18,.18),float(m[2])+rng.randf_range(-.035,.035),radius,height)
+		var m=masses[i]
+		_puff(m[0],m[1],float(m[3])+rng.randf_range(-.18,.18),float(m[2])+rng.randf_range(-.035,.035),radius,height)
 	var accents=[
 		[Vector3(-.25,.40,.08),Vector3(-.80,.50,.30),.68,.54],
 		[Vector3(.24,.40,-.08),Vector3(.78,.55,-.29),.66,.50],
@@ -82,21 +83,35 @@ func _accent(center:Vector3,direction:Vector3,roll:float,scale_value:float,tone:
 		for k in sides:
 			var a:=first+j*sides+k;var b:=first+j*sides+(k+1)%sides;var c:=a+sides;var d:=b+sides;_ix.append_array(PackedInt32Array([a,c,b,b,c,d]))
 	for k in range(1,sides-1):
-		_ix.append_array(PackedInt32Array([first,first+k+1,first+k]));var e:=first+(stations-1)*sides;_ix.append_array(PackedInt32Array([e,e+k,e+k+1]))
+		_ix.append_array(PackedInt32Array([first,first+k+1,first+k]))
+		var e:=first+(stations-1)*sides
+		_ix.append_array(PackedInt32Array([e,e+k,e+k+1]))
 	_recompute_normals(first,_v.size())
 
 func _tube(path:PackedVector3Array,start_radius:float,end_radius:float,radius:float,height:float)->void:
-	var first:=_v.size();var sides:=6
+	var first:=_v.size()
+	var sides:=6
 	for j in path.size():
-		var at:=Vector3(path[j].x*radius,path[j].y*height,path[j].z*radius);var before:=Vector3(path[maxi(0,j-1)].x*radius,path[maxi(0,j-1)].y*height,path[maxi(0,j-1)].z*radius);var after:=Vector3(path[mini(path.size()-1,j+1)].x*radius,path[mini(path.size()-1,j+1)].y*height,path[mini(path.size()-1,j+1)].z*radius)
-		var tangent:Vector3=(after-before).normalized();var x:=tangent.cross(Vector3.FORWARD).normalized();if x.length_squared()<.1:x=tangent.cross(Vector3.RIGHT).normalized();var z:=tangent.cross(x).normalized();var rr:=lerpf(start_radius,end_radius,float(j)/float(path.size()-1))
+		var at:=Vector3(path[j].x*radius,path[j].y*height,path[j].z*radius)
+		var before:=Vector3(path[maxi(0,j-1)].x*radius,path[maxi(0,j-1)].y*height,path[maxi(0,j-1)].z*radius)
+		var after:=Vector3(path[mini(path.size()-1,j+1)].x*radius,path[mini(path.size()-1,j+1)].y*height,path[mini(path.size()-1,j+1)].z*radius)
+		var tangent:Vector3=(after-before).normalized()
+		var x:=tangent.cross(Vector3.FORWARD).normalized()
+		if x.length_squared()<.1:
+			x=tangent.cross(Vector3.RIGHT).normalized()
+		var z:=tangent.cross(x).normalized()
+		var rr:=lerpf(start_radius,end_radius,float(j)/float(path.size()-1))
 		for k in sides:
-			var n:=x*cos(TAU*k/sides)+z*sin(TAU*k/sides);_v.append(at+n*rr);_n.append(n);_colors.append(Color.WHITE)
+			var n:=x*cos(TAU*k/sides)+z*sin(TAU*k/sides)
+			_v.append(at+n*rr);_n.append(n);_colors.append(Color.WHITE)
 	for j in path.size()-1:
 		for k in sides:
-			var a:=first+j*sides+k;var b:=first+j*sides+(k+1)%sides;var c:=a+sides;var d:=b+sides;_ix.append_array(PackedInt32Array([a,c,b,b,c,d]))
+			var a:=first+j*sides+k;var b:=first+j*sides+(k+1)%sides;var c:=a+sides;var d:=b+sides
+			_ix.append_array(PackedInt32Array([a,c,b,b,c,d]))
 	for k in range(1,sides-1):
-		_ix.append_array(PackedInt32Array([first,first+k+1,first+k]));var e:=first+(path.size()-1)*sides;_ix.append_array(PackedInt32Array([e,e+k,e+k+1]))
+		_ix.append_array(PackedInt32Array([first,first+k+1,first+k]))
+		var e:=first+(path.size()-1)*sides
+		_ix.append_array(PackedInt32Array([e,e+k,e+k+1]))
 
 func _recompute_normals(first:int,end:int)->void:
 	var sums:=PackedVector3Array();sums.resize(end-first);sums.fill(Vector3.ZERO)
