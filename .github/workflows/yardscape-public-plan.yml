@@ -1,0 +1,46 @@
+name: Public display plan proof
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-plan-probe/**', '.github/workflows/yardscape-public-plan.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: public-plan-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  display:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-plan-probe
+      - name: Verify limited reviewed source packages
+        run: |
+          python ci/yardscape-renderer/run_probe.py --verify-only
+          python ci/yardscape-plan-probe/run_plan.py --verify-only
+      - name: Install the unchanged pinned engine
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native original leaf regression
+        run: python ci/yardscape-renderer/run_probe.py
+      - name: Native whole-plan display and controls
+        run: python ci/yardscape-plan-probe/run_plan.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: public-plan-display-evidence
+          path: ${{ runner.temp }}/public-plan-artifacts
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: public-plan-leaf-regression
+          path: ${{ runner.temp }}/public-leaf-artifacts
+          retention-days: 7
+          if-no-files-found: warn
