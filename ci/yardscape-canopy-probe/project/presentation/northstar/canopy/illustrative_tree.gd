@@ -1,8 +1,8 @@
 extends Node3D
 ## Generic crown study, not a botanical species or growth model.
-## Closed opaque bough masses; no leaf cards, billboard, wind or runtime AI.
+## Closed opaque folded foliage groups; no alpha cards, billboard or runtime AI.
 const Paint = preload("res://presentation/northstar/canopy/foliage.gdshader")
-const RECIPE = "open-boughs/1"
+const RECIPE = "folded-foliage-groups/2"
 var descriptor: Dictionary = {}
 var crown: MeshInstance3D
 var wood: MeshInstance3D
@@ -60,7 +60,7 @@ func configure(t: Dictionary) -> void:
 	paint.set_shader_parameter("height",_height);paint.set_shader_parameter("radius",_radius)
 	paint.set_shader_parameter("seed_phase",phase)
 	crown.material_override=paint
-	stats={"recipe":RECIPE,"masses":groups.size(),"foliage_triangles":int(crown.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX].size()/3),
+	stats={"recipe":RECIPE,"bough_groups":groups.size(),"folded_sprays":groups.size()*4,"foliage_triangles":int(crown.mesh.surface_get_arrays(0)[Mesh.ARRAY_INDEX].size()/3),
 		"branch_triangles":branch_triangles,"mesh_surfaces":2,"alpha_blended_foliage":false}
 
 func _point(p: Vector3) -> Vector3:
@@ -78,7 +78,8 @@ func _tube(path: PackedVector3Array,start: float,end: float) -> void:
 		var r:=lerpf(start,end,float(j)/float(path.size()-1))*_radius
 		for k in sides:
 			var n: Vector3=x*cos(TAU*k/sides)+z*sin(TAU*k/sides)
-			_v.append(at+n*r);_n.append(n)
+			var vertex:=at+n*r;vertex.y=maxf(0.,vertex.y)
+			_v.append(vertex);_n.append(n)
 	for j in path.size()-1:
 		for k in sides:
 			var a:=offset+j*sides+k;var b:=offset+j*sides+(k+1)%sides
@@ -90,29 +91,36 @@ func _tube(path: PackedVector3Array,start: float,end: float) -> void:
 		var e:=offset+(path.size()-1)*sides
 		_ix.append_array(PackedInt32Array([e,e+k+1,e+k]))
 
+func _bounded(p: Vector3) -> Vector3:
+	var radial:=Vector2(p.x,p.z)
+	if radial.length()>_radius*.995:
+		radial=radial.normalized()*_radius*.995;p.x=radial.x;p.z=radial.y
+	p.y=clampf(p.y,0.,_height)
+	return p
+
 func _mass(center: Vector3,extent: Vector3,angle: float,phase: float) -> void:
-	var offset:=_v.size();var sides:=24;var rings:=10
-	var rotation:=Basis(Vector3.UP,angle)
-	for j in range(rings+1):
-		var v:=PI*float(j)/rings
+	# A bough value mass emerges from several folded silhouettes, not a solid ball.
+	for j in 4:
+		var spin:=angle+float(j)*1.72+phase*.25
+		var rotation:=Basis(Vector3.UP,spin)*Basis(Vector3.RIGHT,.35*sin(phase+j*1.6))*Basis(Vector3.FORWARD,.45*cos(phase-j))
+		var offset:=Basis(Vector3.UP,angle)*Vector3(extent.x*[-.38,.40,-.16,.14][j],extent.y*[-.42,.18,.48,-.10][j],extent.z*[-.24,.20,.35,-.37][j])
+		var c:=_point(center+offset)
+		var rx:=extent.x*_radius*.76;var rz:=extent.z*_radius*.78
+		var start:=_v.size();var sides:=30
+		var guide:=Vector3(c.x/_radius,(c.y/_height-.69)*3.,c.z/_radius).normalized()
+		var up: Vector3=rotation*Vector3.UP
+		_v.append(_bounded(c+up*rx*.18));_n.append(up.lerp(guide,.56).normalized())
+		_v.append(_bounded(c-up*rx*.09));_n.append((-up).lerp(guide,.56).normalized())
+		for side in 2:
+			for k in sides:
+				var u:=TAU*float(k)/sides
+				var edge:=.77+.23*cos(5.*u+phase)+.04*sin(9.*u-phase)
+				var offset_world: Vector3=rotation*Vector3(cos(u)*rx*edge,sin(3.*u+phase)*rx*.045,sin(u)*rz*edge)
+				var normal: Vector3=(up*(1. if side==0 else -1.)+offset_world.normalized()*.18).normalized()
+				_v.append(_bounded(c+offset_world));_n.append(normal.lerp(guide,.56).normalized())
 		for k in sides:
-			var u:=TAU*float(k)/sides
-			var edge:=1.+sin(v)*(.12*sin(3.*u+phase)+.065*sin(7.*u-phase)+.035*sin(11.*u+v*2.))
-			var unit:=Vector3(sin(v)*cos(u)*edge,cos(v),sin(v)*sin(u)*edge)
-			var p:=center+rotation*(unit*extent)
-			var radial:=Vector2(p.x,p.z)
-			if radial.length()>.995:
-				radial=radial.normalized()*.995;p.x=radial.x;p.z=radial.y
-			p.y=clampf(p.y,0.,1.)
-			var natural: Vector3=(rotation*Vector3(unit.x/(extent.x*_radius),unit.y/(extent.y*_height),unit.z/(extent.z*_radius))).normalized()
-			var guide:=Vector3(p.x,(p.y-.69)*3.,p.z).normalized()
-			_v.append(_point(p));_n.append(natural.lerp(guide,.60).normalized())
-	for j in rings:
-		for k in sides:
-			var a:=offset+j*sides+k;var b:=offset+j*sides+(k+1)%sides
-			var c:=a+sides;var d:=b+sides
-			if j>0:_ix.append_array(PackedInt32Array([a,c,b]))
-			if j<rings-1:_ix.append_array(PackedInt32Array([b,c,d]))
+			var a:=start+2+k;var b:=start+2+(k+1)%sides
+			_ix.append_array(PackedInt32Array([start,a,b,start+1,b+sides,a+sides]))
 
 func _finish(label: String) -> MeshInstance3D:
 	var arrays:=[];arrays.resize(Mesh.ARRAY_MAX)
