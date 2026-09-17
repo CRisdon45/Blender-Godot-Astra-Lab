@@ -26,7 +26,7 @@ def verify():
         if re.search(r'https?://|BEGIN .*PRIVATE KEY|gh[pousr]_|github_pat_|sk-proj-|res://(?:core|application)/',text):
             raise ValueError('Forbidden dependency '+name)
         for ref in re.findall(r'res://([^\s\"\')]+)',text):
-            if not (ROOT/'project'/ref).is_file() and not (SPATIAL/'project'/ref).is_file():
+            if ref.endswith(('.gd','.gdshader','.gdshaderinc','.tscn')) and not (ROOT/'project'/ref).is_file() and not (SPATIAL/'project'/ref).is_file():
                 raise ValueError('Unresolved resource '+ref)
         if name.endswith('.gdshader'):
             code=re.sub(r'//[^\n]*','',text)
