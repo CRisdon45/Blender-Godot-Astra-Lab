@@ -57,7 +57,7 @@ renderer/rendering_method="gl_compatibility"
     status='failed'
     try:
         for logname,cmd in [('preflight.log',[str(engine),'--headless','--path',str(stage),'--script','res://tests/shoot_probe.gd','--check-only']),('console.log',['xvfb-run','-a',str(engine),'--path',str(stage),'--audio-driver','Dummy','--script','res://tests/shoot_probe.gd'])]:
-            with (out/logname).open('w') as log:r=subprocess.run(cmd,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=240,check=False)
+            with (out/logname).open('w') as log:r=subprocess.run(cmd,env=env,stdout=log,stderr=subprocess.STDOUT,timeout=75,check=False)
             text=(out/logname).read_text(errors='replace');print(text[-16000:])
             if r.returncode or re.search(r'SCRIPT ERROR:|SHADER ERROR:|ERROR:',text): raise RuntimeError('Native failure '+logname)
         report=json.loads((inside/'report.json').read_text())
