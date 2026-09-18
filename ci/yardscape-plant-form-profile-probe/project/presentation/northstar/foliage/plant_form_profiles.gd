@@ -67,68 +67,68 @@ static func fan_tex_ash_v2() -> Dictionary:
 		"bark_hex": "6d665a"
 	}
 
-static func desert_museum_palo_verde_v1() -> Dictionary:
+static func desert_museum_palo_verde_v2() -> Dictionary:
 	return {
 		"schema": SCHEMA,
-		"id": "desert-museum-palo-verde-macro-form/1",
+		"id": "desert-museum-palo-verde-macro-form/2",
 		"family_count": 5,
 		"seed_offset": 55117,
 		"group_seed_stride": 130363,
-		"group": {"radius_factor": .46, "height_factor": .24},
+		"group": {"radius_factor": .49, "height_factor": .23},
 		"families": {
 			"angle_offsets": [0.0,1.18,2.43,3.67,5.04],
-			"reaches": [.72,.78,.74,.80,.70],
-			"levels": [.56,.62,.58,.66,.60],
-			"primary_scale": .86,
-			"primary_tilt": .11,
-			"secondary_lateral": .30,
-			"secondary_back": .03,
-			"secondary_height": .11,
-			"secondary_scale": .66,
-			"secondary_angle_delta": .42,
-			"secondary_tilt": .22
+			"reaches": [.68,.74,.70,.76,.66],
+			"levels": [.57,.63,.59,.67,.61],
+			"primary_scale": .95,
+			"primary_tilt": .16,
+			"secondary_lateral": .26,
+			"secondary_back": .055,
+			"secondary_height": .085,
+			"secondary_scale": .76,
+			"secondary_angle_delta": .38,
+			"secondary_tilt": .24
 		},
 		"inner": {
-			"angle_offsets": [1.95,4.35],
-			"levels": [.73,.78],
-			"radius": .30,
-			"scale": .68,
-			"tilt": .12
+			"angle_offsets": [.72,2.78,4.68],
+			"levels": [.71,.76,.73],
+			"radius": .25,
+			"scale": .78,
+			"tilt": .10
 		},
 		"leader": {
 			"angle_offset": .35,
-			"radius": .10,
-			"level": .87,
-			"scale": .64,
-			"tilt": .05
+			"radius": .075,
+			"level": .83,
+			"scale": .70,
+			"tilt": .04
 		},
 		"trunk": {
 			"points": [[0.0,0.0,0.0],[.015,.15,-.010],[-.025,.29,.020],[.035,.40,-.018],[-.015,.50,.025]],
-			"start_radius": .075,
-			"end_radius": .026
+			"start_radius": .070,
+			"end_radius": .023
 		},
 		"scaffold": {
-			"primary_start_indices": [1,2,2,3,3],
+			"primary_start_indices": [1,1,2,2,3],
 			"mid1_radial": .24,
 			"mid1_side": .05,
-			"mid1_level": .38,
-			"mid2_radial": .58,
-			"mid2_side": .06,
-			"mid2_level_factor": .80,
-			"primary_start_radius": .026,
-			"primary_end_radius": .006,
-			"secondary_start_radius": .012,
-			"secondary_end_radius": .003,
-			"inner_mid_radial_factor": .50,
-			"inner_mid_level": .56,
-			"inner_start_radius": .014,
-			"inner_end_radius": .003,
-			"leader_mid_radial_factor": .68,
-			"leader_mid_level": .67,
-			"leader_start_radius": .016,
-			"leader_end_radius": .004
+			"mid1_level": .36,
+			"mid2_radial": .56,
+			"mid2_side": .055,
+			"mid2_level_factor": .79,
+			"primary_start_radius": .022,
+			"primary_end_radius": .005,
+			"secondary_start_radius": .010,
+			"secondary_end_radius": .0025,
+			"inner_mid_radial_factor": .48,
+			"inner_mid_level": .55,
+			"inner_start_radius": .012,
+			"inner_end_radius": .0025,
+			"leader_mid_radial_factor": .66,
+			"leader_mid_level": .66,
+			"leader_start_radius": .014,
+			"leader_end_radius": .003
 		},
-		"bark_hex": "65a94f"
+		"bark_hex": "6f9a55"
 	}
 
 static func input_error(profile: Dictionary) -> String:
