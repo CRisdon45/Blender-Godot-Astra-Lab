@@ -42,7 +42,7 @@ func run()->void:
 	study.set_mode("palo");var palo_morning:=await capture("02-palo-plan");check(digest(ash_morning)!=digest(palo_morning),"individual species Plan symbols are visibly distinct")
 	study.set_mode("pair");var pair_morning:=await capture("03-pair-morning")
 	study.set_sun_direction(Vector2(-.72,.69));var pair_afternoon:=await capture("04-pair-afternoon");check(digest(pair_morning)!=digest(pair_afternoon),"Plan value masses respond to sun direction without layout change")
-	var ash_signature:=study.ash.layout_signature();var palo_signature:=study.palo.layout_signature()
+	var ash_signature:String=study.ash.layout_signature();var palo_signature:String=study.palo.layout_signature()
 	study.set_sun_direction(Vector2(.53,-.85));var pair_return:=await capture("05-pair-morning-return");check(digest(pair_return)==digest(pair_morning),"Plan morning image returns exactly")
 	check(study.ash.layout_signature()==ash_signature and study.palo.layout_signature()==palo_signature,"sun changes never alter semantic plant layout")
 	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,"pixel_hashes":hashes,"diagnostics":diagnostics,"tree_record":study.tree_record,"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),"scope":"direct 2D Plan projection from tree seed/crown radius + plant-form profile + shared plant layout; no 3D mesh readback","uses_3d_mesh_readback":false,"uses_textures":false,"runtime_ai":false,"artistic_acceptance":"not_evaluated"}
