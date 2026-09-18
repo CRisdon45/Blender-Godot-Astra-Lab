@@ -3,7 +3,7 @@ extends RefCounted
 ## The explicit lobe placements define four connected watercolor masses. Runtime
 ## work only rasterizes those fixed masks; it does not invent or randomize art.
 
-const ID := "northstar-broad-mass-atlas/1"
+const ID := "northstar-broad-mass-atlas/2"
 const TILE_COUNT := 4
 const TILE_SIZE := 96
 
@@ -11,28 +11,24 @@ const TILE_SIZE := 96
 # asymmetric and connected, with small edge lobes rather than literal leaves.
 const LOBES := [
 	[
-		Vector4(-.64,-.08,.34,.38), Vector4(-.43,.19,.42,.42),
-		Vector4(-.13,-.08,.47,.43), Vector4(.14,.19,.45,.44),
-		Vector4(.42,-.07,.43,.39), Vector4(.66,.11,.31,.34),
-		Vector4(-.30,-.28,.38,.31), Vector4(.25,-.27,.42,.31)
+		Vector4(-.02,-.01,.70,.67), Vector4(-.51,.03,.43,.45),
+		Vector4(-.20,.42,.46,.39), Vector4(.34,.38,.44,.39),
+		Vector4(.52,-.05,.43,.44), Vector4(.14,-.42,.48,.37)
 	],
 	[
-		Vector4(-.62,.19,.31,.34), Vector4(-.43,-.12,.42,.40),
-		Vector4(-.16,.25,.40,.43), Vector4(.06,-.10,.48,.45),
-		Vector4(.33,.22,.41,.40), Vector4(.59,-.03,.35,.36),
-		Vector4(-.18,-.34,.35,.28), Vector4(.38,-.30,.36,.29)
+		Vector4(-.04,.02,.69,.66), Vector4(-.50,-.17,.42,.40),
+		Vector4(-.35,.35,.42,.40), Vector4(.14,.47,.45,.35),
+		Vector4(.49,.17,.43,.42), Vector4(.30,-.38,.48,.38)
 	],
 	[
-		Vector4(-.64,-.16,.31,.32), Vector4(-.48,.16,.39,.40),
-		Vector4(-.18,-.02,.46,.46), Vector4(.04,.29,.39,.38),
-		Vector4(.27,-.08,.46,.43), Vector4(.57,.17,.37,.37),
-		Vector4(.65,-.19,.27,.29), Vector4(.02,-.35,.41,.28)
+		Vector4(.01,-.04,.72,.65), Vector4(-.53,.10,.41,.43),
+		Vector4(-.24,.45,.44,.36), Vector4(.29,.40,.47,.39),
+		Vector4(.53,-.12,.41,.42), Vector4(-.12,-.45,.48,.35)
 	],
 	[
-		Vector4(-.65,.05,.32,.36), Vector4(-.42,-.21,.39,.34),
-		Vector4(-.25,.24,.40,.41), Vector4(.04,-.05,.48,.46),
-		Vector4(.24,.30,.36,.35), Vector4(.42,-.19,.42,.36),
-		Vector4(.66,.09,.30,.34), Vector4(.01,-.39,.34,.25)
+		Vector4(.03,.03,.68,.69), Vector4(-.50,-.04,.43,.44),
+		Vector4(-.33,.40,.40,.37), Vector4(.21,.46,.46,.36),
+		Vector4(.52,.02,.42,.45), Vector4(.18,-.44,.46,.37)
 	]
 ]
 

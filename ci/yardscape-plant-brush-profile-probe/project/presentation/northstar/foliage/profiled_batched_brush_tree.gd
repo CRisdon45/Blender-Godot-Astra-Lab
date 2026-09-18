@@ -71,6 +71,8 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 		"fixed_3d_centers":true,
 		"whole_plant_billboard":false,
 		"solid_core":false,
+		"authored_atlas":true,
+		"atlas_id":Group.ATLAS_ID,
 		"source_record_unchanged":true,
 		"profile_schema":str(profile.schema)
 	}

@@ -3,8 +3,9 @@ extends Node3D
 ## Every card has a fixed 3D center and broad emitter-derived normal. Only each
 ## small card faces the camera; the plant never billboards and has no solid core.
 const Atlas=preload("res://presentation/northstar/foliage/northstar_brush_atlas.gd")
-const RECIPE := "fixed-center-brush-card-cloud/3"
+const RECIPE := "fixed-center-brush-card-cloud/4"
 const ATLAS_TILES := Atlas.TILE_COUNT
+const ATLAS_ID := Atlas.ID
 const GOLDEN_ANGLE := 2.399963229728653
 
 var descriptor:Dictionary={}
