@@ -25,7 +25,7 @@ func _build()->void:
 		"crown_radius":.86,
 		"seed":16411
 	}
-	shrub_profile=ShrubProfiles.dense_desert_mound_v1()
+	shrub_profile=ShrubProfiles.dense_desert_mound_v2()
 	tree_brush=BrushTree.new();tree_brush.name="RetainedFanTexBrush";tree_brush.configure(document.tree,Profiles.fan_tex_ash_v2());derived.add_child(tree_brush)
 	shrub_dab=DabTree.new();shrub_dab.name="ShrubDabBaseline";shrub_dab.configure(shrub_record,shrub_profile);derived.add_child(shrub_dab)
 	shrub_brush=BrushTree.new();shrub_brush.name="ShrubRetainedBrush";shrub_brush.configure(shrub_record,shrub_profile);derived.add_child(shrub_brush)

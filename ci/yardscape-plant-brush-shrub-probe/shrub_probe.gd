@@ -49,7 +49,7 @@ func run()->void:
 	output=OS.get_environment("YARDSCAPE_SHRUB_OUTPUT");run_id=OS.get_environment("YARDSCAPE_SHRUB_RUN_ID")
 	if run_id.length()!=36 or not output.begins_with(ProjectSettings.globalize_path("res://.local/")):push_error("Fresh shrub output required");quit(1);return
 	root.size=Vector2i(1280,900)
-	var shrub_profile:=ShrubProfiles.dense_desert_mound_v1()
+	var shrub_profile:=ShrubProfiles.dense_desert_mound_v2()
 	check(Profiles.input_error(shrub_profile).is_empty(),"generic shrub form profile validates through the retained schema")
 	study=load("res://northstar-profile-brush-shrub.tscn").instantiate();root.add_child(study);for i in 3:await process_frame
 	check(study is Current,"exact isolated retained-brush shrub study")
@@ -57,10 +57,10 @@ func run()->void:
 	check(tree.stats.recipe=="fixed-center-brush-card-cloud/2" and brush.stats.recipe==tree.stats.recipe,"shrub uses the exact retained v4 brush recipe")
 	check(tree.stats.profile=="fan-tex-ash-macro-form/2" and tree.stats.cards==288 and tree.stats.visible_triangles==2582,"retained Fan-Tex v4 control remains exact")
 	check(dab.descriptor==shrub_record and brush.descriptor==shrub_record,"both shrub renderers preserve the immutable shrub instance record")
-	check(brush.form_profile==shrub_profile and brush.stats.profile=="dense-desert-shrub-mound/1","brush renderer consumes the explicit shrub profile")
+	check(brush.form_profile==shrub_profile and brush.stats.profile=="dense-desert-shrub-mound/2","brush renderer consumes the explicit shrub profile")
 	var phase:=Layout.phase_for_seed(int(shrub_record.seed),shrub_profile)
 	check(brush.normalized_plan_lobes()==Layout.plan_lobes(shrub_profile,phase) and brush.normalized_plan_lobes()==dab.normalized_plan_lobes(),"Perspective renderers consume the exact shared shrub layout")
-	check(brush.stats.groups==19 and brush.stats.cards_per_group==9 and brush.stats.cards==171,"shrub budget follows nineteen low profile groups without renderer exceptions")
+	check(brush.stats.groups==17 and brush.stats.cards_per_group==13 and brush.stats.cards==221,"shrub budget follows seventeen low profile groups without renderer exceptions")
 	check(brush.stats.visible_meshes==2 and not brush.stats.alpha_blended and brush.stats.alpha_scissor,"shrub remains two meshes with alpha scissor, never alpha blend")
 	check(brush.stats.camera_facing and brush.stats.fixed_3d_centers and not brush.stats.whole_plant_billboard and not brush.stats.solid_core,"only small fixed-center cards face the camera and no shrub core exists")
 	check(int(brush.stats.visible_triangles)<int(dab.stats.visible_triangles),"retained brush shrub uses fewer indexed triangles than the dab baseline")
