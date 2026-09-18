@@ -220,6 +220,10 @@ def main() -> None:
         )
     except Exception as error:
         report["failure"] = f"{type(error).__name__}: {error}"
+        emulator_log.flush()
+        if emulator_log_path.is_file():
+            print("--- emulator.log tail ---")
+            print(emulator_log_path.read_text(encoding="utf-8", errors="replace")[-16000:])
         raise
     finally:
         (output / "evidence-report.json").write_text(
