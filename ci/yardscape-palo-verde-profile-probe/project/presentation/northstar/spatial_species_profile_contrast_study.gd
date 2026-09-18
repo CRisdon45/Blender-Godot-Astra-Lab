@@ -10,7 +10,7 @@ func _build()->void:
 	for child in derived.get_children():
 		if child.name=="tree-trunk" or str(child.name).begins_with("crown-"):child.visible=false
 	ash_tree=ProfiledTree.new();ash_tree.name="ProfiledFanTex";ash_tree.configure(document.tree,Profiles.fan_tex_ash_v2());derived.add_child(ash_tree)
-	palo_tree=ProfiledTree.new();palo_tree.name="ProfiledDesertMuseum";palo_tree.configure(document.tree,Profiles.desert_museum_palo_verde_v1());derived.add_child(palo_tree)
+	palo_tree=ProfiledTree.new();palo_tree.name="ProfiledDesertMuseum";palo_tree.configure(document.tree,Profiles.desert_museum_palo_verde_v2());derived.add_child(palo_tree)
 	_apply_light_values();_apply_visibility()
 
 func _set_light(value:String)->void:
