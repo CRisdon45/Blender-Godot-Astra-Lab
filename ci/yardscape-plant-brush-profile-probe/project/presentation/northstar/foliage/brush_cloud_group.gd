@@ -43,7 +43,7 @@ func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
 		var width:=radius*rng.randf_range(.57,.72)
 		var length:=height*rng.randf_range(.235,.305)
 		var tone:=clampf(.49+direction.y*.035+rng.randf_range(-.035,.035),.38,.61)
-		_card(center,normal,rng.randf_range(-.38,.38),width,length,tone,.08,rng.randi_range(0,ATLAS_TILES-1))
+		_card(center,normal,rng.randf_range(-.95,.95),width,length,tone,.08,rng.randi_range(0,ATLAS_TILES-1))
 	for index in inner_cards:
 		var angle:=phase+.37+float(index)*GOLDEN_ANGLE
 		var vertical:=rng.randf_range(-.52,.58)
@@ -51,7 +51,7 @@ func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
 		var depth:=rng.randf_range(.16,.49)
 		var center:=Vector3(direction.x*radius*.78,direction.y*height*.38,direction.z*radius*.78)*depth
 		var normal:=(direction*.78+Vector3.UP*.22).normalized()
-		_card(center,normal,rng.randf_range(-.52,.52),radius*rng.randf_range(.62,.78),height*rng.randf_range(.25,.33),rng.randf_range(.42,.49),.56,rng.randi_range(0,ATLAS_TILES-1))
+		_card(center,normal,rng.randf_range(-.85,.85),radius*rng.randf_range(.62,.78),height*rng.randf_range(.25,.33),rng.randf_range(.42,.49),.56,rng.randi_range(0,ATLAS_TILES-1))
 	foliage=_finish("BrushCardFoliage")
 	var fa:Array=foliage.mesh.surface_get_arrays(0);var ta:Array=twig.mesh.surface_get_arrays(0)
 	stats={
@@ -109,8 +109,12 @@ static func brush_atlas()->ImageTexture:
 		for y in tile_size:
 			for x in tile_size:
 				var p:=Vector2((float(x)+.5)/float(tile_size)*2.-1.,(float(y)+.5)/float(tile_size)*2.-1.)
-				var centers:=[Vector2(-.39,.02),Vector2(-.02,-.055),Vector2(.39,.035)]
-				var radii:=[Vector2(.56,.55),Vector2(.61,.61),Vector2(.54,.52)]
+				var centers:=[]
+				if tile==0:centers=[Vector2(-.44,.00),Vector2(.00,.08),Vector2(.44,-.04)]
+				elif tile==1:centers=[Vector2(-.38,-.23),Vector2(.00,.15),Vector2(.40,.03)]
+				elif tile==2:centers=[Vector2(-.34,.18),Vector2(.00,-.20),Vector2(.36,.18)]
+				else:centers=[Vector2(-.29,-.23),Vector2(-.02,.17),Vector2(.39,-.08)]
+				var radii:=[Vector2(.49,.50),Vector2(.53,.54),Vector2(.47,.48)]
 				var alpha:=0.0
 				for lobe in centers.size():
 					var center:Vector2=centers[lobe]+Vector2(.018*float(tile-1),.028*sin(float(tile+lobe)*1.7))

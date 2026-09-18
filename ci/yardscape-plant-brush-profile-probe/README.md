@@ -19,6 +19,11 @@ The second native pass proved the fixed-center alpha-scissor path, but its
 simple oval atlas and unconstrained roll still read as literal leaf confetti;
 it also overfilled the airy Palo Verde. That evidence also remains in history.
 
+The third pass restored Palo density and quieted the palette, but constrained
+roll made the broad marks stack like shingles. The current pass holds density
+and budgets fixed while using four genuinely different cluster silhouettes and
+moderate roll.
+
 The revised falsifiable hypothesis is that the stronger prior brush-cloud
 mechanic—roughly three hundred small alpha-scissored brush clusters with fixed
 3D centers, per-card camera facing, and broad emitter-derived normals—will
