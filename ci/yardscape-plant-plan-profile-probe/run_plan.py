@@ -1,5 +1,5 @@
 from pathlib import Path
-import hashlib, importlib.util, json, os, re, shutil, subprocess, sys, uuid
+import hashlib, json, os, re, shutil, subprocess, sys, uuid
 ROOT=Path(__file__).resolve().parent
 PROFILE=ROOT.parent/'yardscape-plant-form-profile-probe'
 PIN='4.7.1.stable.official.a13da4feb';ENGINE_SHA='32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde'
@@ -9,10 +9,14 @@ PROFILE_FILES=[
 ]
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def verify():
-    spec=importlib.util.spec_from_file_location('profile_verify',PROFILE/'run_profile.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.verify()
     expected={'northstar-profile-plan-symbols.tscn','presentation/northstar/plan_profile_study.gd','presentation/northstar/plan/profiled_plan_symbol.gd'}
     actual={p.relative_to(ROOT/'project').as_posix() for p in (ROOT/'project').rglob('*') if p.is_file()}
     if actual!=expected:raise ValueError('Unexpected Plan-profile source expansion')
+    for rel in PROFILE_FILES:
+        p=PROFILE/'project'/rel
+        if not p.is_file() or p.is_symlink():raise ValueError('Missing shared semantic input '+rel)
+        text=p.read_text()
+        if re.search(r'\b(Node3D|MeshInstance3D|ArrayMesh|surface_get_arrays|profiled_batched_dab_tree)\b',text):raise ValueError('3D renderer dependency in shared Plan input '+rel)
     for name in actual:
         p=ROOT/'project'/name
         if p.is_symlink() or '..' in Path(name).parts:raise ValueError('Invalid path')
