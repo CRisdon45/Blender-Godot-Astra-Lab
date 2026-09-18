@@ -67,6 +67,70 @@ static func fan_tex_ash_v2() -> Dictionary:
 		"bark_hex": "6d665a"
 	}
 
+static func desert_museum_palo_verde_v1() -> Dictionary:
+	return {
+		"schema": SCHEMA,
+		"id": "desert-museum-palo-verde-macro-form/1",
+		"family_count": 5,
+		"seed_offset": 55117,
+		"group_seed_stride": 130363,
+		"group": {"radius_factor": .46, "height_factor": .24},
+		"families": {
+			"angle_offsets": [0.0,1.18,2.43,3.67,5.04],
+			"reaches": [.72,.78,.74,.80,.70],
+			"levels": [.56,.62,.58,.66,.60],
+			"primary_scale": .86,
+			"primary_tilt": .11,
+			"secondary_lateral": .30,
+			"secondary_back": .03,
+			"secondary_height": .11,
+			"secondary_scale": .66,
+			"secondary_angle_delta": .42,
+			"secondary_tilt": .22
+		},
+		"inner": {
+			"angle_offsets": [1.95,4.35],
+			"levels": [.73,.78],
+			"radius": .30,
+			"scale": .68,
+			"tilt": .12
+		},
+		"leader": {
+			"angle_offset": .35,
+			"radius": .10,
+			"level": .87,
+			"scale": .64,
+			"tilt": .05
+		},
+		"trunk": {
+			"points": [[0.0,0.0,0.0],[.015,.15,-.010],[-.025,.29,.020],[.035,.40,-.018],[-.015,.50,.025]],
+			"start_radius": .075,
+			"end_radius": .026
+		},
+		"scaffold": {
+			"primary_start_indices": [1,2,2,3,3],
+			"mid1_radial": .24,
+			"mid1_side": .05,
+			"mid1_level": .38,
+			"mid2_radial": .58,
+			"mid2_side": .06,
+			"mid2_level_factor": .80,
+			"primary_start_radius": .026,
+			"primary_end_radius": .006,
+			"secondary_start_radius": .012,
+			"secondary_end_radius": .003,
+			"inner_mid_radial_factor": .50,
+			"inner_mid_level": .56,
+			"inner_start_radius": .014,
+			"inner_end_radius": .003,
+			"leader_mid_radial_factor": .68,
+			"leader_mid_level": .67,
+			"leader_start_radius": .016,
+			"leader_end_radius": .004
+		},
+		"bark_hex": "65a94f"
+	}
+
 static func input_error(profile: Dictionary) -> String:
 	var required := ["schema","id","family_count","seed_offset","group_seed_stride","group","families","inner","leader","trunk","scaffold","bark_hex"]
 	for key in required:
