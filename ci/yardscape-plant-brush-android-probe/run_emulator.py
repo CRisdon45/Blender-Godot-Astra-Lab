@@ -18,6 +18,7 @@ SERIAL = "emulator-5554"
 RUN_COUNT = 3
 MARKER = "YARDSCAPE_BENCHMARK_JSON="
 READY_MARKER = "YARDSCAPE_BENCHMARK_READY="
+MEASURING_MARKER = "YARDSCAPE_MEASURING_IMAGE="
 
 
 def sha(path: Path) -> str:
@@ -107,18 +108,38 @@ def sampled_png_color_count(png: bytes) -> int:
     return len(colors)
 
 
-def capture_landscape_screenshot(adb, path: Path, label: str) -> dict[str, int]:
-    screenshot = adb("exec-out", "screencap", "-p", timeout=30, binary=True)
+def validate_landscape_png(
+    screenshot: bytes,
+    path: Path,
+    label: str,
+    *,
+    require_diversity: bool = True,
+) -> dict[str, int]:
     if not screenshot.startswith(b"\x89PNG\r\n\x1a\n") or len(screenshot) < 24:
         raise RuntimeError(f"Invalid {label} screenshot")
     width, height = struct.unpack(">II", screenshot[16:24])
     if width <= height:
         raise RuntimeError(f"Expected landscape {label} screenshot, got {width}x{height}")
     sampled_colors = sampled_png_color_count(screenshot)
-    if sampled_colors < 32:
-        raise RuntimeError(f"Blank or low-diversity {label} screenshot: {sampled_colors} sampled colors")
     path.write_bytes(screenshot)
+    if require_diversity and sampled_colors < 32:
+        raise RuntimeError(f"Blank or low-diversity {label} screenshot: {sampled_colors} sampled colors")
     return {"width": width, "height": height, "sampled_colors": sampled_colors}
+
+
+def capture_device_screenshot(adb, path: Path, label: str) -> dict[str, int]:
+    screenshot = adb("exec-out", "screencap", "-p", timeout=30, binary=True)
+    return validate_landscape_png(screenshot, path, label, require_diversity=False)
+
+
+def pull_app_screenshot(adb, user_data_dir: str, file_name: str, path: Path, label: str) -> dict[str, int]:
+    if not user_data_dir.startswith("/data/") or "/../" in user_data_dir or "/" in file_name:
+        raise RuntimeError(f"Unsafe app screenshot path for {label}")
+    screenshot = adb(
+        "exec-out", "run-as", PACKAGE, "cat", f"{user_data_dir}/{file_name}",
+        timeout=30, binary=True,
+    )
+    return validate_landscape_png(screenshot, path, label)
 
 
 def main() -> None:
@@ -243,17 +264,29 @@ def main() -> None:
             (output / f"{label}-launch.txt").write_text(launch, encoding="utf-8")
             if "Status: ok" not in launch:
                 raise RuntimeError(f"Launch was not confirmed for {label}")
-            deadline = time.monotonic() + 55
+            deadline = time.monotonic() + 90
             benchmark = None
-            ready_at = None
+            ready_info = None
+            measuring_info = None
             measuring_dimensions = None
             while time.monotonic() < deadline:
                 logs = adb("logcat", "-d", "-v", "threadtime", timeout=30)
-                if ready_at is None and READY_MARKER in logs:
-                    ready_at = time.monotonic()
-                if measuring_dimensions is None and ready_at is not None and time.monotonic() >= ready_at + 4:
-                    measuring_dimensions = capture_landscape_screenshot(
-                        adb, output / f"{label}-measuring.png", f"measuring {label}"
+                ready_marks = [line.split(READY_MARKER, 1)[1] for line in logs.splitlines() if READY_MARKER in line]
+                if ready_info is None and ready_marks:
+                    ready_info = json.loads(ready_marks[-1].strip())
+                measuring_marks = [
+                    line.split(MEASURING_MARKER, 1)[1]
+                    for line in logs.splitlines()
+                    if MEASURING_MARKER in line
+                ]
+                if measuring_dimensions is None and ready_info is not None and measuring_marks:
+                    measuring_info = json.loads(measuring_marks[-1].strip())
+                    measuring_dimensions = pull_app_screenshot(
+                        adb,
+                        str(ready_info.get("user_data_dir", "")),
+                        str(measuring_info.get("file", "")),
+                        output / f"{label}-measuring.png",
+                        f"in-app measuring {label}",
                     )
                 marked = [line.split(MARKER, 1)[1] for line in logs.splitlines() if MARKER in line]
                 if marked:
@@ -264,10 +297,10 @@ def main() -> None:
             (output / f"{label}-logcat.txt").write_text(logs, encoding="utf-8")
             if benchmark is None:
                 raise TimeoutError(f"No in-app benchmark report for {label}")
-            if ready_at is None:
+            if ready_info is None:
                 raise RuntimeError(f"No in-app ready marker for {label}")
             if measuring_dimensions is None:
-                raise RuntimeError(f"No measuring screenshot for {label}")
+                raise RuntimeError(f"No in-app measuring screenshot for {label}")
             fatal = re.search(
                 r"FATAL EXCEPTION|Fatal signal|SCRIPT ERROR:|SHADER ERROR:|Program linking failed|"
                 r"shader failed to compile|unable to bind shader|OutOfMemoryError",
@@ -290,6 +323,16 @@ def main() -> None:
                 raise RuntimeError(f"Expected landscape viewport in {label}")
             if int(benchmark.get("visible_triangles", 0)) < 40_000:
                 raise RuntimeError(f"Unexpectedly small planting workload in {label}")
+            visual_capture = benchmark.get("visual_capture", {})
+            if int(visual_capture.get("sampled_colors", 0)) < 32:
+                raise RuntimeError(f"Invalid in-app completion capture in {label}: {visual_capture}")
+            completion_dimensions = pull_app_screenshot(
+                adb,
+                str(ready_info.get("user_data_dir", "")),
+                str(visual_capture.get("file", "")),
+                output / f"{label}-complete.png",
+                f"in-app completion {label}",
+            )
             meminfo = adb("shell", "dumpsys", "meminfo", PACKAGE, timeout=60)
             gfxinfo = adb("shell", "dumpsys", "gfxinfo", PACKAGE, "framestats", timeout=60)
             (output / f"{label}-meminfo.txt").write_text(meminfo, encoding="utf-8")
@@ -301,14 +344,17 @@ def main() -> None:
                 raise RuntimeError(f"Benchmark app is not the foreground UI in {label}")
             if "immersive_cling" in ui_tree or "Viewing full screen" in ui_tree:
                 raise RuntimeError(f"Android fullscreen tutorial obscures {label}")
-            completion_dimensions = capture_landscape_screenshot(
-                adb, output / f"{label}-complete.png", f"completion {label}"
+            device_dimensions = capture_device_screenshot(
+                adb, output / f"{label}-device.png", f"device {label}"
             )
             runs.append({
                 "run": run_number,
                 "in_app": benchmark,
+                "ready": ready_info,
+                "measuring_capture": measuring_info,
                 "measuring_screenshot": measuring_dimensions,
                 "completion_screenshot": completion_dimensions,
+                "device_screenshot": device_dimensions,
                 "gfxinfo_has_frame_summary": "Total frames rendered" in gfxinfo,
                 "meminfo_process_present": "No process found" not in meminfo,
             })

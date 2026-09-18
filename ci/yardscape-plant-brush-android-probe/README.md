@@ -19,6 +19,9 @@ renderer evidence before any production integration.
 The probe uses Godot's Mobile renderer through Vulkan. The hosted AVD uses the
 current `swiftshader` software backend; CI rejects shader compilation/linking
 errors and blank or low-color-diversity screenshots before reporting success.
+Visual evidence is read back from Godot's own viewport; a separate Android
+device screenshot records orientation and foreground-window state because
+software Vulkan surfaces are not guaranteed to appear in `screencap` output.
 
 The debug APK includes `arm64-v8a` for a later physical-device run and
 `x86_64` for the hosted emulator. CI obtains the exact Godot 4.7.1 editor and

@@ -9,6 +9,8 @@ const TREE_COUNT := 6
 const SHRUB_COUNT := 12
 const WARMUP_SECONDS := 3.0
 const SAMPLE_SECONDS := 12.0
+const VISUAL_COLOR_MIN := 32
+const VISUAL_READY_ATTEMPTS := 45
 
 var camera:Camera3D
 var status_label:Label
@@ -16,6 +18,8 @@ var elapsed:=0.0
 var orbit_offset:=0.0
 var samples:=PackedFloat32Array()
 var reported:=false
+var visual_ready:=false
+var measuring_capture_started:=false
 var visible_meshes:=0
 var visible_triangles:=0
 
@@ -23,26 +27,64 @@ func _ready()->void:
 	_build_environment()
 	_build_plantings()
 	_build_hud()
-	print("YARDSCAPE_BENCHMARK_READY="+JSON.stringify({
-		"recipe":RECIPE,
-		"trees":TREE_COUNT,
-		"shrubs":SHRUB_COUNT,
-		"visible_meshes":visible_meshes,
-		"visible_triangles":visible_triangles
-	}))
+	_confirm_visual_ready()
 
 func _process(delta:float)->void:
+	var angle:=orbit_offset-0.62
+	if not visual_ready:
+		camera.position=Vector3(cos(angle)*15.8,6.9,sin(angle)*15.8)
+		camera.look_at(Vector3(0,1.65,-0.25),Vector3.UP)
+		return
 	elapsed+=delta
 	var orbit_time:=maxf(0.0,elapsed-WARMUP_SECONDS)
-	var angle:=orbit_offset-0.62+orbit_time*0.105
+	angle=orbit_offset-0.62+orbit_time*0.105
 	camera.position=Vector3(cos(angle)*15.8,6.9,sin(angle)*15.8)
 	camera.look_at(Vector3(0,1.65,-0.25),Vector3.UP)
 	if elapsed>=WARMUP_SECONDS and not reported:
 		samples.append(delta*1000.0)
 		status_label.text="MEASURING RETAINED PLANTINGS  %0.1f / %0.0f s" % [minf(orbit_time,SAMPLE_SECONDS),SAMPLE_SECONDS]
+	if elapsed>=WARMUP_SECONDS+2.0 and not measuring_capture_started:
+		measuring_capture_started=true
+		_save_measuring_capture()
 	if elapsed>=WARMUP_SECONDS+SAMPLE_SECONDS and not reported:
 		reported=true
 		_emit_report()
+
+func _confirm_visual_ready()->void:
+	for attempt in VISUAL_READY_ATTEMPTS:
+		await RenderingServer.frame_post_draw
+		var image:=get_viewport().get_texture().get_image()
+		var sampled_colors:=_sampled_color_count(image)
+		if sampled_colors>=VISUAL_COLOR_MIN:
+			var capture:=_save_image(image,"yardscape-ready.png",sampled_colors)
+			if int(capture.save_error)!=OK:
+				break
+			visual_ready=true
+			elapsed=0.0
+			print("YARDSCAPE_BENCHMARK_READY="+JSON.stringify({
+				"recipe":RECIPE,
+				"trees":TREE_COUNT,
+				"shrubs":SHRUB_COUNT,
+				"visible_meshes":visible_meshes,
+				"visible_triangles":visible_triangles,
+				"sampled_colors":sampled_colors,
+				"attempt":attempt+1,
+				"user_data_dir":OS.get_user_data_dir()
+			}))
+			return
+	push_error("Rendered viewport never reached visual evidence threshold")
+	print("YARDSCAPE_VISUAL_READY_FAILED="+JSON.stringify({"minimum":VISUAL_COLOR_MIN,"attempts":VISUAL_READY_ATTEMPTS}))
+	get_tree().quit(2)
+
+func _save_measuring_capture()->void:
+	await RenderingServer.frame_post_draw
+	var image:=get_viewport().get_texture().get_image()
+	var capture:=_save_image(image,"yardscape-measuring.png",_sampled_color_count(image))
+	if int(capture.save_error)!=OK or int(capture.sampled_colors)<VISUAL_COLOR_MIN:
+		push_error("Measuring viewport capture is invalid")
+		get_tree().quit(2)
+		return
+	print("YARDSCAPE_MEASURING_IMAGE="+JSON.stringify(capture))
 
 func _unhandled_input(event:InputEvent)->void:
 	if event is InputEventScreenDrag:
@@ -187,7 +229,33 @@ func _emit_report()->void:
 	}
 	status_label.text="MEASUREMENT COMPLETE  /  %0.1f FPS AVG  /  P95 %0.2f ms"%[report.average_fps,report.p95_ms]
 	status_label.add_theme_color_override("font_color",Color("a9d39c"))
+	await RenderingServer.frame_post_draw
+	var image:=get_viewport().get_texture().get_image()
+	report.visual_capture=_save_image(image,"yardscape-complete.png",_sampled_color_count(image))
+	if int(report.visual_capture.save_error)!=OK or int(report.visual_capture.sampled_colors)<VISUAL_COLOR_MIN:
+		push_error("Completion viewport capture is invalid")
+		get_tree().quit(2)
+		return
 	print("YARDSCAPE_BENCHMARK_JSON="+JSON.stringify(report))
+
+func _save_image(image:Image,file_name:String,sampled_colors:int)->Dictionary:
+	var save_error:=image.save_png("user://"+file_name)
+	return {
+		"file":file_name,
+		"width":image.get_width(),
+		"height":image.get_height(),
+		"sampled_colors":sampled_colors,
+		"save_error":save_error
+	}
+
+func _sampled_color_count(image:Image)->int:
+	if image.is_empty():return 0
+	var colors:={}
+	for y in range(0,image.get_height(),8):
+		for x in range(0,image.get_width(),8):
+			colors[image.get_pixel(x,y).to_rgba32()]=true
+			if colors.size()>=256:return colors.size()
+	return colors.size()
 
 func _percentile(ordered:PackedFloat32Array,fraction:float)->float:
 	if ordered.is_empty():return 0.0
