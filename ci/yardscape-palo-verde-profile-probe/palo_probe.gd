@@ -35,13 +35,13 @@ func run()->void:
 	output=OS.get_environment("YARDSCAPE_PALO_OUTPUT");run_id=OS.get_environment("YARDSCAPE_PALO_RUN_ID")
 	if run_id.length()!=36 or not output.begins_with(ProjectSettings.globalize_path("res://.local/")):push_error("Fresh Palo Verde output required");quit(1);return
 	root.size=Vector2i(1280,900)
-	var ash_profile:=Profiles.fan_tex_ash_v2();var palo_profile:=Profiles.desert_museum_palo_verde_v1()
+	var ash_profile:=Profiles.fan_tex_ash_v2();var palo_profile:=Profiles.desert_museum_palo_verde_v2()
 	check(Profiles.input_error(ash_profile).is_empty() and Profiles.input_error(palo_profile).is_empty(),"both species form profiles validate")
 	study=load("res://northstar-desert-museum-profile.tscn").instantiate();root.add_child(study);for i in 3:await process_frame
 	check(study is Current,"exact species-profile contrast scene")
 	check(study.ash_tree is ProfiledTree and study.palo_tree is ProfiledTree,"both species use the same generic builder")
-	check(study.palo_tree.stats.profile=="desert-museum-palo-verde-macro-form/1","explicit Desert Museum profile")
-	check(study.palo_tree.stats.groups==13 and study.palo_tree.stats.families==5,"Palo profile uses thirteen airy crown groups across five scaffold families")
+	check(study.palo_tree.stats.profile=="desert-museum-palo-verde-macro-form/2","explicit Desert Museum profile")
+	check(study.palo_tree.stats.groups==14 and study.palo_tree.stats.families==5,"Palo profile uses fourteen airy crown groups across five scaffold families")
 	check(study.palo_tree.stats.visible_meshes==2 and not study.palo_tree.stats.alpha_blended,"Palo candidate remains two opaque meshes")
 	check(study.palo_tree.stats.visible_triangles<6000,"Palo profile remains under six thousand indexed triangles")
 	check(study.palo_tree.stats.visible_triangles<study.ash_tree.stats.visible_triangles,"airy Palo profile uses fewer indexed triangles than Fan-Tex profile")
