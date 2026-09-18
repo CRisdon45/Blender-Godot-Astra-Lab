@@ -14,7 +14,7 @@ PIN='4.7.1.stable.official.a13da4feb';ENGINE_SHA='32f8d7596c4b41185512b1c49d69f2
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def verify():
     spec=importlib.util.spec_from_file_location('fantex_verify',FANTEX/'run_fantex.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.verify()
-    expected={'northstar-profiled-fantex-ash.tscn','presentation/northstar/spatial_profiled_plant_form_study.gd','presentation/northstar/foliage/plant_form_profiles.gd','presentation/northstar/foliage/profiled_batched_dab_tree.gd'}
+    expected={'northstar-profiled-fantex-ash.tscn','presentation/northstar/spatial_profiled_plant_form_study.gd','presentation/northstar/foliage/plant_form_profiles.gd','presentation/northstar/foliage/plant_form_layout.gd','presentation/northstar/foliage/profiled_batched_dab_tree.gd'}
     actual={p.relative_to(ROOT/'project').as_posix() for p in (ROOT/'project').rglob('*') if p.is_file()}
     if actual!=expected:raise ValueError('Unexpected plant-form profile source expansion')
     for name in actual:
