@@ -4,6 +4,6 @@ This is the second species-form test for plant-form-profile/1 and uses the same 
 
 Morphology guidance is intentionally limited to stable presentation cues: Desert Museum Palo Verde has an upright habit, tiny foliage / filtered shade, green photosynthetic wood, and a spreading form. The test fixture does not apply mature height/spread or growth-rate data.
 
-The profile reduces the number and size of crown groups, spreads scaffold families farther apart, branches lower, increases secondary angular separation, preserves more negative space, and uses green wood. It does not add literal leaflets or seasonal yellow flowers.
+The refined v2 profile reduces crown-group size relative to Fan-Tex while keeping enough overlap for a connected filtered canopy. It branches lower, increases secondary angular separation, preserves more negative space, and uses muted green wood. It does not add literal leaflets or seasonal yellow flowers.
 
-The purpose is to determine whether the same normalized profile vocabulary can create a strongly contrasting desert tree without a new procedural renderer class.
+The current regression also verifies this second species after the shared plant-form layout was extracted from the 3D builder. The purpose is to confirm that the same normalized layout/profile vocabulary still produces the retained Desert Museum result without a species-specific procedural renderer class.
