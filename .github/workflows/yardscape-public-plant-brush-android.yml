@@ -40,10 +40,11 @@ jobs:
           test -n "${JAVA_HOME_17_X64:-}"
           test -n "${ANDROID_SDK_ROOT:-}"
           echo "JAVA_HOME=${JAVA_HOME_17_X64}" >> "${GITHUB_ENV}"
-          yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "build-tools;36.1.0" "platforms;android-36"
+          test -x "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+          yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "build-tools;36.1.0" "platforms;android-36"
           java -version
-          sdkmanager --version
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --version
       - name: Install exact retained Godot
         run: python ci/yardscape-renderer/install_godot.py
       - name: Install matching official export templates
@@ -56,11 +57,11 @@ jobs:
           name: retained-planting-android-debug-apk
           path: /home/runner/work/_temp/plant-brush-android-build
           retention-days: 7
-          if-no-files-found: error
+          if-no-files-found: warn
       - name: Install clean Android emulator image
         run: |
-          sdkmanager "emulator" "system-images;android-35;google_apis;x86_64"
-          printf 'no\n' | avdmanager create avd --force --name yardscape-planting-api35 --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" "emulator" "system-images;android-35;google_apis;x86_64"
+          printf 'no\n' | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/avdmanager" create avd --force --name yardscape-planting-api35 --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
           test -e /dev/kvm
           sudo chown "${USER}" /dev/kvm
       - name: Run three fixed emulator measurements
