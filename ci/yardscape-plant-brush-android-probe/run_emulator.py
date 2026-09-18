@@ -317,8 +317,10 @@ def main() -> None:
                     raise RuntimeError(f"Unexpected {key} in {label}: {benchmark.get(key)}")
             if int(benchmark.get("sample_count", 0)) < 10:
                 raise RuntimeError(f"Insufficient rendered frame samples in {label}")
-            if benchmark.get("rendering_method") != "mobile":
-                raise RuntimeError(f"Expected mobile renderer in {label}: {benchmark.get('rendering_method')}")
+            if benchmark.get("rendering_method") != "gl_compatibility":
+                raise RuntimeError(
+                    f"Expected Compatibility renderer in {label}: {benchmark.get('rendering_method')}"
+                )
             if int(benchmark.get("viewport_width", 0)) <= int(benchmark.get("viewport_height", 0)):
                 raise RuntimeError(f"Expected landscape viewport in {label}")
             if int(benchmark.get("visible_triangles", 0)) < 40_000:
