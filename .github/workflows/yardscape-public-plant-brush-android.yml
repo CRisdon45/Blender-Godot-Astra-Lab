@@ -61,7 +61,12 @@ jobs:
       - name: Install clean Android emulator image
         run: |
           "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" "emulator" "system-images;android-35;google_apis;x86_64"
+          export ANDROID_AVD_HOME="${RUNNER_TEMP}/yardscape-android-avd"
+          mkdir -p "${ANDROID_AVD_HOME}"
+          echo "ANDROID_AVD_HOME=${ANDROID_AVD_HOME}" >> "${GITHUB_ENV}"
           printf 'no\n' | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/avdmanager" create avd --force --name yardscape-planting-api35 --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          test -f "${ANDROID_AVD_HOME}/yardscape-planting-api35.ini"
+          "${ANDROID_SDK_ROOT}/emulator/emulator" -list-avds
           test -e /dev/kvm
           sudo chown "${USER}" /dev/kvm
       - name: Run three fixed emulator measurements
