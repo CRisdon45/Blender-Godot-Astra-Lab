@@ -1,0 +1,58 @@
+name: Public profile-driven wash-volume proof
+on:
+  push:
+    branches:
+      - experiment/profile-wash-volume-v1
+    paths:
+      - ci/yardscape-plant-wash-volume-probe/**
+      - .github/workflows/yardscape-public-plant-wash-volume.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  wash-volume:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+            ci/yardscape-dab-batch-probe
+            ci/yardscape-fantex-form-probe
+            ci/yardscape-plant-form-profile-probe
+            ci/yardscape-plant-plan-profile-probe
+            ci/yardscape-plant-brush-profile-probe
+            ci/yardscape-plant-wash-volume-probe
+      - name: Verify reviewed wash-volume boundary
+        run: python ci/yardscape-plant-wash-volume-probe/run_volume.py --verify-only
+      - name: Verify retained direct Plan boundary
+        run: python ci/yardscape-plant-plan-profile-probe/run_plan.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Retained direct Plan regression
+        run: python ci/yardscape-plant-plan-profile-probe/run_plan.py
+      - name: Brush-card versus wash-volume comparison
+        run: python ci/yardscape-plant-wash-volume-probe/run_volume.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: plant-wash-volume-evidence
+          path: /home/runner/work/_temp/plant-wash-volume-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: plant-wash-volume-direct-plan-regression
+          path: /home/runner/work/_temp/plant-plan-profile-evidence
+          retention-days: 7
+          if-no-files-found: warn
