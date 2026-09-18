@@ -1,0 +1,21 @@
+config_version=5
+
+[application]
+
+config/name="Yard-Scape Retained Planting Probe"
+run/main_scene="res://northstar-profile-brush-android.tscn"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1200
+window/size/window_width_override=1280
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.886, 0.871, 0.806, 1)

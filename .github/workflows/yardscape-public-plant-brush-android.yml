@@ -1,0 +1,74 @@
+name: Public retained planting Android probe
+on:
+  push:
+    branches:
+      - experiment/profile-brush-android-v1
+    paths:
+      - ci/yardscape-plant-brush-android-probe/**
+      - .github/workflows/yardscape-public-plant-brush-android.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  android-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+            ci/yardscape-dab-batch-probe
+            ci/yardscape-fantex-form-probe
+            ci/yardscape-plant-form-profile-probe
+            ci/yardscape-plant-plan-profile-probe
+            ci/yardscape-plant-brush-profile-probe
+            ci/yardscape-plant-brush-shrub-probe
+            ci/yardscape-plant-brush-android-probe
+      - name: Verify isolated Android probe boundary
+        run: python ci/yardscape-plant-brush-android-probe/run_android.py --verify-only
+      - name: Configure pinned Android build tools
+        run: |
+          test -n "${JAVA_HOME_17_X64:-}"
+          test -n "${ANDROID_SDK_ROOT:-}"
+          echo "JAVA_HOME=${JAVA_HOME_17_X64}" >> "${GITHUB_ENV}"
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platform-tools" "build-tools;36.1.0" "platforms;android-36"
+          java -version
+          sdkmanager --version
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Install matching official export templates
+        run: python ci/yardscape-plant-brush-android-probe/install_export_templates.py
+      - name: Export retained planting debug APK
+        run: python ci/yardscape-plant-brush-android-probe/run_android.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: retained-planting-android-debug-apk
+          path: /home/runner/work/_temp/plant-brush-android-build
+          retention-days: 7
+          if-no-files-found: error
+      - name: Install clean Android emulator image
+        run: |
+          sdkmanager "emulator" "system-images;android-35;google_apis;x86_64"
+          printf 'no\n' | avdmanager create avd --force --name yardscape-planting-api35 --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          test -e /dev/kvm
+          sudo chown "${USER}" /dev/kvm
+      - name: Run three fixed emulator measurements
+        run: python ci/yardscape-plant-brush-android-probe/run_emulator.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: retained-planting-android-emulator-evidence
+          path: /home/runner/work/_temp/plant-brush-android-evidence
+          retention-days: 7
+          if-no-files-found: warn
