@@ -3,7 +3,7 @@ extends Node3D
 ## Every card has a fixed 3D center and broad emitter-derived normal. Only each
 ## small card faces the camera; the plant never billboards and has no solid core.
 const Atlas=preload("res://presentation/northstar/foliage/northstar_brush_atlas.gd")
-const RECIPE := "fixed-center-brush-card-cloud/4"
+const RECIPE := "fixed-center-brush-card-cloud/5"
 const ATLAS_TILES := Atlas.TILE_COUNT
 const ATLAS_ID := Atlas.ID
 const GOLDEN_ANGLE := 2.399963229728653
@@ -19,8 +19,8 @@ var _colors:=PackedColorArray()
 var _uv:=PackedVector2Array()
 var _uv2:=PackedVector2Array()
 
-func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
-	assert(get_child_count()==0 and radius>0. and height>0. and card_budget>=8)
+func configure(seed_value:int,radius:float,height:float,card_budget:=8)->void:
+	assert(get_child_count()==0 and radius>0. and height>0. and card_budget>=5)
 	descriptor={"seed":seed_value,"radius":radius,"height":height,"card_budget":card_budget}
 	var rng:=RandomNumberGenerator.new();rng.seed=seed_value
 	var stems=[
@@ -32,7 +32,7 @@ func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
 	twig=_finish("BrushTwigGesture")
 	var bark:=StandardMaterial3D.new();bark.albedo_color=Color("665541");bark.roughness=1.;twig.material_override=bark
 	var phase:=rng.randf()*TAU
-	var outer_cards:=maxi(6,roundi(float(card_budget)*.67));var inner_cards:=card_budget-outer_cards
+	var outer_cards:=maxi(4,roundi(float(card_budget)*.67));var inner_cards:=card_budget-outer_cards
 	for index in outer_cards:
 		var vertical:=1.0-2.0*(float(index)+.5)/float(outer_cards)
 		var ring:=sqrt(maxf(0.,1.-vertical*vertical))
@@ -42,10 +42,10 @@ func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
 		var center:=Vector3(direction.x*radius*.78,direction.y*height*.40,direction.z*radius*.78)*shell
 		center+=Vector3(rng.randf_range(-.025,.025)*radius,rng.randf_range(-.018,.018)*height,rng.randf_range(-.025,.025)*radius)
 		var normal:=Vector3(direction.x/maxf(radius,.001),direction.y/maxf(height*.52,.001),direction.z/maxf(radius,.001)).normalized()
-		var width:=radius*rng.randf_range(.57,.72)
-		var length:=height*rng.randf_range(.235,.305)
+		var width:=radius*rng.randf_range(.88,1.08)
+		var length:=height*rng.randf_range(.36,.47)
 		var tone:=clampf(.49+direction.y*.035+rng.randf_range(-.035,.035),.38,.61)
-		_card(center,normal,rng.randf_range(-.95,.95),width,length,tone,.08,rng.randi_range(0,ATLAS_TILES-1))
+		_card(center,normal,rng.randf_range(-.58,.58),width,length,tone,.08,rng.randi_range(0,ATLAS_TILES-1))
 	for index in inner_cards:
 		var angle:=phase+.37+float(index)*GOLDEN_ANGLE
 		var vertical:=rng.randf_range(-.52,.58)
@@ -53,7 +53,7 @@ func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
 		var depth:=rng.randf_range(.16,.49)
 		var center:=Vector3(direction.x*radius*.78,direction.y*height*.38,direction.z*radius*.78)*depth
 		var normal:=(direction*.78+Vector3.UP*.22).normalized()
-		_card(center,normal,rng.randf_range(-.85,.85),radius*rng.randf_range(.62,.78),height*rng.randf_range(.25,.33),rng.randf_range(.42,.49),.56,rng.randi_range(0,ATLAS_TILES-1))
+		_card(center,normal,rng.randf_range(-.48,.48),radius*rng.randf_range(1.0,1.20),height*rng.randf_range(.42,.52),rng.randf_range(.42,.49),.56,rng.randi_range(0,ATLAS_TILES-1))
 	foliage=_finish("BrushCardFoliage")
 	var fa:Array=foliage.mesh.surface_get_arrays(0);var ta:Array=twig.mesh.surface_get_arrays(0)
 	stats={

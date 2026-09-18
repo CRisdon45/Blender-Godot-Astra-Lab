@@ -36,7 +36,7 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 	var group_height:=_height*float(profile.group.height_factor)
 	var reference_volume:=.56*.56*.29
 	var normalized_volume:=float(profile.group.radius_factor)*float(profile.group.radius_factor)*float(profile.group.height_factor)
-	var cards_per_group:=clampi(roundi(18.*normalized_volume/reference_volume),9,20)
+	var cards_per_group:=clampi(roundi(8.*normalized_volume/reference_volume),5,10)
 	var card_count:=0
 	for i in anchors.size():
 		var anchor:Dictionary=anchors[i]
