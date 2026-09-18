@@ -1,0 +1,40 @@
+name: Public dab-group whole-tree comparison
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-dab-tree-probe/**', '.github/workflows/yardscape-public-dab-tree.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: dab-tree-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+      - name: Verify reviewed assembly boundary
+        run: python ci/yardscape-dab-tree-probe/run_dab_tree.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native dab tree versus compact tree
+        run: python ci/yardscape-dab-tree-probe/run_dab_tree.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dab-group-tree-evidence
+          path: ${{ runner.temp }}/dab-tree-evidence
+          retention-days: 7
+          if-no-files-found: warn

@@ -1,0 +1,45 @@
+name: Public Desert Museum species profile proof
+on:
+  push:
+    branches:
+      - ci/yardscape-renderer-slice
+    paths:
+      - ci/yardscape-palo-verde-profile-probe/**
+      - .github/workflows/yardscape-public-palo-verde-profile.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  palo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+            ci/yardscape-dab-batch-probe
+            ci/yardscape-fantex-form-probe
+            ci/yardscape-plant-form-profile-probe
+            ci/yardscape-palo-verde-profile-probe
+      - name: Verify reviewed species-profile boundary
+        run: python ci/yardscape-palo-verde-profile-probe/run_palo.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native species-profile contrast
+        run: python ci/yardscape-palo-verde-profile-probe/run_palo.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: palo-verde-profile-evidence
+          path: /home/runner/work/_temp/palo-verde-profile-evidence
+          retention-days: 7
+          if-no-files-found: warn

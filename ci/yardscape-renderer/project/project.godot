@@ -1,0 +1,8 @@
+config_version=5
+[application]
+config/name="Public leaf receiving-shade component probe"
+[display]
+window/size/viewport_width=640
+window/size/viewport_height=640
+[rendering]
+renderer/rendering_method="gl_compatibility"

@@ -1,0 +1,38 @@
+name: Public interleaved shoot-tree proof
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-shoot-tree-probe/**', '.github/workflows/yardscape-public-shoot-tree.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: compact-shoot-tree-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tree:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-shoot-probe
+            ci/yardscape-shoot-tree-probe
+      - name: Verify reviewed tree source boundary
+        run: python ci/yardscape-shoot-tree-probe/run_tree.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native whole-tree small look
+        run: python ci/yardscape-shoot-tree-probe/run_tree.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: interleaved-shoot-tree-evidence
+          path: ${{ runner.temp }}/shoot-tree-evidence
+          retention-days: 7
+          if-no-files-found: warn

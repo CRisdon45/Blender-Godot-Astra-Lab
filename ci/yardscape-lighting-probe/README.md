@@ -1,0 +1,11 @@
+# Normal/shadow diagnostic, not a new canopy
+
+This implements the bounded research-to-code diagnostic recorded by the application. Yard-Scape remains the application authority. This public directory adds test code only and reuses the already approved renderer excerpt. No private model, persistence, research paper, supplied reference image, history, secret or customer data is added.
+
+Three normal arrays are compared on identical vertex/index/UV arrays: A is the exact current blended field; B comes from one guarded substitution in a temporary copy of the existing curved generator, removing the guide blend but retaining its analytic-bend approximation; C is area-weighted from the final triangle positions with clockwise orientation checked against Godot's PlaneMesh. Smoothing never welds front and back indices. C is a geometric diagnostic, not necessarily good art direction.
+
+Each array is rendered with normal shadow receipt and foliage-material-only `shadows_disabled`, preserving casting. That switch disables receipt of ALL shadows on foliage, not only self-shadows. The six-state matrix holds shape, count, coverage texture, UVs, cutoff, palette, scene light, exposure and cameras fixed. Baseline rollback and unchanged nonfoliage resources are checked.
+
+Three scene views, actual cutout coverage/normal visualizations and a separate ground-cast witness are retained. The mask changes only albedo and shading mode of the same coverage shader; exact alpha is compared with the lit shader. Ground comparisons keep the crown as SHADOWS_ONLY over one lit receiver, then compare against cast OFF. Editing normals may still affect shadow bias; only receive-on/off pairs, not all normal variants, are required to cast identical shadows.
+
+Native execution is restricted to the standard public Ubuntu worker with the unchanged checksum-pinned engine. The prior paired probe runs first without modification. Output artifacts contain native PNGs, reports, bounded logs and hashes, never source bundles or environment dumps. The read-only adapters do not validate the application's editing/save/undo or device behavior. No default, production style, species, memory saving or tablet speedup is accepted by this diagnostic.

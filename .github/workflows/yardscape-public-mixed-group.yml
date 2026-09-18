@@ -1,0 +1,37 @@
+name: Public mixed foliage group comparison
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-mixed-group-probe/**', '.github/workflows/yardscape-public-mixed-group.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: mixed-group-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-mixed-group-probe
+      - name: Verify reviewed comparison boundary
+        run: python ci/yardscape-mixed-group-probe/run_mixed.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native mixed versus compact views
+        run: python ci/yardscape-mixed-group-probe/run_mixed.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: mixed-foliage-group-evidence
+          path: ${{ runner.temp }}/mixed-group-evidence
+          retention-days: 7
+          if-no-files-found: warn

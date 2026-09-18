@@ -1,0 +1,43 @@
+name: Public repeated dab batching benchmark
+on:
+  push:
+    branches:
+      - ci/yardscape-renderer-slice
+    paths:
+      - ci/yardscape-dab-benchmark/**
+      - .github/workflows/yardscape-public-dab-benchmark.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+            ci/yardscape-dab-batch-probe
+            ci/yardscape-dab-benchmark
+      - name: Verify reviewed benchmark boundary
+        run: python ci/yardscape-dab-benchmark/run_benchmark.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native repeated-tree benchmark
+        run: python ci/yardscape-dab-benchmark/run_benchmark.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: dab-repeated-benchmark-evidence
+          path: /home/runner/work/_temp/dab-benchmark-evidence
+          retention-days: 7
+          if-no-files-found: warn

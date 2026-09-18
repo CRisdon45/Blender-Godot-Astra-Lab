@@ -1,0 +1,10 @@
+{
+  "slice": "compact-foliage-group-07",
+  "sources": {
+    "northstar-foliage-group.tscn": {"role":"candidate_scene"},
+    "presentation/northstar/spatial_group_study.gd": {"role":"candidate_wrapper"},
+    "presentation/northstar/foliage/compact_group.gd": {"role":"candidate_geometry"},
+    "presentation/northstar/foliage/compact_group.gdshader": {"role":"candidate_material"}
+  },
+  "identity_policy":"public Git commit pins reviewed source bytes; executed SHA-256 values are written into each evidence manifest"
+}

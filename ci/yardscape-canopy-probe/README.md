@@ -1,0 +1,9 @@
+# Generic spatial canopy comparison
+
+Reviewed renderer-only continuation on the owner-approved public worker. The application remains in private Yard-Scape. Four new candidate files extend the existing spatial material scene. The two earlier read-only public adapters remain unchanged; private model/edit/undo/save/history and user reference images are not included.
+
+This compares closed opaque bough masses and tapered branching against the original structural spheres in the SAME courtyard. T/Canopy toggles the tree independently of M/Materials. All project tree values remain unchanged. The nominal crown radius bounds the new canopy; the old proxy's actual spread is not an exact botanical dimension. The form is generic, not ash or any approved species. Approximate shared-crown shading normals connect values; they are not measured leaf optics.
+
+The public test verifies actual T/M and pointer input, deterministic geometry, finite dimensions, retained scene/material identities, exact off/on returns, camera/light return, different seeds and a derived rebuild. Masks isolate silhouette openings. Forty-eight pointer increments and eight saved motion samples do not establish continuous frame-time or pixel-level temporal stability. The old 69-check material suite runs separately without modification. No physical tablet, persistence, full app or artistic acceptance is implied.
+
+Two visible candidate mesh surfaces replace eight visible proxy objects for comparison. Both representations remain resident so toggling works. Triangle counts are geometry counts, not GPU timings, draw-call counts or memory savings. No leaf alpha cards or billboard are used. Native Godot runs only on the Linux GitHub worker. Artifacts contain PNGs, bounded logs, report and hashes, not source archives, environment dumps or private data. Original owner code receives no additional blanket license through this publication.

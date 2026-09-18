@@ -1,0 +1,11 @@
+{
+  "slice":"spatial-canopy-curvature-05",
+  "sources":{
+    "northstar-spatial-curved-canopy.tscn":{"sha256":"8f56af6ec8e117ef15be021416fc5dee3000fd727343ee1f6ec90d81f2d3d88d","bytes":215},
+    "presentation/northstar/canopy/curved_tree.gd":{"sha256":"31551dc3b7afa9a1d73ee4bbcd29e87cb3cc543f9872b00379b36917f64727b9","bytes":3458},
+    "presentation/northstar/canopy/cutout_foliage.gdshader":{"sha256":"374031b4c987c42357c7ad70c9fb3ad85ccf418680de8b4be4f75b472cb42c93","bytes":1015},
+    "presentation/northstar/canopy/cutout_tree.gd":{"sha256":"f80f355c6471a22c2a41284cd5f3ba34a1b682c9a056f6d6d59f58c2bdef5ee3","bytes":4460},
+    "presentation/northstar/spatial_canopy_study.gd":{"sha256":"1c3197b850dd061e8d79c2daefc8b0741f6d7756c58826391cafb7f1d9cb3f5c","bytes":1740},
+    "presentation/northstar/spatial_curved_canopy_study.gd":{"sha256":"4448aa00954a2cb2fbfd2966046e5817a7f03c4561b6ad2b1f7f64c5d5632014","bytes":285}
+  }
+}

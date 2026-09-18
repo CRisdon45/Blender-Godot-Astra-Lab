@@ -1,0 +1,45 @@
+name: Public compact foliage group proof
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-foliage-group-probe/**', '.github/workflows/yardscape-public-foliage-group.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: foliage-group-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  group:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-foliage-group-probe
+      - name: Verify reviewed candidate boundary
+        run: python ci/yardscape-foliage-group-probe/run_group.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Retained spatial material regression
+        run: python ci/yardscape-spatial-probe/run_spatial.py
+      - name: Native compact-group views
+        run: python ci/yardscape-foliage-group-probe/run_group.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: compact-foliage-group-evidence
+          path: ${{ runner.temp }}/foliage-group-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: compact-foliage-group-spatial-regression
+          path: ${{ runner.temp }}/spatial-material-evidence
+          retention-days: 7
+          if-no-files-found: warn

@@ -1,0 +1,47 @@
+name: Public canopy lighting diagnostic
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-lighting-probe/**', '.github/workflows/yardscape-public-lighting.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: canopy-lighting-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-curvature-probe
+            ci/yardscape-lighting-probe
+      - name: Verify retained sources and diagnostic boundaries
+        run: python ci/yardscape-lighting-probe/run_lighting.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Original paired baseline regression
+        run: python ci/yardscape-curvature-probe/run_curvature.py
+      - name: Native normal and shadow-receipt matrix
+        run: python ci/yardscape-lighting-probe/run_lighting.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: canopy-lighting-evidence
+          path: ${{ runner.temp }}/lighting-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: canopy-lighting-baseline
+          path: ${{ runner.temp }}/curvature-look-evidence
+          retention-days: 7
+          if-no-files-found: warn

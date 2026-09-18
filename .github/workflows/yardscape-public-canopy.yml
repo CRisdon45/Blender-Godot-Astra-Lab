@@ -1,0 +1,45 @@
+name: Public spatial canopy proof
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-canopy-probe/**', '.github/workflows/yardscape-public-canopy.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: spatial-canopy-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  canopy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+      - name: Check reviewed source boundary
+        run: python ci/yardscape-canopy-probe/run_canopy.py --verify-only
+      - name: Install unchanged pinned Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Retained spatial material regression
+        run: python ci/yardscape-spatial-probe/run_spatial.py
+      - name: Native courtyard and canopy comparisons
+        run: python ci/yardscape-canopy-probe/run_canopy.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: public-canopy-evidence
+          path: ${{ runner.temp }}/canopy-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: public-canopy-spatial-regression
+          path: ${{ runner.temp }}/spatial-material-evidence
+          retention-days: 7
+          if-no-files-found: warn

@@ -1,0 +1,9 @@
+{
+  "slice":"spatial-canopy-04",
+  "sources":{
+    "northstar-spatial-canopy.tscn":{"sha256":"d2a16687a1def7a709b84eb905642fe87027908193ba578199bf84614c434774","bytes":202},
+    "presentation/northstar/spatial_canopy_study.gd":{"sha256":"36b7e2be855345385004bd5d6a9c5f3b5c3be6e7f4523ffb964820abaf5e545e","bytes":1681},
+    "presentation/northstar/canopy/illustrative_tree.gd":{"sha256":"ceee4716edc8fc55eb168ed862e81ca413e92786e28f9c00b35fecccf6cdd623","bytes":6748},
+    "presentation/northstar/canopy/foliage.gdshader":{"sha256":"91fdcdb6c831c400b65f7fcdb1db6cbbadea8982148c2ef36e6d029cada84ea9","bytes":894}
+  }
+}

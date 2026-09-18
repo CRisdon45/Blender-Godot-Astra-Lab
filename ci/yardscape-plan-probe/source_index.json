@@ -1,0 +1,42 @@
+{
+  "slice": "public-display-plan-02",
+  "source_role": "25 unchanged renderer files plus 2 explicit display adapter files; prior eight runtime files reused unchanged",
+  "approved_scope": "reviewed renderer/test-only publication; no project editing/persistence, history, customers, or art references",
+  "files": {
+    "presentation/northstar/fixture.gd": {"sha256":"1434eda327fae2a22f7c56c7a4885c56e4bbae722c90bb7009f670b7f1d88f8f","bytes":4258,"role":"display_adapter"},
+    "presentation/northstar/ink.gd": {"sha256":"913e4f5036c46bf4f58d5e626b86772f492ca0c9580449ffbf245d05c1bf92ae","bytes":2412,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/architectural_ink.gd": {"sha256":"bdacc611ebcfc682844fe087b04b7c5a6e515a37fe1dc85ce1a2513317aba7a0","bytes":3273,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/broadleaf_shade_study.gd": {"sha256":"8806e25c5e57074f1f904df84c459bbd1042f488ed81cfbcd5d9640261b73e6e","bytes":2040,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/broadleaf_study.gd": {"sha256":"971be4f64a4aab9a728b26f8becad69c7dde40ac0a91d2e490b76782ce5c42aa","bytes":2243,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/crown.gd": {"sha256":"65745390f7b56cbd50b76741ff945030beee36bbd64e379b160ba1ea675b32f5","bytes":9023,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/crown.gdshader": {"sha256":"1dec41affdcbea453f1d45ca253ad11cc75f3d6edf6a4d86119a55d1567bf9b6","bytes":1925,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/crown_mask.gdshaderinc": {"sha256":"137048c1993561fc0c852e8fba4b045bae422ed6e5f42a4dae60042be6091f2b","bytes":1084,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/crown_v1.gd": {"sha256":"673913724ae52d0eb7998cf50121438bcc1d97e6a9f847647b3958546ede3fcd","bytes":3908,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/crown_v1.gdshader": {"sha256":"6f39c9fc8960fb105f7671bca705b7ed389dc1941425ef6f41be90a4c3279252","bytes":2268,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/ground_shadow.gd": {"sha256":"5fee2f63dbeaff3860188327bd11d6cca06199f0d4737f7b02f91353fae10bf2","bytes":1676,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/ground_shadow.gdshader": {"sha256":"56af14265c1a23509210ce58bc9f54b10b1a4f64095a315485489b3210920507","bytes":1224,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/layout.gd": {"sha256":"12b11f2d53d39f9fa1cdabc8e825e571ea7c9838d9bd9ad235f62e490156d01c","bytes":5944,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/layout_v1.gd": {"sha256":"e44dedcc857a79c5b1c8e345b8591e7be146648d9709c1cc9526023ef730512b","bytes":3066,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/marks.gdshader": {"sha256":"8b2a1684ab57dd571d64a954b139090380e6cb9ce332d1cd54e32f166880c3f6","bytes":524,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/ordered_marks.gd": {"sha256":"248820630262586a029dd7d8537f0d193a2c5d42b06e0fb0d111997657ac08fe","bytes":1729,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/palm.gd": {"sha256":"a04e0c4b904f46b2f1e35619f330b7ab6b49b51cace7101c2f359773143cf48f","bytes":3683,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/paving.gdshader": {"sha256":"ebfd44bba76e5a38219d8050c2e331121d0d11ea3c63d1ea04f677b689d42ef8","bytes":2911,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/renderer.gd": {"sha256":"2f30052fcac053e3663d079b6f24195a231a1d5bd88020580277178a0e6e5ba9","bytes":1483,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/study.gd": {"sha256":"4b32fc27eb9f6b1a90a195886f0c1ad58c7e3c2930675b38e03ffd88c22b5a4f","bytes":11490,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/surface.gdshader": {"sha256":"64f1c7af30ed7aeac24c53d9a701fe6dc0b805aef2433101efc6d19e37168f5f","bytes":3972,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/surface_v1.gdshader": {"sha256":"376715f9c7646b3c2d136489735bd2c0e831b35cca9f13e535239a78296e3538","bytes":3487,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/water.gdshader": {"sha256":"4869e8eaf919cb4e4cbb512f11e914d89b5964869fae1fce195f85a20c94491d","bytes":4651,"role":"unchanged_renderer"},
+    "presentation/northstar/regions/water_material.gd": {"sha256":"cd0bdb2ecda1c6fa1d1eb75f7c878750663fcbb298eff76dc7e6341781f25e2c","bytes":2311,"role":"unchanged_renderer"},
+    "presentation/northstar/study.gd": {"sha256":"80322f498424adf521d3a5fae9a038d404c0c99a7c4fb42e330071c45ce76a00","bytes":9111,"role":"display_adapter"},
+    "presentation/northstar/wash.gdshader": {"sha256":"75c659710ff8fee1775eaf548486a2a15048da7071463d7d8bd35b3023d5b554","bytes":5686,"role":"unchanged_renderer"},
+    "presentation/northstar/water.gdshader": {"sha256":"e35ad5960a9a069d6cbece104a015576a8db06d4b40c1be8a6d8267729ec55ad","bytes":3752,"role":"unchanged_renderer"}
+  },
+  "packed_sha256":"f6ad56f222eeb0c57a23dad2ac2ec583c6a95e67dcdc2b1c4fc0f5dcb1f741d6",
+  "encoded_parts": {
+    "renderer.00.b64":"2e8ad730a3ff8141bfd176dbb5b4958b2ff8bbf12970cc7a948aac038fd566ed",
+    "renderer.01.b64":"0202cb51e48748874434b65be6f431a7f11abaabe860b84ac7e2907c7204badf",
+    "renderer.02.b64":"25b3803781f718c62523dec99296b9fb41cef7df05e901734832d0b60e112cec",
+    "renderer.03.b64":"d10bac3ac0fd44710a0fb252d82a99c91aa395e1fba687119ad5c7b38d4042fe",
+    "renderer.04.b64":"9a51a87492f100aaf7710f93302fdb92c0bc2cd53d0489d1417d4a9dfdc99159"
+  }
+}

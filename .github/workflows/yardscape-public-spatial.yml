@@ -1,0 +1,35 @@
+name: Public spatial material proof
+on:
+  push:
+    branches: [ci/yardscape-renderer-slice]
+    paths: ['ci/yardscape-spatial-probe/**', '.github/workflows/yardscape-public-spatial.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: spatial-material-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  spatial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+      - name: Verify reviewed spatial source and material domains
+        run: python ci/yardscape-spatial-probe/run_spatial.py --verify-only
+      - name: Install exact retained engine
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native Plan and Orbit material witness
+        run: python ci/yardscape-spatial-probe/run_spatial.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: public-spatial-material-evidence
+          path: ${{ runner.temp }}/spatial-material-evidence
+          retention-days: 7
+          if-no-files-found: warn
