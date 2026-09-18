@@ -3,7 +3,7 @@ extends Node3D
 ## untouched; this profile changes crown/scaffold organization, not horticultural data.
 const Group = preload("res://presentation/northstar/foliage/dab_group.gd")
 const Paint = preload("res://presentation/northstar/foliage/batched_dab_value.gdshader")
-const PROFILE_ID := "fan-tex-ash-macro-form/1"
+const PROFILE_ID := "fan-tex-ash-macro-form/2"
 
 var descriptor:Dictionary={}
 var foliage:MeshInstance3D
@@ -66,36 +66,36 @@ func _anchors(phase:float)->Array[Dictionary]:
 	var result:Array[Dictionary]=[]
 	var offsets=[0.0,1.01,2.09,3.13,4.19,5.28]
 	var reaches=[.60,.64,.61,.65,.59,.63]
-	var levels=[.62,.67,.64,.70,.66,.71]
+	var levels=[.60,.64,.61,.66,.63,.67]
 	for j in 6:
 		var angle:float=phase+float(offsets[j])
 		var direction:=Vector3(cos(angle),0.,sin(angle))
 		var side:=Vector3(-sin(angle),0.,cos(angle))
 		var center:=direction*float(reaches[j]);center.y=float(levels[j])
-		result.append({"position":center,"angle":angle,"family_angle":angle,"scale":1.03,"tilt":.07,"role":"primary"})
+		result.append({"position":center,"angle":angle,"family_angle":angle,"scale":1.08,"tilt":.055,"role":"primary"})
 		var sign:float=-1. if j%2==0 else 1.
-		var at:=center+side*.22*sign-direction*.08
-		at.y+=.105
-		result.append({"position":at,"angle":angle+.34*sign,"family_angle":angle,"scale":.84,"tilt":.16*sign,"role":"secondary"})
+		var at:=center+side*.20*sign-direction*.075
+		at.y+=.080
+		result.append({"position":at,"angle":angle+.30*sign,"family_angle":angle,"scale":.90,"tilt":.13*sign,"role":"secondary"})
 	var inner_angles=[phase+.62,phase+2.74,phase+4.83]
-	var inner_levels=[.78,.82,.77]
+	var inner_levels=[.72,.76,.73]
 	for i in 3:
 		var angle:float=float(inner_angles[i])
-		var at:=Vector3(cos(angle)*.27,float(inner_levels[i]),sin(angle)*.27)
-		result.append({"position":at,"angle":angle,"family_angle":angle,"scale":.90,"tilt":.05,"role":"secondary"})
+		var at:=Vector3(cos(angle)*.18,float(inner_levels[i]),sin(angle)*.18)
+		result.append({"position":at,"angle":angle,"family_angle":angle,"scale":1.08,"tilt":.035,"role":"secondary"})
 	var leader_angle:=phase+.22
-	result.append({"position":Vector3(cos(leader_angle)*.055,.91,sin(leader_angle)*.055),"angle":leader_angle,"family_angle":leader_angle,"scale":.88,"tilt":-.03,"role":"leader"})
+	result.append({"position":Vector3(cos(leader_angle)*.03,.84,sin(leader_angle)*.03),"angle":leader_angle,"family_angle":leader_angle,"scale":1.00,"tilt":-.02,"role":"leader"})
 	return result
 
 func _build_scaffold(phase:float)->void:
 	var trunk:=PackedVector3Array([
 		Vector3.ZERO,Vector3(.008,.18,-.006),Vector3(-.012,.34,.010),
-		Vector3(.014,.47,-.008),Vector3(-.006,.58,.004)
+		Vector3(.014,.46,-.008),Vector3(-.006,.55,.004)
 	])
 	_tube(trunk,.080,.030)
 	var offsets=[0.0,1.01,2.09,3.13,4.19,5.28]
 	var reaches=[.60,.64,.61,.65,.59,.63]
-	var levels=[.62,.67,.64,.70,.66,.71]
+	var levels=[.60,.64,.61,.66,.63,.67]
 	for j in 6:
 		var angle:float=phase+float(offsets[j])
 		var direction:=Vector3(cos(angle),0.,sin(angle))
@@ -103,21 +103,21 @@ func _build_scaffold(phase:float)->void:
 		var reach:float=float(reaches[j]);var level:float=float(levels[j])
 		var center:=direction*reach;center.y=level
 		var start:=trunk[2] if j%3==0 else trunk[3]
-		var mid1:=direction*(reach*.20)+side*(.025 if j%2==0 else -.025);mid1.y=.48
-		var mid2:=direction*(reach*.52)+side*(.035 if j%2==0 else -.035);mid2.y=level*.78
+		var mid1:=direction*(reach*.20)+side*(.025 if j%2==0 else -.025);mid1.y=.46
+		var mid2:=direction*(reach*.52)+side*(.032 if j%2==0 else -.032);mid2.y=level*.78
 		_tube(PackedVector3Array([start,mid1,mid2,center]),.032,.009)
 		var sign:float=-1. if j%2==0 else 1.
-		var secondary:=center+side*.22*sign-direction*.08;secondary.y+=.105
+		var secondary:=center+side*.20*sign-direction*.075;secondary.y+=.080
 		_tube(PackedVector3Array([mid2,center.lerp(secondary,.52),secondary]),.015,.004)
 	var inner_angles=[phase+.62,phase+2.74,phase+4.83]
-	var inner_levels=[.78,.82,.77]
+	var inner_levels=[.72,.76,.73]
 	for i in 3:
 		var angle:float=float(inner_angles[i])
-		var target:=Vector3(cos(angle)*.27,float(inner_levels[i]),sin(angle)*.27)
-		_tube(PackedVector3Array([trunk[3],Vector3(target.x*.42,.62,target.z*.42),target]),.017,.004)
+		var target:=Vector3(cos(angle)*.18,float(inner_levels[i]),sin(angle)*.18)
+		_tube(PackedVector3Array([trunk[3],Vector3(target.x*.42,.59,target.z*.42),target]),.017,.004)
 	var leader_angle:=phase+.22
-	var leader:=Vector3(cos(leader_angle)*.055,.91,sin(leader_angle)*.055)
-	_tube(PackedVector3Array([trunk[4],Vector3(leader.x*.7,.74,leader.z*.7),leader]),.020,.005)
+	var leader:=Vector3(cos(leader_angle)*.03,.84,sin(leader_angle)*.03)
+	_tube(PackedVector3Array([trunk[4],Vector3(leader.x*.7,.70,leader.z*.7),leader]),.020,.005)
 
 func _point(p:Vector3)->Vector3:return Vector3(p.x*_radius,p.y*_height,p.z*_radius)
 
