@@ -43,7 +43,7 @@ func run()->void:
 	if run_id.length()!=36 or not output.begins_with(ProjectSettings.globalize_path("res://.local/")):push_error("Fresh Fan-Tex output required");quit(1);return
 	root.size=Vector2i(1280,900);study=load("res://northstar-fantex-ash-form.tscn").instantiate();root.add_child(study);for i in 3:await process_frame
 	check(study is Current and valid(study.fantex_tree),"Fan-Tex form initializes with finite final-mesh normals")
-	check(study.fantex_tree.stats.profile=="fan-tex-ash-macro-form/1","explicit presentation-only Fan-Tex profile")
+	check(study.fantex_tree.stats.profile=="fan-tex-ash-macro-form/2","explicit presentation-only Fan-Tex profile")
 	check(study.fantex_tree.stats.groups==16 and study.fantex_tree.stats.families==6,"profile keeps sixteen groups across six scaffold families")
 	check(study.fantex_tree.stats.visible_meshes==2 and not study.fantex_tree.stats.alpha_blended,"candidate stays in two opaque meshes")
 	check(study.fantex_tree.stats.visible_triangles<7200,"species-form tree stays below bounded 7.2k triangle ceiling")
