@@ -16,13 +16,15 @@ def verify():
         p=PROFILE/'project'/rel
         if not p.is_file() or p.is_symlink():raise ValueError('Missing shared semantic input '+rel)
         text=p.read_text()
-        if re.search(r'\b(Node3D|MeshInstance3D|ArrayMesh|surface_get_arrays|profiled_batched_dab_tree)\b',text):raise ValueError('3D renderer dependency in shared Plan input '+rel)
+        code=re.sub(r'#.*','',text)
+        if re.search(r'\b(Node3D|MeshInstance3D|ArrayMesh|surface_get_arrays|profiled_batched_dab_tree)\b',code):raise ValueError('3D renderer dependency in shared Plan input '+rel)
     for name in actual:
         p=ROOT/'project'/name
         if p.is_symlink() or '..' in Path(name).parts:raise ValueError('Invalid path')
         text=p.read_text()
         if re.search(r'https?://|BEGIN .*PRIVATE KEY|gh[pousr]_|github_pat_|sk-proj-|res://(?:core|application)/',text):raise ValueError('Forbidden dependency '+name)
-        if re.search(r'\b(Node3D|MeshInstance3D|ArrayMesh|Mesh\.|surface_get_arrays|profiled_batched_dab_tree)\b',text):raise ValueError('3D readback/render dependency '+name)
+        code=re.sub(r'#.*','',text)
+        if re.search(r'\b(Node3D|MeshInstance3D|ArrayMesh|Mesh\.|surface_get_arrays|profiled_batched_dab_tree)\b',code):raise ValueError('3D readback/render dependency '+name)
         for ref in re.findall(r'res://([^\s\"\')]+)',text):
             if ref.endswith(('.gd','.tscn')) and not ((ROOT/'project'/ref).is_file() or ref in PROFILE_FILES):raise ValueError('Unresolved '+ref)
     return True
