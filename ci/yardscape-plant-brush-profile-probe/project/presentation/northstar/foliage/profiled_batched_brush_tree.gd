@@ -34,7 +34,7 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 	var anchors:=Layout.anchors(profile,phase)
 	var group_radius:=_radius*float(profile.group.radius_factor)
 	var group_height:=_height*float(profile.group.height_factor)
-	var patch_count:=0
+	var card_count:=0
 	for i in anchors.size():
 		var anchor:Dictionary=anchors[i]
 		var group:=Group.new();group.configure(int(tree.seed)+int(profile.group_seed_stride)*(i+1),group_radius,group_height)
@@ -44,14 +44,14 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 		group.position=target-group.basis*bounds.get_center()
 		_append_wood(group.twig,group.transform)
 		_append_foliage(group.foliage,group.transform,float(anchor.family_angle),str(anchor.role))
-		patch_count+=int(group.stats.patches);group.free()
+		card_count+=int(group.stats.cards);group.free()
 	wood=_finish_wood();foliage=_finish_foliage()
 	var wa:=wood.mesh.get_aabb();var fa:=foliage.mesh.get_aabb()
 	stats={
 		"recipe":Group.RECIPE,
 		"profile":str(profile.id),
 		"groups":anchors.size(),
-		"patches":patch_count,
+		"cards":card_count,
 		"families":int(profile.family_count),
 		"visible_meshes":2,
 		"visible_triangles":_triangle_count(wood.mesh)+_triangle_count(foliage.mesh),
@@ -62,8 +62,10 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 		"foliage_height":fa.size.y,
 		"overall_height":wa.merge(fa).size.y,
 		"alpha_blended":false,
-		"alpha_scissor":false,
-		"camera_facing":false,
+		"alpha_scissor":true,
+		"camera_facing":true,
+		"fixed_3d_centers":true,
+		"whole_plant_billboard":false,
 		"solid_core":false,
 		"source_record_unchanged":true,
 		"profile_schema":str(profile.schema)
@@ -96,14 +98,18 @@ func _append_wood(node:MeshInstance3D,xform:Transform3D)->void:
 
 func _append_foliage(node:MeshInstance3D,xform:Transform3D,family_angle:float,role:String)->void:
 	var arrays:Array=node.mesh.surface_get_arrays(0);var offset:=_fv.size()
-	var role_code:=1.0 if role=="leader" else .75 if role=="primary" else .25
+	var scale_value:=xform.basis.get_scale().x
 	_family_angles.append(family_angle)
 	for i in arrays[Mesh.ARRAY_VERTEX].size():
 		var local:Vector3=arrays[Mesh.ARRAY_VERTEX][i]
-		_fv.append(xform*local);_fn.append((xform.basis*arrays[Mesh.ARRAY_NORMAL][i]).normalized())
 		var source_color:Color=arrays[Mesh.ARRAY_COLOR][i]
-		_fc.append(Color(source_color.r,source_color.g,0,role_code))
-		_fuv.append(Vector2(local.x,local.z));_fuv2.append(Vector2(local.y,family_angle))
+		var uv:Vector2=arrays[Mesh.ARRAY_TEX_UV][i];var size:Vector2=arrays[Mesh.ARRAY_TEX_UV2][i]*scale_value
+		var corner:=(Vector2(fposmod(uv.x*4.,1.),uv.y)-Vector2(.5,.5))*size
+		var roll:=source_color.b*TAU-PI;corner=corner.rotated(roll)
+		_fv.append(xform*local+Vector3(corner.x,corner.y,0));_fn.append((xform.basis*arrays[Mesh.ARRAY_NORMAL][i]).normalized())
+		var role_tone:=.006 if role=="leader" else .008 if role=="primary" else -.004
+		_fc.append(Color(clampf(source_color.r+role_tone,0.,1.),source_color.g,source_color.b,fposmod(family_angle,TAU)/TAU))
+		_fuv.append(uv);_fuv2.append(size)
 	for index in arrays[Mesh.ARRAY_INDEX]:_fi.append(offset+int(index))
 
 func _finish_wood()->MeshInstance3D:
@@ -116,7 +122,8 @@ func _finish_foliage()->MeshInstance3D:
 	var arrays:=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=_fv;arrays[Mesh.ARRAY_NORMAL]=_fn;arrays[Mesh.ARRAY_INDEX]=_fi;arrays[Mesh.ARRAY_COLOR]=_fc;arrays[Mesh.ARRAY_TEX_UV]=_fuv;arrays[Mesh.ARRAY_TEX_UV2]=_fuv2
 	var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
 	var node:=MeshInstance3D.new();node.name="ProfiledBrushFoliage";node.mesh=mesh
-	var material:=ShaderMaterial.new();material.shader=Paint;node.material_override=material;add_child(node);return node
+	var material:=ShaderMaterial.new();material.shader=Paint;material.set_shader_parameter("brush_atlas",Group.brush_atlas());node.material_override=material
+	node.custom_aabb=mesh.get_aabb().grow(_radius*.45);add_child(node);return node
 
 func _triangle_count(mesh:Mesh)->int:
 	var arrays:Array=mesh.surface_get_arrays(0);return int(arrays[Mesh.ARRAY_INDEX].size()/3)

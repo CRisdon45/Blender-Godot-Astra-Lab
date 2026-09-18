@@ -69,5 +69,5 @@ renderer/rendering_method="gl_compatibility"
         manifest={"status":status,"run_id":rid,"public_commit":os.environ.get('GITHUB_SHA'),"engine":version,"engine_sha256":ENGINE_SHA,"runner_sha256":sha(Path(__file__)),"candidate_source_sha256":{p.relative_to(ROOT/'project').as_posix():sha(p) for p in sorted((ROOT/'project').rglob('*')) if p.is_file()},"output_sha256":{p.name:sha(p) for p in sorted(out.glob('*.png'))}}
         (out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 if __name__=='__main__':
-    if '--verify-only' in sys.argv:verify();print('Opaque brush-profile source boundary verified')
+    if '--verify-only' in sys.argv:verify();print('Brush-card profile source boundary verified')
     else:run()

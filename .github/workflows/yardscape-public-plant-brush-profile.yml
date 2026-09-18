@@ -1,4 +1,4 @@
-name: Public profile-driven opaque brush cloud proof
+name: Public profile-driven brush-card cloud proof
 on:
   push:
     branches:
@@ -40,7 +40,7 @@ jobs:
         run: python ci/yardscape-renderer/install_godot.py
       - name: Retained direct Plan regression
         run: python ci/yardscape-plant-plan-profile-probe/run_plan.py
-      - name: Native dab versus opaque-brush comparison
+      - name: Native dab versus brush-card comparison
         run: python ci/yardscape-plant-brush-profile-probe/run_brush.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

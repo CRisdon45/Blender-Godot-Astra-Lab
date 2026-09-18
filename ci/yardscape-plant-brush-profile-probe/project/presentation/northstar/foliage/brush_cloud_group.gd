@@ -1,10 +1,11 @@
 extends Node3D
-## One quiet foliage lobe made from small opaque bowed brush polygons.
-## Marks have fixed 3D centers and broad emitter-derived normals. They are not
-## literal leaves, alpha cards, camera-facing billboards, or a visible solid core.
-const RECIPE := "opaque-brush-cloud/1"
-const OUTER_PATCHES := 16
-const INNER_PATCHES := 4
+## One quiet foliage lobe made from small alpha-scissored brush clusters.
+## Every card has a fixed 3D center and broad emitter-derived normal. Only each
+## small card faces the camera; the plant never billboards and has no solid core.
+const RECIPE := "fixed-center-brush-card-cloud/2"
+const OUTER_CARDS := 12
+const INNER_CARDS := 6
+const ATLAS_TILES := 4
 const GOLDEN_ANGLE := 2.399963229728653
 
 var descriptor:Dictionary={}
@@ -15,6 +16,8 @@ var _v:=PackedVector3Array()
 var _n:=PackedVector3Array()
 var _ix:=PackedInt32Array()
 var _colors:=PackedColorArray()
+var _uv:=PackedVector2Array()
+var _uv2:=PackedVector2Array()
 
 func configure(seed_value:int,radius:float,height:float)->void:
 	assert(get_child_count()==0 and radius>0. and height>0.)
@@ -29,61 +32,54 @@ func configure(seed_value:int,radius:float,height:float)->void:
 	twig=_finish("BrushTwigGesture")
 	var bark:=StandardMaterial3D.new();bark.albedo_color=Color("665541");bark.roughness=1.;twig.material_override=bark
 	var phase:=rng.randf()*TAU
-	for index in OUTER_PATCHES:
-		var vertical:=1.0-2.0*(float(index)+.5)/float(OUTER_PATCHES)
+	for index in OUTER_CARDS:
+		var vertical:=1.0-2.0*(float(index)+.5)/float(OUTER_CARDS)
 		var ring:=sqrt(maxf(0.,1.-vertical*vertical))
 		var angle:=phase+float(index)*GOLDEN_ANGLE
 		var direction:=Vector3(cos(angle)*ring,vertical,sin(angle)*ring)
-		var shell:=rng.randf_range(.68,.94)
-		var center:=Vector3(direction.x*radius*.76,direction.y*height*.40,direction.z*radius*.76)*shell
+		var shell:=rng.randf_range(.62,.91)
+		var center:=Vector3(direction.x*radius*.78,direction.y*height*.40,direction.z*radius*.78)*shell
 		center+=Vector3(rng.randf_range(-.025,.025)*radius,rng.randf_range(-.018,.018)*height,rng.randf_range(-.025,.025)*radius)
 		var normal:=Vector3(direction.x/maxf(radius,.001),direction.y/maxf(height*.52,.001),direction.z/maxf(radius,.001)).normalized()
-		var width:=radius*rng.randf_range(.42,.54)
-		var length:=height*rng.randf_range(.205,.275)
+		var width:=radius*rng.randf_range(.49,.64)
+		var length:=height*rng.randf_range(.225,.295)
 		var tone:=clampf(.49+direction.y*.035+rng.randf_range(-.035,.035),.38,.61)
-		_patch(center,normal,rng.randf_range(-PI,PI),width,length,tone,.08,rng.randf()*TAU)
-	for index in INNER_PATCHES:
-		var angle:=phase+.47+float(index)*TAU/float(INNER_PATCHES)
-		var normal:=Vector3(cos(angle)*.72,.34 if index%2==0 else -.18,sin(angle)*.72).normalized()
-		var center:=Vector3(cos(angle)*radius*.20,(.04 if index%2==0 else -.09)*height,sin(angle)*radius*.20)
-		_patch(center,normal,rng.randf_range(-PI,PI),radius*rng.randf_range(.48,.59),height*rng.randf_range(.22,.29),rng.randf_range(.42,.49),.62,rng.randf()*TAU)
-	foliage=_finish("OpaqueBrushFoliage")
+		_card(center,normal,rng.randf_range(-PI,PI),width,length,tone,.08,rng.randi_range(0,ATLAS_TILES-1))
+	for index in INNER_CARDS:
+		var angle:=phase+.37+float(index)*GOLDEN_ANGLE
+		var vertical:=rng.randf_range(-.52,.58)
+		var direction:=Vector3(cos(angle)*sqrt(1.-vertical*vertical),vertical,sin(angle)*sqrt(1.-vertical*vertical))
+		var depth:=rng.randf_range(.16,.49)
+		var center:=Vector3(direction.x*radius*.78,direction.y*height*.38,direction.z*radius*.78)*depth
+		var normal:=(direction*.78+Vector3.UP*.22).normalized()
+		_card(center,normal,rng.randf_range(-PI,PI),radius*rng.randf_range(.54,.70),height*rng.randf_range(.24,.32),rng.randf_range(.42,.49),.56,rng.randi_range(0,ATLAS_TILES-1))
+	foliage=_finish("BrushCardFoliage")
 	var fa:Array=foliage.mesh.surface_get_arrays(0);var ta:Array=twig.mesh.surface_get_arrays(0)
 	stats={
 		"recipe":RECIPE,
-		"patches":OUTER_PATCHES+INNER_PATCHES,
-		"outer_patches":OUTER_PATCHES,
-		"inner_patches":INNER_PATCHES,
+		"cards":OUTER_CARDS+INNER_CARDS,
+		"outer_cards":OUTER_CARDS,
+		"inner_cards":INNER_CARDS,
 		"mesh_surfaces":2,
 		"foliage_triangles":int(fa[Mesh.ARRAY_INDEX].size()/3),
 		"twig_triangles":int(ta[Mesh.ARRAY_INDEX].size()/3),
 		"alpha_blended":false,
-		"alpha_scissor":false,
-		"camera_facing":false,
+		"alpha_scissor":true,
+		"camera_facing":true,
+		"fixed_3d_centers":true,
+		"whole_plant_billboard":false,
 		"solid_core":false
 	}
 
-func _frame(normal:Vector3,roll:float)->Array[Vector3]:
-	var n:=normal.normalized();var tangent:=Vector3.UP.cross(n)
-	if tangent.length_squared()<.01:tangent=Vector3.RIGHT
-	tangent=tangent.normalized();var bitangent:=n.cross(tangent).normalized()
-	var ca:=cos(roll);var sa:=sin(roll)
-	var t:=(tangent*ca+bitangent*sa).normalized()
-	var b:=(bitangent*ca-tangent*sa).normalized()
-	return [n,t,b]
-
-func _patch(center:Vector3,normal:Vector3,roll:float,width:float,length:float,tone:float,occlusion:float,wobble_phase:float)->void:
-	var frame:=_frame(normal,roll);var n:Vector3=frame[0];var tangent:Vector3=frame[1];var bitangent:Vector3=frame[2]
-	var proxy:=(n*.82+Vector3.UP*.18).normalized()
-	var first:=_v.size();var angles:=PackedFloat32Array([-2.72,-1.72,-.63,.38,1.36,2.38])
-	var radii:=PackedFloat32Array([.84,1.05,.89,1.07,.82,1.0])
-	for index in angles.size():
-		var a:=angles[index];var irregular:=radii[index]*(1.+.045*sin(float(index)*2.17+wobble_phase))
-		var x:=cos(a)*width*.5*irregular;var y:=sin(a)*length*.5*irregular
-		var bow:=sin(a*2.+wobble_phase)*minf(width,length)*.055
-		_v.append(center+tangent*x+bitangent*y+n*bow)
-		_n.append(proxy);_colors.append(Color(tone,occlusion,0,1))
-	for index in range(1,angles.size()-1):_ix.append_array(PackedInt32Array([first,first+index,first+index+1]))
+func _card(center:Vector3,normal:Vector3,roll:float,width:float,height:float,tone:float,occlusion:float,tile:int)->void:
+	var proxy:=(normal.normalized()*.82+Vector3.UP*.18).normalized();var first:=_v.size()
+	var corners:=PackedVector2Array([Vector2(0,1),Vector2(1,1),Vector2(1,0),Vector2(0,0)])
+	var roll_code:=fposmod(roll+PI,TAU)/TAU
+	for corner in corners:
+		_v.append(center);_n.append(proxy);_colors.append(Color(tone,occlusion,roll_code,1))
+		_uv.append(Vector2((float(tile)+lerpf(.018,.982,corner.x))/float(ATLAS_TILES),lerpf(.018,.982,corner.y)))
+		_uv2.append(Vector2(width,height))
+	_ix.append_array(PackedInt32Array([first,first+1,first+2,first,first+2,first+3]))
 
 func _tube(path:PackedVector3Array,start_radius:float,end_radius:float)->void:
 	var first:=_v.size();var sides:=5
@@ -103,9 +99,23 @@ func _tube(path:PackedVector3Array,start_radius:float,end_radius:float)->void:
 
 func _finish(label:String)->MeshInstance3D:
 	var arrays:=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=_v;arrays[Mesh.ARRAY_NORMAL]=_n;arrays[Mesh.ARRAY_INDEX]=_ix
-	if label=="OpaqueBrushFoliage":arrays[Mesh.ARRAY_COLOR]=_colors
+	if label=="BrushCardFoliage":arrays[Mesh.ARRAY_COLOR]=_colors;arrays[Mesh.ARRAY_TEX_UV]=_uv;arrays[Mesh.ARRAY_TEX_UV2]=_uv2
 	var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
 	var node:=MeshInstance3D.new();node.name=label;node.mesh=mesh;add_child(node)
-	_v=PackedVector3Array();_n=PackedVector3Array();_ix=PackedInt32Array();_colors=PackedColorArray();return node
+	_v=PackedVector3Array();_n=PackedVector3Array();_ix=PackedInt32Array();_colors=PackedColorArray();_uv=PackedVector2Array();_uv2=PackedVector2Array();return node
+
+static func brush_atlas()->ImageTexture:
+	var tile_size:=64;var image:=Image.create(tile_size*ATLAS_TILES,tile_size,false,Image.FORMAT_RGBA8)
+	for tile in ATLAS_TILES:
+		for y in tile_size:
+			for x in tile_size:
+				var p:=Vector2((float(x)+.5)/float(tile_size)*2.-1.,(float(y)+.5)/float(tile_size)*2.-1.)
+				var angle:=atan2(p.y,p.x);var squash:=.70+.045*float(tile%2)
+				var radial:=sqrt(p.x*p.x+p.y*p.y/(squash*squash))
+				var edge:=.92+.055*sin((3.+float(tile%2))*angle+float(tile)*.91)+.025*cos(7.*angle-float(tile)*.37)
+				var bristle:=.025*sin(p.x*18.+float(tile)*1.7)*(1.-clampf(abs(p.y),0.,1.))
+				var alpha:=clampf((edge+bristle-radial)*18.+.5,0.,1.)
+				image.set_pixel(tile*tile_size+x,y,Color(1,1,1,alpha))
+	image.generate_mipmaps();return ImageTexture.create_from_image(image)
 
 func geometry_signature()->String:return var_to_bytes([descriptor,twig.mesh.surface_get_arrays(0),foliage.mesh.surface_get_arrays(0)]).hex_encode().sha256_text()

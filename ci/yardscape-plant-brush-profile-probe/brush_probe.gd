@@ -35,16 +35,16 @@ func courtyard()->void:
 func plan_signature(profile:Dictionary)->String:
 	var phase:=Layout.phase_for_seed(int(study.document.tree.seed),profile)
 	return var_to_bytes(Layout.plan_lobes(profile,phase)).hex_encode().sha256_text()
-func validate_profile(profile:Dictionary,expected_groups:int,expected_patches:int,label:String)->String:
+func validate_profile(profile:Dictionary,expected_groups:int,expected_cards:int,label:String)->String:
 	study.set_profile(profile)
 	var dab=study.dab_tree;var brush=study.brush_tree
 	check(dab.descriptor==study.document.tree and brush.descriptor==study.document.tree,label+" renderers preserve the authoritative tree record")
 	check(dab.normalized_plan_lobes()==brush.normalized_plan_lobes(),label+" dab and brush renderers use identical normalized Plan lobes")
 	var phase:=Layout.phase_for_seed(int(study.document.tree.seed),profile)
 	check(brush.normalized_plan_lobes()==Layout.plan_lobes(profile,phase),label+" brush renderer consumes the exact shared layout")
-	check(brush.stats.groups==expected_groups and brush.stats.patches==expected_patches,label+" brush budget follows shared profile groups")
-	check(brush.stats.visible_meshes==2 and not brush.stats.alpha_blended and not brush.stats.alpha_scissor,label+" candidate is two opaque meshes")
-	check(not brush.stats.camera_facing and not brush.stats.solid_core,label+" candidate has fixed 3D patches and no solid core")
+	check(brush.stats.groups==expected_groups and brush.stats.cards==expected_cards,label+" brush-card budget follows shared profile groups")
+	check(brush.stats.visible_meshes==2 and not brush.stats.alpha_blended and brush.stats.alpha_scissor,label+" candidate is two meshes with alpha scissor, never alpha blend")
+	check(brush.stats.camera_facing and brush.stats.fixed_3d_centers and not brush.stats.whole_plant_billboard and not brush.stats.solid_core,label+" only small fixed-center cards face the camera and no solid core exists")
 	check(brush.stats.visible_triangles<dab.stats.visible_triangles,label+" brush candidate uses fewer indexed triangles than retained dabs")
 	check(float(brush.stats.foliage_width)>float(dab.stats.foliage_width)*1.10 and float(brush.stats.foliage_height)>float(dab.stats.foliage_height)*1.10,label+" brush surface expands the occupied lobe envelope")
 	var signature:String=brush.geometry_signature();var clone:=BrushTree.new();clone.configure(study.document.tree,profile)
@@ -60,12 +60,12 @@ func run()->void:
 	check(Profiles.input_error(ash_profile).is_empty() and Profiles.input_error(palo_profile).is_empty(),"retained form profiles validate")
 	study=load("res://northstar-profile-brush-cloud.tscn").instantiate();root.add_child(study);for i in 3:await process_frame
 	check(study is Current,"exact isolated opaque-brush study")
-	var ash_plan_signature:=plan_signature(ash_profile);var ash_signature:=validate_profile(ash_profile,16,320,"Fan-Tex")
+	var ash_plan_signature:=plan_signature(ash_profile);var ash_signature:=validate_profile(ash_profile,16,288,"Fan-Tex")
 	close(.55,.28,7.4);var ash_front_dab:=await capture("01-fantex-front-dab",false);var ash_front_brush:=await capture("02-fantex-front-brush",true);check(digest(ash_front_dab)!=digest(ash_front_brush),"Fan-Tex brush surface visibly differs from retained dabs")
 	close(.55+PI*.5,.30,7.4);await capture("03-fantex-side-dab",false);await capture("04-fantex-side-brush",true)
 	close(.55,1.49,8.2,true);await capture("05-fantex-top-dab",false);await capture("06-fantex-top-brush",true)
 	courtyard();await capture("07-fantex-courtyard-dab",false);await capture("08-fantex-courtyard-brush",true)
-	var palo_plan_signature:=plan_signature(palo_profile);var palo_signature:=validate_profile(palo_profile,14,280,"Palo Verde")
+	var palo_plan_signature:=plan_signature(palo_profile);var palo_signature:=validate_profile(palo_profile,14,252,"Palo Verde")
 	close(.55,.27,7.5);var palo_front_dab:=await capture("09-palo-front-dab",false);var palo_front_brush:=await capture("10-palo-front-brush",true);check(digest(palo_front_dab)!=digest(palo_front_brush),"Palo brush surface visibly differs from retained dabs");check(digest(palo_front_brush)!=digest(ash_front_brush),"same brush builder preserves visibly distinct species forms")
 	close(.55,1.49,8.2,true);await capture("11-palo-top-dab",false);await capture("12-palo-top-brush",true)
 	close(.55,.27,7.5);study._choose("Afternoon");var afternoon:=await capture("13-palo-afternoon-brush",true);study._choose("Morning");var morning:=await capture("14-palo-morning-return",true)
@@ -74,6 +74,6 @@ func run()->void:
 	check(study.brush_tree.geometry_signature()==palo_signature,"camera and light changes never regenerate brush geometry")
 	check(plan_signature(ash_profile)==ash_plan_signature and plan_signature(palo_profile)==palo_plan_signature,"brush experiment never changes shared Plan layouts")
 	diagnostics["ash_plan_layout_signature"]=ash_plan_signature;diagnostics["palo_plan_layout_signature"]=palo_plan_signature;diagnostics["ash_geometry_signature"]=ash_signature;diagnostics["palo_geometry_signature"]=palo_signature
-	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,"pixel_hashes":hashes,"diagnostics":diagnostics,"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),"scope":"opaque fixed-3D brush foliage over unchanged profile-driven shared layout, compared with retained dabs","uses_shared_plan_layout":true,"uses_3d_mesh_readback_for_plan":false,"uses_textures":false,"uses_alpha":false,"uses_solid_core":false,"runtime_ai":false,"tablet_performance_tested":false,"artistic_acceptance":"human_review_required"}
+	var report:Dictionary={"run_id":run_id,"passed":failures.is_empty(),"checks":checks,"failures":failures,"pixel_hashes":hashes,"diagnostics":diagnostics,"engine":Engine.get_version_info().string,"adapter":RenderingServer.get_video_adapter_name(),"scope":"fixed-center alpha-scissored brush-card foliage over unchanged profile-driven shared layout, compared with retained dabs","uses_shared_plan_layout":true,"uses_3d_mesh_readback_for_plan":false,"uses_generated_brush_atlas":true,"uses_alpha_scissor":true,"uses_alpha_blend":false,"whole_plant_billboard":false,"uses_solid_core":false,"runtime_ai":false,"tablet_performance_tested":false,"artistic_acceptance":"human_review_required"}
 	var f:=FileAccess.open(output.path_join("report.json"),FileAccess.WRITE);if f==null:push_error("Cannot write report");quit(1);return
 	f.store_string(JSON.stringify(report,"  "));f.close();study.queue_free();await process_frame;quit(0 if failures.is_empty() else 1)
