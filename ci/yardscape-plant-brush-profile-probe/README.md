@@ -15,6 +15,10 @@ The first native pass used roughly three hundred small opaque bowed polygons.
 It filled the crown and cut triangle count, but its hard facets read as polygon
 leaves and ring-like clumps. That rejected pass remains in branch history.
 
+The second native pass proved the fixed-center alpha-scissor path, but its
+simple oval atlas and unconstrained roll still read as literal leaf confetti;
+it also overfilled the airy Palo Verde. That evidence also remains in history.
+
 The revised falsifiable hypothesis is that the stronger prior brush-cloud
 mechanic—roughly three hundred small alpha-scissored brush clusters with fixed
 3D centers, per-card camera facing, and broad emitter-derived normals—will
@@ -28,6 +32,8 @@ layout authority.
 - Every brush card has a fixed 3D center and an emitter-derived broad normal.
 - Only each small card faces the camera; the plant and lobe envelopes never do.
 - A deterministic generated four-tile brush atlas uses alpha scissor, not blend.
+- Each tile is a broad multi-lobed brush cluster, with restrained roll.
+- Card budget follows normalized lobe volume, so airy profiles stay airy.
 - All wood is merged into one mesh; all foliage is merged into one mesh.
 - The shared profile and layout files are inputs and are not modified here.
 - Direct Plan remains a separate 2D consumer; no 3D readback is introduced.

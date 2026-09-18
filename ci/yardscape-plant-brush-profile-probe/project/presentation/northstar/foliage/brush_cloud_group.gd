@@ -3,8 +3,6 @@ extends Node3D
 ## Every card has a fixed 3D center and broad emitter-derived normal. Only each
 ## small card faces the camera; the plant never billboards and has no solid core.
 const RECIPE := "fixed-center-brush-card-cloud/2"
-const OUTER_CARDS := 12
-const INNER_CARDS := 6
 const ATLAS_TILES := 4
 const GOLDEN_ANGLE := 2.399963229728653
 
@@ -19,9 +17,9 @@ var _colors:=PackedColorArray()
 var _uv:=PackedVector2Array()
 var _uv2:=PackedVector2Array()
 
-func configure(seed_value:int,radius:float,height:float)->void:
-	assert(get_child_count()==0 and radius>0. and height>0.)
-	descriptor={"seed":seed_value,"radius":radius,"height":height}
+func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
+	assert(get_child_count()==0 and radius>0. and height>0. and card_budget>=8)
+	descriptor={"seed":seed_value,"radius":radius,"height":height,"card_budget":card_budget}
 	var rng:=RandomNumberGenerator.new();rng.seed=seed_value
 	var stems=[
 		PackedVector3Array([Vector3(0,-height*.47,0),Vector3(.025*radius,-height*.18,.015*radius),Vector3(.02*radius,height*.16,.03*radius)]),
@@ -32,8 +30,9 @@ func configure(seed_value:int,radius:float,height:float)->void:
 	twig=_finish("BrushTwigGesture")
 	var bark:=StandardMaterial3D.new();bark.albedo_color=Color("665541");bark.roughness=1.;twig.material_override=bark
 	var phase:=rng.randf()*TAU
-	for index in OUTER_CARDS:
-		var vertical:=1.0-2.0*(float(index)+.5)/float(OUTER_CARDS)
+	var outer_cards:=maxi(6,roundi(float(card_budget)*.67));var inner_cards:=card_budget-outer_cards
+	for index in outer_cards:
+		var vertical:=1.0-2.0*(float(index)+.5)/float(outer_cards)
 		var ring:=sqrt(maxf(0.,1.-vertical*vertical))
 		var angle:=phase+float(index)*GOLDEN_ANGLE
 		var direction:=Vector3(cos(angle)*ring,vertical,sin(angle)*ring)
@@ -41,25 +40,25 @@ func configure(seed_value:int,radius:float,height:float)->void:
 		var center:=Vector3(direction.x*radius*.78,direction.y*height*.40,direction.z*radius*.78)*shell
 		center+=Vector3(rng.randf_range(-.025,.025)*radius,rng.randf_range(-.018,.018)*height,rng.randf_range(-.025,.025)*radius)
 		var normal:=Vector3(direction.x/maxf(radius,.001),direction.y/maxf(height*.52,.001),direction.z/maxf(radius,.001)).normalized()
-		var width:=radius*rng.randf_range(.49,.64)
-		var length:=height*rng.randf_range(.225,.295)
+		var width:=radius*rng.randf_range(.57,.72)
+		var length:=height*rng.randf_range(.235,.305)
 		var tone:=clampf(.49+direction.y*.035+rng.randf_range(-.035,.035),.38,.61)
-		_card(center,normal,rng.randf_range(-PI,PI),width,length,tone,.08,rng.randi_range(0,ATLAS_TILES-1))
-	for index in INNER_CARDS:
+		_card(center,normal,rng.randf_range(-.38,.38),width,length,tone,.08,rng.randi_range(0,ATLAS_TILES-1))
+	for index in inner_cards:
 		var angle:=phase+.37+float(index)*GOLDEN_ANGLE
 		var vertical:=rng.randf_range(-.52,.58)
 		var direction:=Vector3(cos(angle)*sqrt(1.-vertical*vertical),vertical,sin(angle)*sqrt(1.-vertical*vertical))
 		var depth:=rng.randf_range(.16,.49)
 		var center:=Vector3(direction.x*radius*.78,direction.y*height*.38,direction.z*radius*.78)*depth
 		var normal:=(direction*.78+Vector3.UP*.22).normalized()
-		_card(center,normal,rng.randf_range(-PI,PI),radius*rng.randf_range(.54,.70),height*rng.randf_range(.24,.32),rng.randf_range(.42,.49),.56,rng.randi_range(0,ATLAS_TILES-1))
+		_card(center,normal,rng.randf_range(-.52,.52),radius*rng.randf_range(.62,.78),height*rng.randf_range(.25,.33),rng.randf_range(.42,.49),.56,rng.randi_range(0,ATLAS_TILES-1))
 	foliage=_finish("BrushCardFoliage")
 	var fa:Array=foliage.mesh.surface_get_arrays(0);var ta:Array=twig.mesh.surface_get_arrays(0)
 	stats={
 		"recipe":RECIPE,
-		"cards":OUTER_CARDS+INNER_CARDS,
-		"outer_cards":OUTER_CARDS,
-		"inner_cards":INNER_CARDS,
+		"cards":card_budget,
+		"outer_cards":outer_cards,
+		"inner_cards":inner_cards,
 		"mesh_surfaces":2,
 		"foliage_triangles":int(fa[Mesh.ARRAY_INDEX].size()/3),
 		"twig_triangles":int(ta[Mesh.ARRAY_INDEX].size()/3),
@@ -110,11 +109,16 @@ static func brush_atlas()->ImageTexture:
 		for y in tile_size:
 			for x in tile_size:
 				var p:=Vector2((float(x)+.5)/float(tile_size)*2.-1.,(float(y)+.5)/float(tile_size)*2.-1.)
-				var angle:=atan2(p.y,p.x);var squash:=.70+.045*float(tile%2)
-				var radial:=sqrt(p.x*p.x+p.y*p.y/(squash*squash))
-				var edge:=.92+.055*sin((3.+float(tile%2))*angle+float(tile)*.91)+.025*cos(7.*angle-float(tile)*.37)
-				var bristle:=.025*sin(p.x*18.+float(tile)*1.7)*(1.-clampf(abs(p.y),0.,1.))
-				var alpha:=clampf((edge+bristle-radial)*18.+.5,0.,1.)
+				var centers:=[Vector2(-.39,.02),Vector2(-.02,-.055),Vector2(.39,.035)]
+				var radii:=[Vector2(.56,.55),Vector2(.61,.61),Vector2(.54,.52)]
+				var alpha:=0.0
+				for lobe in centers.size():
+					var center:Vector2=centers[lobe]+Vector2(.018*float(tile-1),.028*sin(float(tile+lobe)*1.7))
+					var radius:Vector2=radii[lobe]*Vector2(1.+.025*float(tile%2),1.-.035*float((tile+lobe)%2))
+					var q:=(p-center)/radius;var angle:=atan2(q.y,q.x);var radial:=q.length()
+					var edge:=.96+.055*sin((3.+float((tile+lobe)%2))*angle+float(tile)*.81+float(lobe))+.025*cos(7.*angle-float(lobe))
+					var bristle:=.022*sin((p.x+float(lobe)*.17)*19.+float(tile)*1.3)*(1.-clampf(abs(q.y),0.,1.))
+					alpha=maxf(alpha,clampf((edge+bristle-radial)*18.+.5,0.,1.))
 				image.set_pixel(tile*tile_size+x,y,Color(1,1,1,alpha))
 	image.generate_mipmaps();return ImageTexture.create_from_image(image)
 

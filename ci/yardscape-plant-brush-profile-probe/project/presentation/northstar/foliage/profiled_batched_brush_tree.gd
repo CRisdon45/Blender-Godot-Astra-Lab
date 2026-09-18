@@ -34,10 +34,13 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 	var anchors:=Layout.anchors(profile,phase)
 	var group_radius:=_radius*float(profile.group.radius_factor)
 	var group_height:=_height*float(profile.group.height_factor)
+	var reference_volume:=.56*.56*.29
+	var normalized_volume:=float(profile.group.radius_factor)*float(profile.group.radius_factor)*float(profile.group.height_factor)
+	var cards_per_group:=clampi(roundi(18.*normalized_volume/reference_volume),9,20)
 	var card_count:=0
 	for i in anchors.size():
 		var anchor:Dictionary=anchors[i]
-		var group:=Group.new();group.configure(int(tree.seed)+int(profile.group_seed_stride)*(i+1),group_radius,group_height)
+		var group:=Group.new();group.configure(int(tree.seed)+int(profile.group_seed_stride)*(i+1),group_radius,group_height,cards_per_group)
 		var bounds:AABB=group.foliage.mesh.get_aabb().merge(group.twig.mesh.get_aabb())
 		var p:Vector3=anchor.position;var target:=Vector3(p.x*_radius,p.y*_height,p.z*_radius)
 		group.scale=Vector3.ONE*float(anchor.scale);group.rotation.y=float(anchor.angle);group.rotation.z=float(anchor.tilt)
@@ -52,6 +55,7 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 		"profile":str(profile.id),
 		"groups":anchors.size(),
 		"cards":card_count,
+		"cards_per_group":cards_per_group,
 		"families":int(profile.family_count),
 		"visible_meshes":2,
 		"visible_triangles":_triangle_count(wood.mesh)+_triangle_count(foliage.mesh),

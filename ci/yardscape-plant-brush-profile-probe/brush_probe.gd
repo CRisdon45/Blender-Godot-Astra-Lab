@@ -65,7 +65,7 @@ func run()->void:
 	close(.55+PI*.5,.30,7.4);await capture("03-fantex-side-dab",false);await capture("04-fantex-side-brush",true)
 	close(.55,1.49,8.2,true);await capture("05-fantex-top-dab",false);await capture("06-fantex-top-brush",true)
 	courtyard();await capture("07-fantex-courtyard-dab",false);await capture("08-fantex-courtyard-brush",true)
-	var palo_plan_signature:=plan_signature(palo_profile);var palo_signature:=validate_profile(palo_profile,14,252,"Palo Verde")
+	var palo_plan_signature:=plan_signature(palo_profile);var palo_signature:=validate_profile(palo_profile,14,154,"Palo Verde")
 	close(.55,.27,7.5);var palo_front_dab:=await capture("09-palo-front-dab",false);var palo_front_brush:=await capture("10-palo-front-brush",true);check(digest(palo_front_dab)!=digest(palo_front_brush),"Palo brush surface visibly differs from retained dabs");check(digest(palo_front_brush)!=digest(ash_front_brush),"same brush builder preserves visibly distinct species forms")
 	close(.55,1.49,8.2,true);await capture("11-palo-top-dab",false);await capture("12-palo-top-brush",true)
 	close(.55,.27,7.5);study._choose("Afternoon");var afternoon:=await capture("13-palo-afternoon-brush",true);study._choose("Morning");var morning:=await capture("14-palo-morning-return",true)
