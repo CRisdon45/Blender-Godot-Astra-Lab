@@ -11,6 +11,7 @@ const WARMUP_SECONDS := 3.0
 const SAMPLE_SECONDS := 12.0
 const VISUAL_COLOR_MIN := 32
 const VISUAL_READY_ATTEMPTS := 45
+const EVIDENCE_MAX_WIDTH := 960
 
 var camera:Camera3D
 var status_label:Label
@@ -19,7 +20,6 @@ var orbit_offset:=0.0
 var samples:=PackedFloat32Array()
 var reported:=false
 var visual_ready:=false
-var measuring_capture_started:=false
 var visible_meshes:=0
 var visible_triangles:=0
 
@@ -43,9 +43,6 @@ func _process(delta:float)->void:
 	if elapsed>=WARMUP_SECONDS and not reported:
 		samples.append(delta*1000.0)
 		status_label.text="MEASURING RETAINED PLANTINGS  %0.1f / %0.0f s" % [minf(orbit_time,SAMPLE_SECONDS),SAMPLE_SECONDS]
-	if elapsed>=WARMUP_SECONDS+2.0 and not measuring_capture_started:
-		measuring_capture_started=true
-		_save_measuring_capture()
 	if elapsed>=WARMUP_SECONDS+SAMPLE_SECONDS and not reported:
 		reported=true
 		_emit_report()
@@ -59,8 +56,6 @@ func _confirm_visual_ready()->void:
 			var capture:=_save_image(image,"yardscape-ready.png",sampled_colors)
 			if int(capture.save_error)!=OK:
 				break
-			visual_ready=true
-			elapsed=0.0
 			print("YARDSCAPE_BENCHMARK_READY="+JSON.stringify({
 				"recipe":RECIPE,
 				"trees":TREE_COUNT,
@@ -71,20 +66,27 @@ func _confirm_visual_ready()->void:
 				"attempt":attempt+1,
 				"user_data_dir":OS.get_user_data_dir()
 			}))
+			var measuring_valid:bool=await _save_measuring_capture()
+			if not measuring_valid:
+				return
+			samples.clear()
+			elapsed=0.0
+			visual_ready=true
 			return
 	push_error("Rendered viewport never reached visual evidence threshold")
 	print("YARDSCAPE_VISUAL_READY_FAILED="+JSON.stringify({"minimum":VISUAL_COLOR_MIN,"attempts":VISUAL_READY_ATTEMPTS}))
 	get_tree().quit(2)
 
-func _save_measuring_capture()->void:
+func _save_measuring_capture()->bool:
 	await RenderingServer.frame_post_draw
 	var image:=get_viewport().get_texture().get_image()
 	var capture:=_save_image(image,"yardscape-measuring.png",_sampled_color_count(image))
 	if int(capture.save_error)!=OK or int(capture.sampled_colors)<VISUAL_COLOR_MIN:
 		push_error("Measuring viewport capture is invalid")
 		get_tree().quit(2)
-		return
+		return false
 	print("YARDSCAPE_MEASURING_IMAGE="+JSON.stringify(capture))
+	return true
 
 func _unhandled_input(event:InputEvent)->void:
 	if event is InputEventScreenDrag:
@@ -239,6 +241,9 @@ func _emit_report()->void:
 	print("YARDSCAPE_BENCHMARK_JSON="+JSON.stringify(report))
 
 func _save_image(image:Image,file_name:String,sampled_colors:int)->Dictionary:
+	if image.get_width()>EVIDENCE_MAX_WIDTH:
+		var target_height:=roundi(float(image.get_height())*float(EVIDENCE_MAX_WIDTH)/float(image.get_width()))
+		image.resize(EVIDENCE_MAX_WIDTH,target_height,Image.INTERPOLATE_BILINEAR)
 	var save_error:=image.save_png("user://"+file_name)
 	return {
 		"file":file_name,

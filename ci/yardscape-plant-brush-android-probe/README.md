@@ -27,6 +27,12 @@ and blank or low-color-diversity screenshots before reporting success. Visual
 evidence is read back from Godot's own viewport; a separate Android device
 screenshot records orientation and foreground-window state.
 
+The scene itself renders at the fixed 1920 by 1200 tablet viewport. For
+artifact size and deterministic software-emulator runtime, only the saved
+evidence copies are reduced to 960 by 600. Ready and measuring captures finish
+before timed sampling starts, so PNG compression is excluded from the render
+loop measurements.
+
 The debug APK includes `arm64-v8a` for a later physical-device run and
 `x86_64` for the hosted emulator. CI obtains the exact Godot 4.7.1 editor and
 matching official export templates from the pinned upstream release, verifies

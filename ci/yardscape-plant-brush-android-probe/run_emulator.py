@@ -266,7 +266,7 @@ def main() -> None:
             (output / f"{label}-launch.txt").write_text(launch, encoding="utf-8")
             if "Status: ok" not in launch:
                 raise RuntimeError(f"Launch was not confirmed for {label}")
-            deadline = time.monotonic() + 90
+            deadline = time.monotonic() + 180
             benchmark = None
             ready_info = None
             measuring_info = None
