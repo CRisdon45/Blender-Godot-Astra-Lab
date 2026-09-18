@@ -1,0 +1,58 @@
+name: Public brush-card shrub generality proof
+on:
+  push:
+    branches:
+      - experiment/profile-brush-shrub-v1
+    paths:
+      - ci/yardscape-plant-brush-shrub-probe/**
+      - .github/workflows/yardscape-public-plant-brush-shrub.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  brush-shrub:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-spatial-probe
+            ci/yardscape-canopy-probe
+            ci/yardscape-foliage-group-probe
+            ci/yardscape-dab-group-probe
+            ci/yardscape-compact-tree-probe
+            ci/yardscape-dab-tree-probe
+            ci/yardscape-dab-value-probe
+            ci/yardscape-dab-batch-probe
+            ci/yardscape-fantex-form-probe
+            ci/yardscape-plant-form-profile-probe
+            ci/yardscape-plant-plan-profile-probe
+            ci/yardscape-plant-brush-profile-probe
+            ci/yardscape-plant-brush-shrub-probe
+      - name: Verify reviewed shrub boundary
+        run: python ci/yardscape-plant-brush-shrub-probe/run_shrub.py --verify-only
+      - name: Verify retained direct Plan boundary
+        run: python ci/yardscape-plant-plan-profile-probe/run_plan.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Retained direct Plan regression
+        run: python ci/yardscape-plant-plan-profile-probe/run_plan.py
+      - name: Retained brush tree versus shrub generality comparison
+        run: python ci/yardscape-plant-brush-shrub-probe/run_shrub.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: plant-brush-shrub-evidence
+          path: /home/runner/work/_temp/plant-brush-shrub-evidence
+          retention-days: 7
+          if-no-files-found: warn
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: plant-brush-shrub-direct-plan-regression
+          path: /home/runner/work/_temp/plant-plan-profile-evidence
+          retention-days: 7
+          if-no-files-found: warn
