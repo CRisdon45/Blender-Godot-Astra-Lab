@@ -15,7 +15,7 @@ PIN='4.7.1.stable.official.a13da4feb';ENGINE_SHA='32f8d7596c4b41185512b1c49d69f2
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def verify():
     spec=importlib.util.spec_from_file_location('profile_verify',PROFILE/'run_profile.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);m.verify()
-    expected={'northstar-profile-brush-cloud.tscn','presentation/northstar/spatial_profiled_brush_study.gd','presentation/northstar/foliage/brush_cloud_group.gd','presentation/northstar/foliage/batched_brush_cloud.gdshader','presentation/northstar/foliage/profiled_batched_brush_tree.gd'}
+    expected={'northstar-profile-brush-cloud.tscn','presentation/northstar/spatial_profiled_brush_study.gd','presentation/northstar/foliage/brush_cloud_group.gd','presentation/northstar/foliage/northstar_brush_atlas.gd','presentation/northstar/foliage/batched_brush_cloud.gdshader','presentation/northstar/foliage/profiled_batched_brush_tree.gd'}
     actual={p.relative_to(ROOT/'project').as_posix() for p in (ROOT/'project').rglob('*') if p.is_file()}
     if actual!=expected:raise ValueError('Unexpected brush-profile source expansion')
     for name in actual:

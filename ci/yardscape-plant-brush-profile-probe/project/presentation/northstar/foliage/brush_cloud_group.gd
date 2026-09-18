@@ -1,9 +1,10 @@
 extends Node3D
-## One quiet foliage lobe made from small alpha-scissored brush clusters.
+## One quiet foliage lobe made from small alpha-scissored broad-mass marks.
 ## Every card has a fixed 3D center and broad emitter-derived normal. Only each
 ## small card faces the camera; the plant never billboards and has no solid core.
-const RECIPE := "fixed-center-brush-card-cloud/2"
-const ATLAS_TILES := 4
+const Atlas=preload("res://presentation/northstar/foliage/northstar_brush_atlas.gd")
+const RECIPE := "fixed-center-brush-card-cloud/3"
+const ATLAS_TILES := Atlas.TILE_COUNT
 const GOLDEN_ANGLE := 2.399963229728653
 
 var descriptor:Dictionary={}
@@ -67,7 +68,9 @@ func configure(seed_value:int,radius:float,height:float,card_budget:=18)->void:
 		"camera_facing":true,
 		"fixed_3d_centers":true,
 		"whole_plant_billboard":false,
-		"solid_core":false
+		"solid_core":false,
+		"authored_atlas":true,
+		"atlas_id":Atlas.ID
 	}
 
 func _card(center:Vector3,normal:Vector3,roll:float,width:float,height:float,tone:float,occlusion:float,tile:int)->void:
@@ -103,27 +106,6 @@ func _finish(label:String)->MeshInstance3D:
 	var node:=MeshInstance3D.new();node.name=label;node.mesh=mesh;add_child(node)
 	_v=PackedVector3Array();_n=PackedVector3Array();_ix=PackedInt32Array();_colors=PackedColorArray();_uv=PackedVector2Array();_uv2=PackedVector2Array();return node
 
-static func brush_atlas()->ImageTexture:
-	var tile_size:=64;var image:=Image.create(tile_size*ATLAS_TILES,tile_size,false,Image.FORMAT_RGBA8)
-	for tile in ATLAS_TILES:
-		for y in tile_size:
-			for x in tile_size:
-				var p:=Vector2((float(x)+.5)/float(tile_size)*2.-1.,(float(y)+.5)/float(tile_size)*2.-1.)
-				var centers:=[]
-				if tile==0:centers=[Vector2(-.44,.00),Vector2(.00,.08),Vector2(.44,-.04)]
-				elif tile==1:centers=[Vector2(-.38,-.23),Vector2(.00,.15),Vector2(.40,.03)]
-				elif tile==2:centers=[Vector2(-.34,.18),Vector2(.00,-.20),Vector2(.36,.18)]
-				else:centers=[Vector2(-.29,-.23),Vector2(-.02,.17),Vector2(.39,-.08)]
-				var radii:=[Vector2(.49,.50),Vector2(.53,.54),Vector2(.47,.48)]
-				var alpha:=0.0
-				for lobe in centers.size():
-					var center:Vector2=centers[lobe]+Vector2(.018*float(tile-1),.028*sin(float(tile+lobe)*1.7))
-					var radius:Vector2=radii[lobe]*Vector2(1.+.025*float(tile%2),1.-.035*float((tile+lobe)%2))
-					var q:=(p-center)/radius;var angle:=atan2(q.y,q.x);var radial:=q.length()
-					var edge:=.96+.055*sin((3.+float((tile+lobe)%2))*angle+float(tile)*.81+float(lobe))+.025*cos(7.*angle-float(lobe))
-					var bristle:=.022*sin((p.x+float(lobe)*.17)*19.+float(tile)*1.3)*(1.-clampf(abs(q.y),0.,1.))
-					alpha=maxf(alpha,clampf((edge+bristle-radial)*18.+.5,0.,1.))
-				image.set_pixel(tile*tile_size+x,y,Color(1,1,1,alpha))
-	image.generate_mipmaps();return ImageTexture.create_from_image(image)
+static func brush_atlas()->ImageTexture:return Atlas.texture()
 
 func geometry_signature()->String:return var_to_bytes([descriptor,twig.mesh.surface_get_arrays(0),foliage.mesh.surface_get_arrays(0)]).hex_encode().sha256_text()

@@ -24,7 +24,8 @@ void vertex(){
 }
 float grain(vec3 p){return .5+.23*sin(p.x*4.7+p.y*3.3)+.12*sin(p.z*6.1-p.y*2.4);}
 void fragment(){
- float mask=texture(brush_atlas,UV).a;
+ vec4 brush=texture(brush_atlas,UV);
+ float mask=brush.a;
  ALPHA=mask;
  ALPHA_SCISSOR_THRESHOLD=.42;
  float family_value=0.0;
@@ -32,14 +33,16 @@ void fragment(){
  float alignment=dot(family_dir,sun_direction);
   if(alignment>.28) family_value=.068;
   else if(alignment<-.28) family_value=-.068;
- float local_tone=mix(.5,COLOR.r,.24)-interior_occlusion*.045;
+ float wash_value=(brush.r-.5)*.17;
+ float local_tone=mix(.5,COLOR.r,.24)-interior_occlusion*.045+wash_value;
  float tone=clamp(local_tone+family_value,.18,.80);
- vec3 dark=vec3(.18,.29,.12);
- vec3 middle=vec3(.35,.48,.215);
- vec3 light_value=vec3(.57,.62,.34);
+ vec3 dark=vec3(.14,.235,.085);
+ vec3 middle=vec3(.325,.425,.185);
+ vec3 light_value=vec3(.565,.595,.305);
  vec3 color=mix(dark,middle,smoothstep(.33,.52,tone));
  color=mix(color,light_value,smoothstep(.50,.66,tone)*.36);
- color*=.985+.030*grain(group_local);
+ float edge_pool=1.0-smoothstep(.42,.76,mask);
+ color*=.992+.018*grain(group_local)-edge_pool*.035;
  ALBEDO=color;
  ROUGHNESS=1.0;
 }
