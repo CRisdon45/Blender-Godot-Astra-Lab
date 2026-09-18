@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import statistics
+import struct
 import subprocess
 import time
 
@@ -15,6 +16,7 @@ AVD_NAME = "yardscape-planting-api35"
 SERIAL = "emulator-5554"
 RUN_COUNT = 3
 MARKER = "YARDSCAPE_BENCHMARK_JSON="
+READY_MARKER = "YARDSCAPE_BENCHMARK_READY="
 
 
 def sha(path: Path) -> str:
@@ -34,6 +36,17 @@ def command(arguments: list[str], *, timeout: int = 60, check: bool = True, bina
         output = result.stdout if isinstance(result.stdout, str) else result.stdout.decode("utf-8", "replace")
         raise RuntimeError(f"Command failed ({result.returncode}): {' '.join(arguments)}\n{output[-4000:]}")
     return result.stdout
+
+
+def capture_landscape_screenshot(adb, path: Path, label: str) -> dict[str, int]:
+    screenshot = adb("exec-out", "screencap", "-p", timeout=30, binary=True)
+    if not screenshot.startswith(b"\x89PNG\r\n\x1a\n") or len(screenshot) < 24:
+        raise RuntimeError(f"Invalid {label} screenshot")
+    width, height = struct.unpack(">II", screenshot[16:24])
+    if width <= height:
+        raise RuntimeError(f"Expected landscape {label} screenshot, got {width}x{height}")
+    path.write_bytes(screenshot)
+    return {"width": width, "height": height}
 
 
 def main() -> None:
@@ -109,7 +122,8 @@ def main() -> None:
         adb("shell", "wm", "size", "1920x1200")
         adb("shell", "wm", "density", "240")
         adb("shell", "settings", "put", "system", "accelerometer_rotation", "0")
-        adb("shell", "settings", "put", "system", "user_rotation", "1")
+        adb("shell", "settings", "put", "system", "user_rotation", "0")
+        adb("shell", "settings", "put", "secure", "immersive_mode_confirmations", "confirmed")
         install_log = adb("install", "-r", str(apk), timeout=180)
         (output / "install.log").write_text(install_log, encoding="utf-8")
         if "Success" not in install_log:
@@ -140,6 +154,10 @@ def main() -> None:
             "egl": adb("shell", "getprop", "ro.hardware.egl").strip(),
             "wm_size": adb("shell", "wm", "size").strip(),
             "wm_density": adb("shell", "wm", "density").strip(),
+            "user_rotation": adb("shell", "settings", "get", "system", "user_rotation").strip(),
+            "immersive_mode_confirmations": adb(
+                "shell", "settings", "get", "secure", "immersive_mode_confirmations"
+            ).strip(),
             "launch_component": component,
             "debuggable": debuggable,
         }
@@ -155,15 +173,16 @@ def main() -> None:
                 raise RuntimeError(f"Launch was not confirmed for {label}")
             deadline = time.monotonic() + 55
             benchmark = None
-            screenshot_taken = False
+            ready_at = None
+            measuring_dimensions = None
             while time.monotonic() < deadline:
                 logs = adb("logcat", "-d", "-v", "threadtime", timeout=30)
-                if not screenshot_taken and time.monotonic() > deadline - 49:
-                    screenshot = adb("exec-out", "screencap", "-p", timeout=30, binary=True)
-                    if not screenshot.startswith(b"\x89PNG\r\n\x1a\n"):
-                        raise RuntimeError(f"Invalid measuring screenshot for {label}")
-                    (output / f"{label}-measuring.png").write_bytes(screenshot)
-                    screenshot_taken = True
+                if ready_at is None and READY_MARKER in logs:
+                    ready_at = time.monotonic()
+                if measuring_dimensions is None and ready_at is not None and time.monotonic() >= ready_at + 4:
+                    measuring_dimensions = capture_landscape_screenshot(
+                        adb, output / f"{label}-measuring.png", f"measuring {label}"
+                    )
                 marked = [line.split(MARKER, 1)[1] for line in logs.splitlines() if MARKER in line]
                 if marked:
                     benchmark = json.loads(marked[-1].strip())
@@ -173,6 +192,10 @@ def main() -> None:
             (output / f"{label}-logcat.txt").write_text(logs, encoding="utf-8")
             if benchmark is None:
                 raise TimeoutError(f"No in-app benchmark report for {label}")
+            if ready_at is None:
+                raise RuntimeError(f"No in-app ready marker for {label}")
+            if measuring_dimensions is None:
+                raise RuntimeError(f"No measuring screenshot for {label}")
             fatal = re.search(r"FATAL EXCEPTION|Fatal signal|SCRIPT ERROR:|SHADER ERROR:", logs, re.IGNORECASE)
             if fatal:
                 raise RuntimeError(f"Crash or Godot source failure in {label}: {fatal.group(0)}")
@@ -195,13 +218,14 @@ def main() -> None:
             adb("shell", "uiautomator", "dump", "/sdcard/yardscape-window.xml", timeout=30, check=False)
             ui_tree = adb("exec-out", "cat", "/sdcard/yardscape-window.xml", timeout=30, check=False)
             (output / f"{label}-window.xml").write_text(ui_tree, encoding="utf-8")
-            screenshot = adb("exec-out", "screencap", "-p", timeout=30, binary=True)
-            if not screenshot.startswith(b"\x89PNG\r\n\x1a\n"):
-                raise RuntimeError(f"Invalid completion screenshot for {label}")
-            (output / f"{label}-complete.png").write_bytes(screenshot)
+            completion_dimensions = capture_landscape_screenshot(
+                adb, output / f"{label}-complete.png", f"completion {label}"
+            )
             runs.append({
                 "run": run_number,
                 "in_app": benchmark,
+                "measuring_screenshot": measuring_dimensions,
+                "completion_screenshot": completion_dimensions,
                 "gfxinfo_has_frame_summary": "Total frames rendered" in gfxinfo,
                 "meminfo_process_present": "No process found" not in meminfo,
             })
