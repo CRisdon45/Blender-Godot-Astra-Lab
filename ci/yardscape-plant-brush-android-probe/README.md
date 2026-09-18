@@ -16,6 +16,10 @@ renderer evidence before any production integration.
   screenshot, UI-tree, and logcat evidence;
 - three fresh app launches on one clean emulator boot.
 
+The probe uses Godot's Mobile renderer through Vulkan. The hosted AVD uses the
+current `swiftshader` software backend; CI rejects shader compilation/linking
+errors and blank or low-color-diversity screenshots before reporting success.
+
 The debug APK includes `arm64-v8a` for a later physical-device run and
 `x86_64` for the hosted emulator. CI obtains the exact Godot 4.7.1 editor and
 matching official export templates from the pinned upstream release, verifies

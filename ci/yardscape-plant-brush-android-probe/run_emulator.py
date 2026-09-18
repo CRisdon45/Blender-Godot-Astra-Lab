@@ -9,6 +9,7 @@ import statistics
 import struct
 import subprocess
 import time
+import zlib
 
 PACKAGE = "studio.yardscape.plantingprobe"
 APK_NAME = "yardscape-retained-planting-debug.apk"
@@ -38,6 +39,74 @@ def command(arguments: list[str], *, timeout: int = 60, check: bool = True, bina
     return result.stdout
 
 
+def _paeth(left: int, above: int, upper_left: int) -> int:
+    estimate = left + above - upper_left
+    left_distance = abs(estimate - left)
+    above_distance = abs(estimate - above)
+    upper_left_distance = abs(estimate - upper_left)
+    if left_distance <= above_distance and left_distance <= upper_left_distance:
+        return left
+    if above_distance <= upper_left_distance:
+        return above
+    return upper_left
+
+
+def sampled_png_color_count(png: bytes) -> int:
+    offset = 8
+    idat = []
+    width = height = bit_depth = color_type = interlace = None
+    while offset + 12 <= len(png):
+        length = struct.unpack(">I", png[offset:offset + 4])[0]
+        chunk_type = png[offset + 4:offset + 8]
+        chunk = png[offset + 8:offset + 8 + length]
+        offset += length + 12
+        if chunk_type == b"IHDR":
+            width, height, bit_depth, color_type, _, _, interlace = struct.unpack(">IIBBBBB", chunk)
+        elif chunk_type == b"IDAT":
+            idat.append(chunk)
+        elif chunk_type == b"IEND":
+            break
+    if bit_depth != 8 or color_type not in (2, 6) or interlace != 0 or not idat:
+        raise RuntimeError(
+            f"Unsupported screenshot PNG format: depth={bit_depth}, color={color_type}, interlace={interlace}"
+        )
+    bytes_per_pixel = 3 if color_type == 2 else 4
+    stride = int(width) * bytes_per_pixel
+    raw = zlib.decompress(b"".join(idat))
+    if len(raw) != int(height) * (stride + 1):
+        raise RuntimeError("Unexpected screenshot PNG payload length")
+    previous = bytearray(stride)
+    cursor = 0
+    colors = set()
+    for y in range(int(height)):
+        filter_type = raw[cursor]
+        cursor += 1
+        row = bytearray(raw[cursor:cursor + stride])
+        cursor += stride
+        for index in range(stride):
+            left = row[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+            above = previous[index]
+            upper_left = previous[index - bytes_per_pixel] if index >= bytes_per_pixel else 0
+            if filter_type == 1:
+                row[index] = (row[index] + left) & 0xFF
+            elif filter_type == 2:
+                row[index] = (row[index] + above) & 0xFF
+            elif filter_type == 3:
+                row[index] = (row[index] + ((left + above) // 2)) & 0xFF
+            elif filter_type == 4:
+                row[index] = (row[index] + _paeth(left, above, upper_left)) & 0xFF
+            elif filter_type != 0:
+                raise RuntimeError(f"Unsupported PNG row filter: {filter_type}")
+        if y % 8 == 0:
+            for x in range(0, int(width), 8):
+                start = x * bytes_per_pixel
+                colors.add(bytes(row[start:start + 3]))
+                if len(colors) >= 256:
+                    return len(colors)
+        previous = row
+    return len(colors)
+
+
 def capture_landscape_screenshot(adb, path: Path, label: str) -> dict[str, int]:
     screenshot = adb("exec-out", "screencap", "-p", timeout=30, binary=True)
     if not screenshot.startswith(b"\x89PNG\r\n\x1a\n") or len(screenshot) < 24:
@@ -45,8 +114,11 @@ def capture_landscape_screenshot(adb, path: Path, label: str) -> dict[str, int]:
     width, height = struct.unpack(">II", screenshot[16:24])
     if width <= height:
         raise RuntimeError(f"Expected landscape {label} screenshot, got {width}x{height}")
+    sampled_colors = sampled_png_color_count(screenshot)
+    if sampled_colors < 32:
+        raise RuntimeError(f"Blank or low-diversity {label} screenshot: {sampled_colors} sampled colors")
     path.write_bytes(screenshot)
-    return {"width": width, "height": height}
+    return {"width": width, "height": height, "sampled_colors": sampled_colors}
 
 
 def main() -> None:
@@ -91,7 +163,7 @@ def main() -> None:
                 "-noaudio",
                 "-no-boot-anim",
                 "-no-snapshot",
-                "-gpu", "swiftshader_indirect",
+                "-gpu", "swiftshader",
                 "-camera-back", "none",
                 "-camera-front", "none",
                 "-netdelay", "none",
@@ -196,7 +268,12 @@ def main() -> None:
                 raise RuntimeError(f"No in-app ready marker for {label}")
             if measuring_dimensions is None:
                 raise RuntimeError(f"No measuring screenshot for {label}")
-            fatal = re.search(r"FATAL EXCEPTION|Fatal signal|SCRIPT ERROR:|SHADER ERROR:", logs, re.IGNORECASE)
+            fatal = re.search(
+                r"FATAL EXCEPTION|Fatal signal|SCRIPT ERROR:|SHADER ERROR:|Program linking failed|"
+                r"shader failed to compile|unable to bind shader|OutOfMemoryError",
+                logs,
+                re.IGNORECASE,
+            )
             if fatal:
                 raise RuntimeError(f"Crash or Godot source failure in {label}: {fatal.group(0)}")
             if benchmark.get("recipe") != "fixed-center-brush-card-cloud/2":
@@ -207,6 +284,8 @@ def main() -> None:
                     raise RuntimeError(f"Unexpected {key} in {label}: {benchmark.get(key)}")
             if int(benchmark.get("sample_count", 0)) < 10:
                 raise RuntimeError(f"Insufficient rendered frame samples in {label}")
+            if benchmark.get("rendering_method") != "mobile":
+                raise RuntimeError(f"Expected mobile renderer in {label}: {benchmark.get('rendering_method')}")
             if int(benchmark.get("viewport_width", 0)) <= int(benchmark.get("viewport_height", 0)):
                 raise RuntimeError(f"Expected landscape viewport in {label}")
             if int(benchmark.get("visible_triangles", 0)) < 40_000:
@@ -218,6 +297,10 @@ def main() -> None:
             adb("shell", "uiautomator", "dump", "/sdcard/yardscape-window.xml", timeout=30, check=False)
             ui_tree = adb("exec-out", "cat", "/sdcard/yardscape-window.xml", timeout=30, check=False)
             (output / f"{label}-window.xml").write_text(ui_tree, encoding="utf-8")
+            if PACKAGE not in ui_tree:
+                raise RuntimeError(f"Benchmark app is not the foreground UI in {label}")
+            if "immersive_cling" in ui_tree or "Viewing full screen" in ui_tree:
+                raise RuntimeError(f"Android fullscreen tutorial obscures {label}")
             completion_dimensions = capture_landscape_screenshot(
                 adb, output / f"{label}-complete.png", f"completion {label}"
             )
