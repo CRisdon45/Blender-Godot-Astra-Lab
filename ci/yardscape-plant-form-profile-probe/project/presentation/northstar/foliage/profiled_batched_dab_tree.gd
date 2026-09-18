@@ -4,6 +4,7 @@ extends Node3D
 const Group = preload("res://presentation/northstar/foliage/dab_group.gd")
 const Paint = preload("res://presentation/northstar/foliage/batched_dab_value.gdshader")
 const Profiles = preload("res://presentation/northstar/foliage/plant_form_profiles.gd")
+const Layout = preload("res://presentation/northstar/foliage/plant_form_layout.gd")
 
 var descriptor:Dictionary={}
 var form_profile:Dictionary={}
@@ -29,10 +30,10 @@ func configure(tree:Dictionary, profile:Dictionary)->void:
 	descriptor=tree.duplicate(true);form_profile=profile.duplicate(true)
 	_height=float(tree.height);_radius=float(tree.crown_radius)
 	position=Vector3(tree.x,tree.base_elevation,-tree.y)
-	var rng:=RandomNumberGenerator.new();rng.seed=int(tree.seed)+int(profile.seed_offset)
-	var phase:=rng.randf()*TAU
-	_build_scaffold(phase)
-	var anchors:=_anchors(phase)
+	var phase:=Layout.phase_for_seed(int(tree.seed),profile)
+	for path in Layout.scaffold_paths(profile,phase):
+		_tube(path.points,float(path.start_radius),float(path.end_radius))
+	var anchors:=Layout.anchors(profile,phase)
 	var group_radius:=_radius*float(profile.group.radius_factor)
 	var group_height:=_height*float(profile.group.height_factor)
 	for i in anchors.size():
@@ -66,59 +67,9 @@ func configure(tree:Dictionary, profile:Dictionary)->void:
 		"profile_schema":str(profile.schema)
 	}
 
-func _anchors(phase:float)->Array[Dictionary]:
-	var p:=form_profile;var f:Dictionary=p.families
-	var result:Array[Dictionary]=[]
-	for j in int(p.family_count):
-		var angle:float=phase+float(f.angle_offsets[j])
-		var direction:=Vector3(cos(angle),0.,sin(angle))
-		var side:=Vector3(-sin(angle),0.,cos(angle))
-		var center:=direction*float(f.reaches[j]);center.y=float(f.levels[j])
-		result.append({"position":center,"angle":angle,"family_angle":angle,"scale":float(f.primary_scale),"tilt":float(f.primary_tilt),"role":"primary"})
-		var sign:float=-1. if j%2==0 else 1.
-		var at:=center+side*float(f.secondary_lateral)*sign-direction*float(f.secondary_back)
-		at.y+=float(f.secondary_height)
-		result.append({"position":at,"angle":angle+float(f.secondary_angle_delta)*sign,"family_angle":angle,"scale":float(f.secondary_scale),"tilt":float(f.secondary_tilt)*sign,"role":"secondary"})
-	var inner:Dictionary=p.inner
-	for i in inner.angle_offsets.size():
-		var angle:float=phase+float(inner.angle_offsets[i])
-		var at:=Vector3(cos(angle)*float(inner.radius),float(inner.levels[i]),sin(angle)*float(inner.radius))
-		result.append({"position":at,"angle":angle,"family_angle":angle,"scale":float(inner.scale),"tilt":float(inner.tilt),"role":"secondary"})
-	var leader:Dictionary=p.leader
-	var leader_angle:float=phase+float(leader.angle_offset)
-	result.append({"position":Vector3(cos(leader_angle)*float(leader.radius),float(leader.level),sin(leader_angle)*float(leader.radius)),"angle":leader_angle,"family_angle":leader_angle,"scale":float(leader.scale),"tilt":float(leader.tilt),"role":"leader"})
-	return result
+func normalized_plan_lobes()->Array[Dictionary]:
+	return Layout.plan_lobes(form_profile,Layout.phase_for_seed(int(descriptor.seed),form_profile))
 
-func _build_scaffold(phase:float)->void:
-	var p:=form_profile;var trunk_spec:Dictionary=p.trunk;var scaffold:Dictionary=p.scaffold;var f:Dictionary=p.families
-	var trunk:=PackedVector3Array()
-	for point in trunk_spec.points:trunk.append(_v3(point))
-	_tube(trunk,float(trunk_spec.start_radius),float(trunk_spec.end_radius))
-	for j in int(p.family_count):
-		var angle:float=phase+float(f.angle_offsets[j])
-		var direction:=Vector3(cos(angle),0.,sin(angle))
-		var side:=Vector3(-sin(angle),0.,cos(angle))
-		var reach:float=float(f.reaches[j]);var level:float=float(f.levels[j])
-		var center:=direction*reach;center.y=level
-		var start:Vector3=trunk[int(scaffold.primary_start_indices[j])]
-		var side_sign:=1. if j%2==0 else -1.
-		var mid1:=direction*(reach*float(scaffold.mid1_radial))+side*(float(scaffold.mid1_side)*side_sign);mid1.y=float(scaffold.mid1_level)
-		var mid2:=direction*(reach*float(scaffold.mid2_radial))+side*(float(scaffold.mid2_side)*side_sign);mid2.y=level*float(scaffold.mid2_level_factor)
-		_tube(PackedVector3Array([start,mid1,mid2,center]),float(scaffold.primary_start_radius),float(scaffold.primary_end_radius))
-		var sign:float=-1. if j%2==0 else 1.
-		var secondary:=center+side*float(f.secondary_lateral)*sign-direction*float(f.secondary_back);secondary.y+=float(f.secondary_height)
-		_tube(PackedVector3Array([mid2,center.lerp(secondary,.52),secondary]),float(scaffold.secondary_start_radius),float(scaffold.secondary_end_radius))
-	var inner:Dictionary=p.inner
-	for i in inner.angle_offsets.size():
-		var angle:float=phase+float(inner.angle_offsets[i])
-		var target:=Vector3(cos(angle)*float(inner.radius),float(inner.levels[i]),sin(angle)*float(inner.radius))
-		_tube(PackedVector3Array([trunk[3],Vector3(target.x*float(scaffold.inner_mid_radial_factor),float(scaffold.inner_mid_level),target.z*float(scaffold.inner_mid_radial_factor)),target]),float(scaffold.inner_start_radius),float(scaffold.inner_end_radius))
-	var leader:Dictionary=p.leader
-	var leader_angle:float=phase+float(leader.angle_offset)
-	var leader_point:=Vector3(cos(leader_angle)*float(leader.radius),float(leader.level),sin(leader_angle)*float(leader.radius))
-	_tube(PackedVector3Array([trunk[4],Vector3(leader_point.x*float(scaffold.leader_mid_radial_factor),float(scaffold.leader_mid_level),leader_point.z*float(scaffold.leader_mid_radial_factor)),leader_point]),float(scaffold.leader_start_radius),float(scaffold.leader_end_radius))
-
-func _v3(value:Array)->Vector3:return Vector3(float(value[0]),float(value[1]),float(value[2]))
 func _point(p:Vector3)->Vector3:return Vector3(p.x*_radius,p.y*_height,p.z*_radius)
 
 func _tube(path:PackedVector3Array,start_radius:float,end_radius:float)->void:
