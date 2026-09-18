@@ -16,6 +16,7 @@ APK_NAME = "yardscape-retained-planting-debug.apk"
 AVD_NAME = "yardscape-planting-api35"
 SERIAL = "emulator-5554"
 RUN_COUNT = 3
+GPU_BACKEND = "swangle"
 MARKER = "YARDSCAPE_BENCHMARK_JSON="
 READY_MARKER = "YARDSCAPE_BENCHMARK_READY="
 MEASURING_MARKER = "YARDSCAPE_MEASURING_IMAGE="
@@ -167,6 +168,7 @@ def main() -> None:
         "physical_device": False,
         "physical_device_gate": "unrun",
         "run_count": RUN_COUNT,
+        "emulator_gpu_backend": GPU_BACKEND,
         "apk_sha256": sha(apk),
         "public_commit": os.environ.get("GITHUB_SHA"),
         "caveat": "Emulator timings do not establish Galaxy Tab S10 FE performance, thermals, touch quality, or S Pen behavior.",
@@ -184,7 +186,7 @@ def main() -> None:
                 "-noaudio",
                 "-no-boot-anim",
                 "-no-snapshot",
-                "-gpu", "swiftshader",
+                "-gpu", GPU_BACKEND,
                 "-camera-back", "none",
                 "-camera-front", "none",
                 "-netdelay", "none",
@@ -295,12 +297,6 @@ def main() -> None:
                 time.sleep(2)
             logs = adb("logcat", "-d", "-v", "threadtime", timeout=30)
             (output / f"{label}-logcat.txt").write_text(logs, encoding="utf-8")
-            if benchmark is None:
-                raise TimeoutError(f"No in-app benchmark report for {label}")
-            if ready_info is None:
-                raise RuntimeError(f"No in-app ready marker for {label}")
-            if measuring_dimensions is None:
-                raise RuntimeError(f"No in-app measuring screenshot for {label}")
             fatal = re.search(
                 r"FATAL EXCEPTION|Fatal signal|SCRIPT ERROR:|SHADER ERROR:|Program linking failed|"
                 r"shader failed to compile|unable to bind shader|OutOfMemoryError",
@@ -309,6 +305,12 @@ def main() -> None:
             )
             if fatal:
                 raise RuntimeError(f"Crash or Godot source failure in {label}: {fatal.group(0)}")
+            if benchmark is None:
+                raise TimeoutError(f"No in-app benchmark report for {label}")
+            if ready_info is None:
+                raise RuntimeError(f"No in-app ready marker for {label}")
+            if measuring_dimensions is None:
+                raise RuntimeError(f"No in-app measuring screenshot for {label}")
             if benchmark.get("recipe") != "fixed-center-brush-card-cloud/2":
                 raise RuntimeError(f"Wrong retained recipe in {label}")
             expected = {"trees": 6, "shrubs": 12, "plantings": 18, "visible_meshes": 36}

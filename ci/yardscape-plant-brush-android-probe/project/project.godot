@@ -20,5 +20,5 @@ renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 environment/defaults/default_clear_color=Color(0.886, 0.871, 0.806, 1)
 textures/vram_compression/import_etc2_astc=true
-limits/opengl/max_lights_per_object=1
+limits/opengl/max_lights_per_object=2
 limits/opengl/max_renderable_lights=4

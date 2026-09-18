@@ -17,15 +17,15 @@ renderer evidence before any production integration.
 - three fresh app launches on one clean emulator boot.
 
 The probe uses Godot's Compatibility renderer through OpenGL ES. Its positional
-light budget is set to one light per object and four renderable lights because
-this fixed scene uses one directional light and no positional lights. This
-keeps the Compatibility base shader within the hosted SwiftShader emulator's
-uniform limit without changing the retained planting scene. The hosted AVD
-uses the current `swiftshader` software backend; CI rejects shader
-compilation/linking errors and blank or low-color-diversity screenshots before
-reporting success. Visual evidence is read back from Godot's own viewport; a
-separate Android device screenshot records orientation and foreground-window
-state.
+light budget is set to two lights per object and four renderable lights because
+this fixed scene uses one directional light and no positional lights. The
+hosted AVD uses the current non-deprecated `swangle` software mode (SwiftShader
+drivers through the ANGLE backend). This avoids a known native SwiftShader GLES
+uniform-limit failure in Godot's Compatibility base shader while preserving a
+software-rendered CI environment. CI rejects shader compilation/linking errors
+and blank or low-color-diversity screenshots before reporting success. Visual
+evidence is read back from Godot's own viewport; a separate Android device
+screenshot records orientation and foreground-window state.
 
 The debug APK includes `arm64-v8a` for a later physical-device run and
 `x86_64` for the hosted emulator. CI obtains the exact Godot 4.7.1 editor and
