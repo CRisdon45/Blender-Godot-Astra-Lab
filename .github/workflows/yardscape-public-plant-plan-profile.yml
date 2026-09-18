@@ -1,0 +1,36 @@
+name: Public direct plant profile Plan proof
+on:
+  push:
+    branches:
+      - ci/yardscape-renderer-slice
+    paths:
+      - ci/yardscape-plant-plan-profile-probe/**
+      - .github/workflows/yardscape-public-plant-plan-profile.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-plant-form-profile-probe
+            ci/yardscape-plant-plan-profile-probe
+      - name: Verify isolated direct-Plan boundary
+        run: python ci/yardscape-plant-plan-profile-probe/run_plan.py --verify-only
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+      - name: Native direct Plan projection proof
+        run: python ci/yardscape-plant-plan-profile-probe/run_plan.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: plant-plan-profile-evidence
+          path: /home/runner/work/_temp/plant-plan-profile-evidence
+          retention-days: 7
+          if-no-files-found: warn
