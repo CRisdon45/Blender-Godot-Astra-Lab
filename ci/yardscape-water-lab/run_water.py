@@ -4,10 +4,10 @@ import hashlib, json, os, re, shutil, struct, subprocess, sys
 
 ROOT=Path(__file__).resolve().parent
 PROJECT=ROOT/"project"
-OUTPUT=ROOT/"outputs"/"iteration-04-coherent-curvature"
+OUTPUT=ROOT/"outputs"/"iteration-05-cutaway"
 PIN="4.7.1.stable.official.a13da4feb"
 ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
-APPLICATION_SOURCE_COMMIT="7805c84202af5f746c752209420436750e26baf4"
+APPLICATION_SOURCE_COMMIT="e2d3b73e23f26422507815762cd1d7bdb8b0f292"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
  "shaders/basin_fast.gdshader","shaders/water_surface_fast.gdshader","shaders/wall_fast.gdshader",
