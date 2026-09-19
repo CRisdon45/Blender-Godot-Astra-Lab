@@ -19,6 +19,8 @@ var visual_time := 0.0
 var paused := false
 var caustics_enabled := true
 var surface_enabled := true
+var capture_path := ""
+var capture_frame_count := 0
 
 
 func _ready() -> void:
@@ -32,13 +34,18 @@ func _ready() -> void:
 
 	print("Northstar Water Lab | Space pause | C caustics | S surface | R reset | Left/Right scrub")
 
-	var capture_path := OS.get_environment("YARDSCAPE_WATER_CAPTURE")
+	capture_path = OS.get_environment("YARDSCAPE_WATER_CAPTURE")
 	if not capture_path.is_empty():
 		paused = true
-		call_deferred("_capture_and_quit", capture_path)
 
 
 func _process(delta: float) -> void:
+	if not capture_path.is_empty():
+		capture_frame_count += 1
+		if capture_frame_count >= 8:
+			_capture_now_and_quit()
+			return
+
 	if not paused:
 		visual_time += delta
 		_apply_time()
@@ -96,20 +103,15 @@ func _configure_from_environment() -> void:
 		surface_enabled = true
 
 
-func _capture_and_quit(path: String) -> void:
-	# Give the renderer several complete process frames before waiting for the
-	# post-draw signal. Connecting too early can leave a headless/Xvfb capture
-	# waiting forever even though the scene itself initialized correctly.
-	for i in 8:
-		await get_tree().process_frame
-	await RenderingServer.frame_post_draw
+func _capture_now_and_quit() -> void:
 	var image := get_viewport().get_texture().get_image()
-	var error := image.save_png(path)
-	print("water_capture path=%s error=%d time=%.2f caustics=%s surface=%s" % [
-		path, error, visual_time, caustics_enabled, surface_enabled
+	image.convert(Image.FORMAT_RGBA8)
+	var error := image.save_png(capture_path)
+	print("water_capture path=%s error=%d time=%.2f caustics=%s surface=%s frames=%d" % [
+		capture_path, error, visual_time, caustics_enabled, surface_enabled, capture_frame_count
 	])
+	capture_path = ""
 	get_tree().quit(0 if error == OK else 1)
-
 
 func _make_materials() -> void:
 	basin_material = ShaderMaterial.new()

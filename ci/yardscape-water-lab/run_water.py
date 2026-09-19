@@ -7,7 +7,7 @@ PROJECT=ROOT/"project"
 OUTPUT=ROOT/"outputs"/"baseline-01"
 PIN="4.7.1.stable.official.a13da4feb"
 ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
-APPLICATION_SOURCE_COMMIT="5538bd49cf4c32673e7e48fb70532f88a2da51a3"
+APPLICATION_SOURCE_COMMIT="29829586aa10f697568a2e9d2fc8966e9760441e"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
  "shaders/basin.gdshader","shaders/water_surface.gdshader",
