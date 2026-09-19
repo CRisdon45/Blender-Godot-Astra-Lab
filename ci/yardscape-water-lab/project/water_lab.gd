@@ -4,6 +4,7 @@ extends Node3D
 
 const BasinShader = preload("res://shaders/basin_fast.gdshader")
 const SurfaceShader = preload("res://shaders/water_surface_fast.gdshader")
+const WallShader = preload("res://shaders/wall_fast.gdshader")
 
 const POOL_LENGTH := 8.0
 const POOL_WIDTH := 4.0
@@ -13,6 +14,7 @@ const SUN_RAY_DIR := Vector3(0.3796774, -0.8193039, 0.4296350)
 
 var basin_material: ShaderMaterial
 var surface_material: ShaderMaterial
+var wall_material: ShaderMaterial
 var water_surface: MeshInstance3D
 
 var visual_time := 0.0
@@ -124,7 +126,10 @@ func _make_materials() -> void:
 	surface_material = ShaderMaterial.new()
 	surface_material.shader = SurfaceShader
 	surface_material.set_shader_parameter("visual_time", visual_time)
-	surface_material.set_shader_parameter("sun_ray_dir", SUN_RAY_DIR)
+
+	wall_material = ShaderMaterial.new()
+	wall_material.shader = WallShader
+	wall_material.set_shader_parameter("water_level", WATER_LEVEL)
 
 
 func _make_pool() -> void:
@@ -137,13 +142,13 @@ func _make_pool() -> void:
 	_make_solid("deep-floor", -0.30, 4.00, -1.50)
 
 	# Thin walls only close the pool volume. No coping, deck or exterior shell.
-	_make_box("wall-north", Vector3(0.0, BASE_Y * 0.5, -2.04),
+	_make_wall_box("wall-north", Vector3(0.0, BASE_Y * 0.5, -2.04),
 		Vector3(POOL_LENGTH + 0.10, -BASE_Y, 0.08))
-	_make_box("wall-south", Vector3(0.0, BASE_Y * 0.5, 2.04),
+	_make_wall_box("wall-south", Vector3(0.0, BASE_Y * 0.5, 2.04),
 		Vector3(POOL_LENGTH + 0.10, -BASE_Y, 0.08))
-	_make_box("wall-west", Vector3(-4.04, BASE_Y * 0.5, 0.0),
+	_make_wall_box("wall-west", Vector3(-4.04, BASE_Y * 0.5, 0.0),
 		Vector3(0.08, -BASE_Y, POOL_WIDTH + 0.10))
-	_make_box("wall-east", Vector3(4.04, BASE_Y * 0.5, 0.0),
+	_make_wall_box("wall-east", Vector3(4.04, BASE_Y * 0.5, 0.0),
 		Vector3(0.08, -BASE_Y, POOL_WIDTH + 0.10))
 
 	var mesh := PlaneMesh.new()
@@ -166,6 +171,12 @@ func _make_solid(_name: String, x0: float, x1: float, top_y: float) -> void:
 		Vector3((x0 + x1) * 0.5, BASE_Y + height * 0.5, 0.0),
 		Vector3(x1 - x0, height, POOL_WIDTH)
 	)
+
+
+func _make_wall_box(_name: String, centre: Vector3, size: Vector3) -> MeshInstance3D:
+	var node := _make_box(_name, centre, size)
+	node.material_override = wall_material
+	return node
 
 
 func _make_box(_name: String, centre: Vector3, size: Vector3) -> MeshInstance3D:

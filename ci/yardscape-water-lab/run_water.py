@@ -4,13 +4,13 @@ import hashlib, json, os, re, shutil, struct, subprocess, sys
 
 ROOT=Path(__file__).resolve().parent
 PROJECT=ROOT/"project"
-OUTPUT=ROOT/"outputs"/"baseline-01"
+OUTPUT=ROOT/"outputs"/"iteration-02-ribbons"
 PIN="4.7.1.stable.official.a13da4feb"
 ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
-APPLICATION_SOURCE_COMMIT="ad98980ab6d48e9da1569cd4871e97248ee8e2fb"
+APPLICATION_SOURCE_COMMIT="f1f49857803d77272b428c0a2e053b3d5950a94f"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
- "shaders/basin_fast.gdshader","shaders/water_surface_fast.gdshader",
+ "shaders/basin_fast.gdshader","shaders/water_surface_fast.gdshader","shaders/wall_fast.gdshader",
  "tests/capture_first_look.gd",
 }
 
