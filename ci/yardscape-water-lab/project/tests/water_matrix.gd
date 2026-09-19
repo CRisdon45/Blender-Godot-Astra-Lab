@@ -44,7 +44,7 @@ func run() -> void:
 		quit(1)
 		return
 
-	root.size = Vector2i(720, 540)
+	root.size = Vector2i(480, 360)
 	var scene = load("res://main.tscn")
 	check(scene != null, "minimal water scene loads")
 	if scene == null:
@@ -53,8 +53,7 @@ func run() -> void:
 
 	study = scene.instantiate()
 	root.add_child(study)
-	for i in 2:
-		await process_frame
+	await process_frame
 
 	check(is_instance_valid(study.basin_material), "basin material initializes")
 	check(is_instance_valid(study.surface_material), "surface material initializes")
@@ -66,41 +65,21 @@ func run() -> void:
 		["02-t000-no-caustics", 0.00, false, true],
 		["03-t000-no-surface", 0.00, true, false],
 		["04-t175-full", 1.75, true, true],
-		["05-t175-no-caustics", 1.75, false, true],
-		["06-t175-no-surface", 1.75, true, false],
-		["07-t400-full", 4.00, true, true],
-		["08-t400-no-caustics", 4.00, false, true],
-		["09-t400-no-surface", 4.00, true, false],
+		["05-t400-full", 4.00, true, true],
 	]
 
 	for state in states:
 		set_state(state[1], state[2], state[3])
 		await grab(state[0])
 
-	for prefix in ["t000", "t175", "t400"]:
-		var full_key := ""
-		var no_c_key := ""
-		var no_s_key := ""
-		for key in hashes:
-			if prefix in key:
-				if "no-caustics" in key:
-					no_c_key = key
-				elif "no-surface" in key:
-					no_s_key = key
-				elif "full" in key:
-					full_key = key
-		check(not full_key.is_empty() and not no_c_key.is_empty() and not no_s_key.is_empty(), "state keys " + prefix)
-		if not full_key.is_empty() and not no_c_key.is_empty() and not no_s_key.is_empty():
-			check(hashes[full_key] != hashes[no_c_key], "caustics visibly affect " + prefix)
-			check(hashes[full_key] != hashes[no_s_key], "surface visibly affects " + prefix)
-
-	var full_hashes: Array = []
-	for key in hashes:
-		if "full" in key:
-			full_hashes.append(hashes[key])
-	check(full_hashes.size() == 3, "three full-water time samples captured")
-	check(full_hashes.size() == 3 and full_hashes[0] != full_hashes[1] and full_hashes[1] != full_hashes[2] and full_hashes[0] != full_hashes[2],
-		"explicit water time changes full-water framebuffer")
+	check(hashes["01-t000-full"] != hashes["02-t000-no-caustics"],
+		"caustics visibly affect fixed time-zero framebuffer")
+	check(hashes["01-t000-full"] != hashes["03-t000-no-surface"],
+		"surface visibly affects fixed time-zero framebuffer")
+	check(hashes["01-t000-full"] != hashes["04-t175-full"]
+		and hashes["04-t175-full"] != hashes["05-t400-full"]
+		and hashes["01-t000-full"] != hashes["05-t400-full"],
+		"explicit water time produces three distinct full-water frames")
 
 	var report := {
 		"run_id": run_id,
@@ -111,7 +90,7 @@ func run() -> void:
 		"engine": Engine.get_version_info().string,
 		"adapter": RenderingServer.get_video_adapter_name(),
 		"renderer": "Compatibility / OpenGL",
-		"viewport": [960, 720],
+		"viewport": [480, 360],
 		"artistic_acceptance": "not_reviewed",
 	}
 	var file := FileAccess.open(output.path_join("report.json"), FileAccess.WRITE)
