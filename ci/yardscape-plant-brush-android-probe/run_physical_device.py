@@ -25,6 +25,7 @@ from run_emulator import (
 
 RUN_COUNT = 3
 EXPECTED_RECIPE = "fixed-center-brush-card-cloud/2"
+EXPECTED_SURFACE_STYLE = "northstar-illustrated-mass/2"
 EXPECTED_WORKLOAD = {
     "fan_tex_trees": 3,
     "palo_verde_trees": 3,
@@ -110,6 +111,8 @@ def parse_battery(text: str) -> dict[str, float | int]:
 def validate_benchmark(benchmark: dict) -> None:
     if benchmark.get("recipe") != EXPECTED_RECIPE:
         raise RuntimeError(f"Wrong retained recipe: {benchmark.get('recipe')}")
+    if benchmark.get("surface_style") != EXPECTED_SURFACE_STYLE:
+        raise RuntimeError(f"Wrong Northstar surface: {benchmark.get('surface_style')}")
     for key, expected in EXPECTED_WORKLOAD.items():
         if benchmark.get(key) != expected:
             raise RuntimeError(f"Unexpected {key}: {benchmark.get(key)} (expected {expected})")

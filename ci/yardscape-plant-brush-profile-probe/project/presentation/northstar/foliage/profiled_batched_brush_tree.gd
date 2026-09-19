@@ -52,6 +52,7 @@ func configure(tree:Dictionary,profile:Dictionary)->void:
 	var wa:=wood.mesh.get_aabb();var fa:=foliage.mesh.get_aabb()
 	stats={
 		"recipe":Group.RECIPE,
+		"surface_style":Group.SURFACE_STYLE,
 		"profile":str(profile.id),
 		"groups":anchors.size(),
 		"cards":card_count,
@@ -120,14 +121,29 @@ func _finish_wood()->MeshInstance3D:
 	var arrays:=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=_wv;arrays[Mesh.ARRAY_NORMAL]=_wn;arrays[Mesh.ARRAY_INDEX]=_wi
 	var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
 	var node:=MeshInstance3D.new();node.name="ProfiledBrushWood";node.mesh=mesh
-	var bark:=StandardMaterial3D.new();bark.albedo_color=Color(str(form_profile.bark_hex));bark.roughness=1.;node.material_override=bark;add_child(node);return node
+	var style:=_presentation_style()
+	var bark:=StandardMaterial3D.new();bark.albedo_color=style.bark;bark.roughness=1.;node.material_override=bark;add_child(node);return node
 
 func _finish_foliage()->MeshInstance3D:
 	var arrays:=[];arrays.resize(Mesh.ARRAY_MAX);arrays[Mesh.ARRAY_VERTEX]=_fv;arrays[Mesh.ARRAY_NORMAL]=_fn;arrays[Mesh.ARRAY_INDEX]=_fi;arrays[Mesh.ARRAY_COLOR]=_fc;arrays[Mesh.ARRAY_TEX_UV]=_fuv;arrays[Mesh.ARRAY_TEX_UV2]=_fuv2
 	var mesh:=ArrayMesh.new();mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES,arrays)
 	var node:=MeshInstance3D.new();node.name="ProfiledBrushFoliage";node.mesh=mesh
-	var material:=ShaderMaterial.new();material.shader=Paint;material.set_shader_parameter("brush_atlas",Group.brush_atlas());node.material_override=material
+	var style:=_presentation_style()
+	var material:=ShaderMaterial.new();material.shader=Paint;material.set_shader_parameter("brush_atlas",Group.brush_atlas())
+	material.set_shader_parameter("foliage_dark",style.dark)
+	material.set_shader_parameter("foliage_middle",style.middle)
+	material.set_shader_parameter("foliage_light",style.light)
+	material.set_shader_parameter("plant_height",_height)
+	node.material_override=material
 	node.custom_aabb=mesh.get_aabb().grow(_radius*.45);add_child(node);return node
+
+func _presentation_style()->Dictionary:
+	var profile_id:=str(form_profile.id)
+	if profile_id.contains("palo-verde"):
+		return {"dark":Color("344a25"),"middle":Color("6e7838"),"light":Color("a19d54"),"bark":Color("667458")}
+	if profile_id.contains("shrub"):
+		return {"dark":Color("2c4222"),"middle":Color("596d34"),"light":Color("8b914d"),"bark":Color("62594b")}
+	return {"dark":Color("304526"),"middle":Color("62723c"),"light":Color("929557"),"bark":Color("6b6257")}
 
 func _triangle_count(mesh:Mesh)->int:
 	var arrays:Array=mesh.surface_get_arrays(0);return int(arrays[Mesh.ARRAY_INDEX].size()/3)
