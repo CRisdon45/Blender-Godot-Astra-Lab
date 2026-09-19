@@ -1,0 +1,22 @@
+; Minimal Yard-Scape Northstar water look-development project.
+; Intentionally no addons, UI framework, plantings, coping, deck, or app systems.
+
+config_version=5
+
+[application]
+
+config/name="Yard-Scape Northstar Water Lab"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7")
+
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=720
+window/size/window_width_override=960
+window/size/window_height_override=720
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
