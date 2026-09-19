@@ -10,9 +10,7 @@ ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
 APPLICATION_SOURCE_COMMIT="29829586aa10f697568a2e9d2fc8966e9760441e"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
- "shaders/basin.gdshader","shaders/water_surface.gdshader",
  "shaders/basin_fast.gdshader","shaders/water_surface_fast.gdshader",
- "tests/water_matrix.gd",
 }
 
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
