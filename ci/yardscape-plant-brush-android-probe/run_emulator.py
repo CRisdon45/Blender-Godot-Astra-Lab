@@ -313,7 +313,7 @@ def main() -> None:
                 raise RuntimeError(f"No in-app measuring screenshot for {label}")
             if benchmark.get("recipe") != "fixed-center-brush-card-cloud/2":
                 raise RuntimeError(f"Wrong retained recipe in {label}")
-            if benchmark.get("surface_style") != "northstar-muted-macro-wash/1":
+            if benchmark.get("surface_style") != "northstar-illustrated-mass/2":
                 raise RuntimeError(f"Wrong Northstar surface in {label}: {benchmark.get('surface_style')}")
             expected = {
                 "fan_tex_trees": 3,

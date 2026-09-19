@@ -5,7 +5,7 @@ const Profiles=preload("res://presentation/northstar/foliage/plant_form_profiles
 const ShrubProfiles=preload("res://presentation/northstar/foliage/shrub_form_profile.gd")
 
 const RECIPE := "fixed-center-brush-card-cloud/2"
-const SURFACE_STYLE := "northstar-muted-macro-wash/1"
+const SURFACE_STYLE := "northstar-illustrated-mass/2"
 const FAN_TEX_COUNT := 3
 const PALO_VERDE_COUNT := 3
 const TREE_COUNT := FAN_TEX_COUNT+PALO_VERDE_COUNT
@@ -193,7 +193,7 @@ func _build_hud()->void:
 	layer.add_child(title)
 	var detail:=Label.new()
 	detail.position=Vector2(53,80)
-	detail.text="3 FAN-TEX  +  3 PALO VERDE  +  12 SHRUBS  /  MUTED MACRO WASH"
+	detail.text="3 FAN-TEX  +  3 PALO VERDE  +  12 SHRUBS  /  ILLUSTRATED TONAL MASSES"
 	detail.add_theme_font_size_override("font_size",16)
 	detail.add_theme_color_override("font_color",Color("bdc99f"))
 	layer.add_child(detail)

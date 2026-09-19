@@ -55,7 +55,7 @@ func run()->void:
 	check(study is Current,"exact isolated retained-brush shrub study")
 	var tree=study.tree_brush;var dab=study.shrub_dab;var brush=study.shrub_brush;var shrub_record:Dictionary=study.shrub_record
 	check(tree.stats.recipe=="fixed-center-brush-card-cloud/2" and brush.stats.recipe==tree.stats.recipe,"shrub uses the exact retained v4 brush recipe")
-	check(tree.stats.surface_style=="northstar-muted-macro-wash/1" and brush.stats.surface_style==tree.stats.surface_style,"tree and shrub use the isolated muted macro-wash surface")
+	check(tree.stats.surface_style=="northstar-illustrated-mass/2" and brush.stats.surface_style==tree.stats.surface_style,"tree and shrub use the isolated illustrated-mass surface")
 	check(tree.stats.profile=="fan-tex-ash-macro-form/2" and tree.stats.cards==288 and tree.stats.visible_triangles==2582,"retained Fan-Tex v4 control remains exact")
 	check(dab.descriptor==shrub_record and brush.descriptor==shrub_record,"both shrub renderers preserve the immutable shrub instance record")
 	check(brush.form_profile==shrub_profile and brush.stats.profile=="dense-desert-shrub-mound/2","brush renderer consumes the explicit shrub profile")

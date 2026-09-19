@@ -3,7 +3,7 @@ extends Node3D
 ## Every card has a fixed 3D center and broad emitter-derived normal. Only each
 ## small card faces the camera; the plant never billboards and has no solid core.
 const RECIPE := "fixed-center-brush-card-cloud/2"
-const SURFACE_STYLE := "northstar-muted-macro-wash/1"
+const SURFACE_STYLE := "northstar-illustrated-mass/2"
 const ATLAS_TILES := 4
 const GOLDEN_ANGLE := 2.399963229728653
 

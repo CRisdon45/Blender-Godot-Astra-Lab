@@ -43,7 +43,7 @@ func validate_profile(profile:Dictionary,expected_groups:int,expected_cards:int,
 	var phase:=Layout.phase_for_seed(int(study.document.tree.seed),profile)
 	check(brush.normalized_plan_lobes()==Layout.plan_lobes(profile,phase),label+" brush renderer consumes the exact shared layout")
 	check(brush.stats.groups==expected_groups and brush.stats.cards==expected_cards,label+" brush-card budget follows shared profile groups")
-	check(brush.stats.surface_style=="northstar-muted-macro-wash/1",label+" uses the isolated muted macro-wash surface")
+	check(brush.stats.surface_style=="northstar-illustrated-mass/2",label+" uses the isolated illustrated-mass surface")
 	check(brush.stats.visible_meshes==2 and not brush.stats.alpha_blended and brush.stats.alpha_scissor,label+" candidate is two meshes with alpha scissor, never alpha blend")
 	check(brush.stats.camera_facing and brush.stats.fixed_3d_centers and not brush.stats.whole_plant_billboard and not brush.stats.solid_core,label+" only small fixed-center cards face the camera and no solid core exists")
 	check(brush.stats.visible_triangles<dab.stats.visible_triangles,label+" brush candidate uses fewer indexed triangles than retained dabs")

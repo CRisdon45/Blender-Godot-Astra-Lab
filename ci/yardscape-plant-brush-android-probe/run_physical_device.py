@@ -25,7 +25,7 @@ from run_emulator import (
 
 RUN_COUNT = 3
 EXPECTED_RECIPE = "fixed-center-brush-card-cloud/2"
-EXPECTED_SURFACE_STYLE = "northstar-muted-macro-wash/1"
+EXPECTED_SURFACE_STYLE = "northstar-illustrated-mass/2"
 EXPECTED_WORKLOAD = {
     "fan_tex_trees": 3,
     "palo_verde_trees": 3,

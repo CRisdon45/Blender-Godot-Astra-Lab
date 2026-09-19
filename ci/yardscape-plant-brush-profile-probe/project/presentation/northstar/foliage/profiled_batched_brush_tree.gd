@@ -140,10 +140,10 @@ func _finish_foliage()->MeshInstance3D:
 func _presentation_style()->Dictionary:
 	var profile_id:=str(form_profile.id)
 	if profile_id.contains("palo-verde"):
-		return {"dark":Color(.10,.155,.060),"middle":Color(.245,.300,.130),"light":Color(.410,.425,.205),"bark":Color("5e7650")}
+		return {"dark":Color("344a25"),"middle":Color("6e7838"),"light":Color("a19d54"),"bark":Color("667458")}
 	if profile_id.contains("shrub"):
-		return {"dark":Color(.075,.125,.045),"middle":Color(.205,.265,.105),"light":Color(.365,.390,.175),"bark":Color("5b5145")}
-	return {"dark":Color(.080,.130,.055),"middle":Color(.220,.280,.130),"light":Color(.380,.400,.200),"bark":Color("625a4e")}
+		return {"dark":Color("2c4222"),"middle":Color("596d34"),"light":Color("8b914d"),"bark":Color("62594b")}
+	return {"dark":Color("304526"),"middle":Color("62723c"),"light":Color("929557"),"bark":Color("6b6257")}
 
 func _triangle_count(mesh:Mesh)->int:
 	var arrays:Array=mesh.surface_get_arrays(0);return int(arrays[Mesh.ARRAY_INDEX].size()/3)
