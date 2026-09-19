@@ -1,6 +1,6 @@
 extends Node3D
 ## Deliberately tiny water look-development scene.
-## Pool shell + Baja shelf + three steps + one water surface. Nothing else.
+## Surface-only pool + Baja shelf + three steps + one water surface. Nothing else.
 
 const BasinShader = preload("res://shaders/basin_fast.gdshader")
 const SurfaceShader = preload("res://shaders/water_surface_fast.gdshader")
@@ -9,7 +9,6 @@ const WallShader = preload("res://shaders/wall_fast.gdshader")
 const POOL_LENGTH := 8.0
 const POOL_WIDTH := 4.0
 const WATER_LEVEL := 0.0
-const BASE_Y := -1.72
 const SUN_RAY_DIR := Vector3(0.3796774, -0.8193039, 0.4296350)
 
 var basin_material: ShaderMaterial
@@ -115,6 +114,7 @@ func _capture_now_and_quit() -> void:
 	capture_path = ""
 	get_tree().quit(0 if error == OK else 1)
 
+
 func _make_materials() -> void:
 	basin_material = ShaderMaterial.new()
 	basin_material.shader = BasinShader
@@ -133,23 +133,25 @@ func _make_materials() -> void:
 
 
 func _make_pool() -> void:
-	# All blocks terminate at the same hidden bottom datum. Their exposed top
-	# elevations are the only geometry we care about in this lab.
-	_make_solid("baja-shelf", -4.00, -1.80, -0.25)
-	_make_solid("step-1", -1.80, -1.30, -0.45)
-	_make_solid("step-2", -1.30, -0.80, -0.70)
-	_make_solid("step-3", -0.80, -0.30, -1.00)
-	_make_solid("deep-floor", -0.30, 4.00, -1.50)
+	# Horizontal water-contact surfaces only. No solid blocks, no exterior shell.
+	_make_horizontal("baja-shelf", -4.00, -1.80, -0.25)
+	_make_horizontal("step-1", -1.80, -1.30, -0.45)
+	_make_horizontal("step-2", -1.30, -0.80, -0.70)
+	_make_horizontal("step-3", -0.80, -0.30, -1.00)
+	_make_horizontal("deep-floor", -0.30, 4.00, -1.50)
 
-	# Thin walls only close the pool volume. No coping, deck or exterior shell.
-	_make_wall_box("wall-north", Vector3(0.0, BASE_Y * 0.5, -2.04),
-		Vector3(POOL_LENGTH + 0.10, -BASE_Y, 0.08))
-	_make_wall_box("wall-south", Vector3(0.0, BASE_Y * 0.5, 2.04),
-		Vector3(POOL_LENGTH + 0.10, -BASE_Y, 0.08))
-	_make_wall_box("wall-west", Vector3(-4.04, BASE_Y * 0.5, 0.0),
-		Vector3(0.08, -BASE_Y, POOL_WIDTH + 0.10))
-	_make_wall_box("wall-east", Vector3(4.04, BASE_Y * 0.5, 0.0),
-		Vector3(0.08, -BASE_Y, POOL_WIDTH + 0.10))
+	# Four step risers.
+	_make_vertical_x("riser-baja", -1.80, -0.45, -0.25)
+	_make_vertical_x("riser-1", -1.30, -0.70, -0.45)
+	_make_vertical_x("riser-2", -0.80, -1.00, -0.70)
+	_make_vertical_x("riser-3", -0.30, -1.50, -1.00)
+
+	# Interior perimeter only. Side walls may extend below the shelf, but the
+	# shelf/treads depth-test over them from this fixed oblique view.
+	_make_vertical_z("wall-north", -POOL_WIDTH * 0.5, -1.50, WATER_LEVEL)
+	_make_vertical_z("wall-south", POOL_WIDTH * 0.5, -1.50, WATER_LEVEL)
+	_make_vertical_x_span("wall-west", -POOL_LENGTH * 0.5, -0.25, WATER_LEVEL, POOL_WIDTH)
+	_make_vertical_x_span("wall-east", POOL_LENGTH * 0.5, -1.50, WATER_LEVEL, POOL_WIDTH)
 
 	var mesh := PlaneMesh.new()
 	mesh.size = Vector2(POOL_LENGTH - 0.08, POOL_WIDTH - 0.08)
@@ -164,30 +166,47 @@ func _make_pool() -> void:
 	add_child(water_surface)
 
 
-func _make_solid(_name: String, x0: float, x1: float, top_y: float) -> void:
-	var height := top_y - BASE_Y
-	_make_box(
-		_name,
-		Vector3((x0 + x1) * 0.5, BASE_Y + height * 0.5, 0.0),
-		Vector3(x1 - x0, height, POOL_WIDTH)
-	)
-
-
-func _make_wall_box(_name: String, centre: Vector3, size: Vector3) -> MeshInstance3D:
-	var node := _make_box(_name, centre, size)
-	node.material_override = wall_material
-	return node
-
-
-func _make_box(_name: String, centre: Vector3, size: Vector3) -> MeshInstance3D:
-	var box := BoxMesh.new()
-	box.size = size
+func _make_horizontal(_name: String, x0: float, x1: float, y: float) -> MeshInstance3D:
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(x1 - x0, POOL_WIDTH)
 
 	var node := MeshInstance3D.new()
 	node.name = _name
-	node.mesh = box
-	node.position = centre
+	node.mesh = mesh
+	node.position = Vector3((x0 + x1) * 0.5, y, 0.0)
 	node.material_override = basin_material
+	add_child(node)
+	return node
+
+
+func _make_vertical_x(_name: String, x: float, y0: float, y1: float) -> MeshInstance3D:
+	return _make_vertical_x_span(_name, x, y0, y1, POOL_WIDTH)
+
+
+func _make_vertical_x_span(_name: String, x: float, y0: float, y1: float, span_z: float) -> MeshInstance3D:
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(absf(y1 - y0), span_z)
+
+	var node := MeshInstance3D.new()
+	node.name = _name
+	node.mesh = mesh
+	node.position = Vector3(x, (y0 + y1) * 0.5, 0.0)
+	node.rotation_degrees.z = 90.0
+	node.material_override = wall_material
+	add_child(node)
+	return node
+
+
+func _make_vertical_z(_name: String, z: float, y0: float, y1: float) -> MeshInstance3D:
+	var mesh := PlaneMesh.new()
+	mesh.size = Vector2(POOL_LENGTH, absf(y1 - y0))
+
+	var node := MeshInstance3D.new()
+	node.name = _name
+	node.mesh = mesh
+	node.position = Vector3(0.0, (y0 + y1) * 0.5, z)
+	node.rotation_degrees.x = 90.0
+	node.material_override = wall_material
 	add_child(node)
 	return node
 

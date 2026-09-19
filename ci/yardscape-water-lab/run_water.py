@@ -4,10 +4,10 @@ import hashlib, json, os, re, shutil, struct, subprocess, sys
 
 ROOT=Path(__file__).resolve().parent
 PROJECT=ROOT/"project"
-OUTPUT=ROOT/"outputs"/"iteration-02-ribbons"
+OUTPUT=ROOT/"outputs"/"iteration-03-surface-shell"
 PIN="4.7.1.stable.official.a13da4feb"
 ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
-APPLICATION_SOURCE_COMMIT="f1f49857803d77272b428c0a2e053b3d5950a94f"
+APPLICATION_SOURCE_COMMIT="d927fde74378ae9941f702f70a7dd5966ddcae0a"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
  "shaders/basin_fast.gdshader","shaders/water_surface_fast.gdshader","shaders/wall_fast.gdshader",

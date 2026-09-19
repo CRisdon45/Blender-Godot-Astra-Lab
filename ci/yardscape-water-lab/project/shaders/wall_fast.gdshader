@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, cull_front;
+render_mode unshaded, cull_disabled;
 
 // Interior-only pool wall witness. cull_front hides the camera-facing exterior
 // shell while keeping far/inside wall faces visible through the water.
