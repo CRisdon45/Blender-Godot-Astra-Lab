@@ -9,7 +9,7 @@ const POOL_LENGTH := 8.0
 const POOL_WIDTH := 4.0
 const WATER_LEVEL := 0.0
 const BASE_Y := -1.72
-const SUN_RAY_DIR := Vector3(0.38, -0.82, 0.43).normalized()
+const SUN_RAY_DIR := Vector3(0.3796774, -0.8193039, 0.4296350)
 
 var basin_material: ShaderMaterial
 var surface_material: ShaderMaterial
