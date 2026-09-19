@@ -1,4 +1,4 @@
-"""Authorized public one-frame water look-development probe."""
+"""Authorized public deterministic water comparison probe."""
 from pathlib import Path, PurePosixPath
 import hashlib, json, os, re, shutil, struct, subprocess, sys
 
@@ -7,12 +7,19 @@ PROJECT=ROOT/"project"
 OUTPUT=ROOT/"outputs"/"iteration-03-surface-shell"
 PIN="4.7.1.stable.official.a13da4feb"
 ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
-APPLICATION_SOURCE_COMMIT="d927fde74378ae9941f702f70a7dd5966ddcae0a"
+APPLICATION_SOURCE_COMMIT="b251a31decb39ea70195b507f6dae3c6981e1f5b"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
  "shaders/basin_fast.gdshader","shaders/water_surface_fast.gdshader","shaders/wall_fast.gdshader",
- "tests/capture_first_look.gd",
+ "tests/capture_first_look.gd","tests/capture_matrix.gd",
 }
+EXPECTED=[
+ "01-t000-full.png",
+ "02-t000-no-caustics.png",
+ "03-t000-no-surface.png",
+ "04-t175-full.png",
+ "05-t400-full.png",
+]
 
 def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -59,50 +66,64 @@ def main():
     if OUTPUT.exists(): shutil.rmtree(OUTPUT)
     OUTPUT.mkdir(parents=True)
 
-    capture=OUTPUT/"01-t000-full.png"
     env={k:v for k,v in os.environ.items() if not k.startswith(("PLAN_TRACE_","YARDSCAPE_","GODOT_MCP_"))}
     env.update(
-        YARDSCAPE_WATER_TIME="0.00",
-        YARDSCAPE_WATER_CAUSTICS="1",
-        YARDSCAPE_WATER_SURFACE="1",
-        YARDSCAPE_WATER_CAPTURE=str(capture.resolve()),
+        YARDSCAPE_WATER_OUTPUT=str(OUTPUT.resolve()),
         LIBGL_ALWAYS_SOFTWARE="1",
         GODOT_SILENCE_ROOT_WARNING="1",
     )
-    cmd=["xvfb-run","-a",str(engine),"--path",str(stage),"--audio-driver","Dummy","--script","res://tests/capture_first_look.gd"]
+    cmd=["xvfb-run","-a",str(engine),"--path",str(stage),"--audio-driver","Dummy","--script","res://tests/capture_matrix.gd"]
     try:
-        proc=subprocess.run(cmd,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=25,check=False)
+        proc=subprocess.run(cmd,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=35,check=False)
         log=proc.stdout or ""
     except subprocess.TimeoutExpired as exc:
         log=exc.stdout or ""
         if isinstance(log,bytes): log=log.decode("utf-8","replace")
         (OUTPUT/"console.log").write_text(log)
         print(log[-20000:])
-        raise RuntimeError("Godot direct water capture timed out; preserved console.log") from exc
+        raise RuntimeError("Godot water matrix timed out; preserved console.log") from exc
     (OUTPUT/"console.log").write_text(log)
     print(log[-20000:])
     if proc.returncode!=0 or re.search(r"SCRIPT ERROR:|SHADER ERROR:|Parse Error|ERROR:",log):
-        raise RuntimeError("Native full-water first look failed")
-    if not capture.exists(): raise FileNotFoundError("Scene exited without capture")
-    dims=png_dimensions(capture)
-    if dims!=(480,360): raise ValueError("Unexpected capture size "+str(dims))
-    if capture.stat().st_size<10000: raise ValueError("Suspiciously small capture")
+        raise RuntimeError("Native water matrix failed")
+
+    actual={p.name for p in OUTPUT.glob("*.png")}
+    if actual!=set(EXPECTED): raise ValueError("Expected five water PNGs, got "+str(sorted(actual)))
+    captures=[]
+    for name in EXPECTED:
+        p=OUTPUT/name
+        dims=png_dimensions(p)
+        if dims!=(480,360): raise ValueError("Unexpected capture size "+name+" "+str(dims))
+        if p.stat().st_size<5000: raise ValueError("Suspiciously small capture "+name)
+        captures.append({"file":name,"sha256":sha(p),"bytes":p.stat().st_size,"dimensions":list(dims)})
+
+    h={c["file"]:c["sha256"] for c in captures}
+    if h["01-t000-full.png"]==h["02-t000-no-caustics.png"]: raise ValueError("Caustic toggle made no visible change")
+    if h["01-t000-full.png"]==h["03-t000-no-surface.png"]: raise ValueError("Surface toggle made no visible change")
+    if len({h["01-t000-full.png"],h["04-t175-full.png"],h["05-t400-full.png"]})!=3:
+        raise ValueError("Water time did not produce three distinct full-water frames")
 
     manifest={
-      "schema":"yardscape-water-first-look/1",
+      "schema":"yardscape-water-matrix/1",
       "application_source_commit":APPLICATION_SOURCE_COMMIT,
       "public_source_commit":os.environ.get("GITHUB_SHA"),
       "engine":version,
       "engine_sha256":ENGINE_SHA,
       "renderer":"Godot Compatibility / OpenGL",
       "viewport":[480,360],
-      "state":{"time":0.0,"caustics":True,"surface":True},
+      "states":[
+        {"file":"01-t000-full.png","time":0.0,"caustics":True,"surface":True},
+        {"file":"02-t000-no-caustics.png","time":0.0,"caustics":False,"surface":True},
+        {"file":"03-t000-no-surface.png","time":0.0,"caustics":True,"surface":False},
+        {"file":"04-t175-full.png","time":1.75,"caustics":True,"surface":True},
+        {"file":"05-t400-full.png","time":4.0,"caustics":True,"surface":True},
+      ],
       "source_sha256":source_hashes,
-      "capture":{"file":capture.name,"sha256":sha(capture),"bytes":capture.stat().st_size},
+      "captures":captures,
       "artistic_acceptance":"not_reviewed",
-      "limits":["Software llvmpipe worker, not target Android/tablet GPU","First-look full-water frame only"],
+      "limits":["Software llvmpipe worker, not target Android/tablet GPU"],
     }
     (OUTPUT/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
-    print(json.dumps({"passed":True,"capture":capture.name,"bytes":capture.stat().st_size,"sha256":sha(capture)}))
+    print(json.dumps({"passed":True,"captures":len(captures)}))
 
 if __name__=="__main__": main()
