@@ -2,8 +2,8 @@ extends Node3D
 ## Deliberately tiny water look-development scene.
 ## Pool shell + Baja shelf + three steps + one water surface. Nothing else.
 
-const BasinShader = preload("res://shaders/basin.gdshader")
-const SurfaceShader = preload("res://shaders/water_surface.gdshader")
+const BasinShader = preload("res://shaders/basin_fast.gdshader")
+const SurfaceShader = preload("res://shaders/water_surface_fast.gdshader")
 
 const POOL_LENGTH := 8.0
 const POOL_WIDTH := 4.0
@@ -142,8 +142,8 @@ func _make_pool() -> void:
 
 	var mesh := PlaneMesh.new()
 	mesh.size = Vector2(POOL_LENGTH - 0.08, POOL_WIDTH - 0.08)
-	mesh.subdivide_width = 95
-	mesh.subdivide_depth = 47
+	mesh.subdivide_width = 31
+	mesh.subdivide_depth = 15
 
 	water_surface = MeshInstance3D.new()
 	water_surface.name = "WaterSurface"
