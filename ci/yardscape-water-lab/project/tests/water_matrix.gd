@@ -28,7 +28,6 @@ func set_state(time_value: float, caustics: bool, surface: bool) -> void:
 	study._apply_time()
 
 func grab(name: String) -> Image:
-	await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()
 	image.convert(Image.FORMAT_RGBA8)
@@ -54,7 +53,7 @@ func run() -> void:
 
 	study = scene.instantiate()
 	root.add_child(study)
-	for i in 4:
+	for i in 2:
 		await process_frame
 
 	check(is_instance_valid(study.basin_material), "basin material initializes")
