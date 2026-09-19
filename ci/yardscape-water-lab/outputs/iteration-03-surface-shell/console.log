@@ -4,4 +4,4 @@ WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by 
 OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
 
 Northstar Water Lab | Space pause | C caustics | S surface | R reset | Left/Right scrub
-water_capture path=/home/runner/work/Blender-Godot-Astra-Lab/Blender-Godot-Astra-Lab/ci/yardscape-water-lab/outputs/iteration-03-surface-shell/01-t000-full.png error=0 time=0.00 caustics=true surface=true frames=8
+WATER_MATRIX captures=5 valid=true hashes={ "01-t000-full": "facbba8fb1553aa010c0a51d0511fffc006a48fdd595fecdbfb8a5ee02cdb65d", "02-t000-no-caustics": "278923889645cc8303c0f787b82feccff362d13facd2677bdb81df2f668afbf9", "03-t000-no-surface": "a6d0c50f68c8cd12c1970ca41023afd872896535731341634e74adb547b0ca00", "04-t175-full": "17b0bf701493d351772215117888a5c83663ce4ca082736b34e7d06ac4029321", "05-t400-full": "f39b0b9bb88e1388e5c55bda1323f690aa52db1358a4673d9b4a579ac367cc58" }
