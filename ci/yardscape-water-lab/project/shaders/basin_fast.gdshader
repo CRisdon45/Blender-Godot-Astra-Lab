@@ -71,21 +71,24 @@ float caustic_field(vec2 receiver, float depth) {
 	// Stylized caustic ribbons: two soft iso-curvature bands extracted from the
 	// physically motivated convergence field. They keep the wave interference
 	// shape without turning the pool into a cellular or crosshatched net.
-	float ribbon_a = 1.0 - smoothstep(0.035, 0.105, abs(scaled - 0.15));
-	float ribbon_b = 1.0 - smoothstep(0.030, 0.085, abs(scaled - 0.31));
+	float ribbon_a = 1.0 - smoothstep(0.020, 0.064, abs(scaled - 0.15));
+	float ribbon_b = 1.0 - smoothstep(0.018, 0.056, abs(scaled - 0.31));
 	float concentrated = max(ribbon_a, ribbon_b * 0.58);
 
 	// Stronger but much sparser art direction: caustics survive only in selected
 	// world-space passages. This preserves coherent curvature while avoiding a
 	// continuous procedural net across the whole basin.
 	float broad = paint_field(surface_point * 0.72 + vec2(7.0, 3.0));
-	float gate_a = smoothstep(0.56, 0.73,
+	float gate_a = smoothstep(0.60, 0.77,
 		paint_field(surface_point * 0.96 + vec2(-2.0, 12.0)));
-	float gate_b = 1.0 - smoothstep(0.72, 0.88,
+	float gate_b = 1.0 - smoothstep(0.78, 0.91,
 		paint_field(surface_point * 1.41 + vec2(-11.0, 1.0)));
-	float fragments = gate_a * mix(0.38, 1.0, gate_b);
-	float breakup = 0.46 + 0.54 * broad;
-	concentrated *= breakup * fragments;
+	float gate_c = smoothstep(0.52, 0.69,
+		paint_field(surface_point * 1.18 + vec2(4.0, -7.0)));
+	float fragments = gate_a * gate_c * mix(0.46, 1.0, gate_b);
+	float breakup = 0.50 + 0.50 * broad;
+	float shallow_control = mix(0.58, 1.0, smoothstep(0.25, 0.72, depth));
+	concentrated *= breakup * fragments * shallow_control;
 	concentrated *= exp(-depth * 0.12);
 	return concentrated;
 }
@@ -106,8 +109,8 @@ void fragment() {
 	color = mix(color, color * vec3(0.93, 0.98, 1.00), reserve * 0.18);
 
 	if (caustics_enabled && depth > 0.03) {
-		float light = caustic_field(p, depth) * 0.58;
-		color = mix(color, light_tint, clamp(light, 0.0, 0.42));
+		float light = caustic_field(p, depth) * 0.44;
+		color = mix(color, light_tint, clamp(light, 0.0, 0.30));
 	}
 
 	ALBEDO = color;
