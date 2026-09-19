@@ -97,7 +97,11 @@ func _configure_from_environment() -> void:
 
 
 func _capture_and_quit(path: String) -> void:
-	await get_tree().process_frame
+	# Give the renderer several complete process frames before waiting for the
+	# post-draw signal. Connecting too early can leave a headless/Xvfb capture
+	# waiting forever even though the scene itself initialized correctly.
+	for i in 8:
+		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	var image := get_viewport().get_texture().get_image()
 	var error := image.save_png(path)
