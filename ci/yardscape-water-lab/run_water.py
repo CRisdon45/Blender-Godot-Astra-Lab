@@ -4,10 +4,10 @@ import hashlib, json, os, re, shutil, struct, subprocess, sys
 
 ROOT=Path(__file__).resolve().parent
 PROJECT=ROOT/"project"
-OUTPUT=ROOT/"outputs"/"iteration-06-surface-passages"
+OUTPUT=ROOT/"outputs"/"iteration-07-caustic-fragments"
 PIN="4.7.1.stable.official.a13da4feb"
 ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
-APPLICATION_SOURCE_COMMIT="29460ab6b042a69c42172894bae99b25fb24e9a5"
+APPLICATION_SOURCE_COMMIT="c7245299e93d502a3f26cb131e69d46bb3647812"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
  "shaders/basin_fast.gdshader","shaders/water_surface_fast.gdshader","shaders/wall_fast.gdshader",
