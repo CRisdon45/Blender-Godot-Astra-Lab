@@ -1,0 +1,61 @@
+name: Public Northstar water lab baseline
+
+on:
+  push:
+    branches: [ci/yardscape-water-lab]
+    paths:
+      - 'ci/yardscape-water-lab/project/**'
+      - 'ci/yardscape-water-lab/run_water.py'
+      - '.github/workflows/yardscape-public-water.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: northstar-water-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  water:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          sparse-checkout: |
+            ci/yardscape-renderer
+            ci/yardscape-water-lab
+
+      - name: Verify reviewed minimal water slice
+        run: python ci/yardscape-water-lab/run_water.py --verify-only
+
+      - name: Install exact retained Godot
+        run: python ci/yardscape-renderer/install_godot.py
+
+      - name: Render deterministic nine-image baseline
+        run: python ci/yardscape-water-lab/run_water.py
+
+      - name: Upload temporary backup artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: northstar-water-baseline-01
+          path: ci/yardscape-water-lab/outputs/baseline-01
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: Publish renders into the branch
+        if: success()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f ci/yardscape-water-lab/outputs/baseline-01
+          if git diff --cached --quiet; then
+            echo "Rendered baseline is unchanged."
+          else
+            git commit -m "water lab: publish baseline-01 renders [skip ci]"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
