@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://presentation/northstar/android_brush_benchmark.gd" id="1"]
+
+[node name="AndroidBrushBenchmark" type="Node3D"]
+script = ExtResource("1")
