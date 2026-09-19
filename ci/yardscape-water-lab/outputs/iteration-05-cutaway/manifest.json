@@ -1,0 +1,105 @@
+{
+  "schema": "yardscape-water-matrix/1",
+  "application_source_commit": "e2d3b73e23f26422507815762cd1d7bdb8b0f292",
+  "public_source_commit": "09c3032cc99ef918c793812a8f82149c35b1a8f0",
+  "engine": "4.7.1.stable.official.a13da4feb",
+  "engine_sha256": "32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde",
+  "renderer": "Godot Compatibility / OpenGL",
+  "viewport": [
+    480,
+    360
+  ],
+  "states": [
+    {
+      "file": "01-t000-full.png",
+      "time": 0.0,
+      "caustics": true,
+      "surface": true
+    },
+    {
+      "file": "02-t000-no-caustics.png",
+      "time": 0.0,
+      "caustics": false,
+      "surface": true
+    },
+    {
+      "file": "03-t000-no-surface.png",
+      "time": 0.0,
+      "caustics": true,
+      "surface": false
+    },
+    {
+      "file": "04-t175-full.png",
+      "time": 1.75,
+      "caustics": true,
+      "surface": true
+    },
+    {
+      "file": "05-t400-full.png",
+      "time": 4.0,
+      "caustics": true,
+      "surface": true
+    }
+  ],
+  "source_sha256": {
+    "main.tscn": "be8010aa374bef2199df568fce576a598a800389994e7a09eb1fdd9df0ed22a3",
+    "project.godot": "dabccc8d9465cc0e6bebb816bf22941453b027e2c78225d058a9a7ce81ed0419",
+    "shaders/basin_fast.gdshader": "ede5e5df66127cf393dc6ee198583d2aca12d09840074fb184a41b88c233427f",
+    "shaders/wall_fast.gdshader": "1ede60dce278d8c6371dabb160bbc7122e7e23796d298dd66bb666a4b974327c",
+    "shaders/water_surface_fast.gdshader": "0fad02f84954efc3187f9cdbd823130165d2d094cca1c00dd18a6f96364cdbca",
+    "tests/capture_first_look.gd": "434cfe01a095ce9fccb2591ea52ca9d06662669571a1b6e8b49f21afd675a83b",
+    "tests/capture_matrix.gd": "f9a124dc67da2aff8777a59e0836e976c4db816455d8d0ccc02f6ea25078994b",
+    "water_lab.gd": "5b1ef517632f4e009d9138b637b6da72fa454f6857e47832ccb17cc73ebcbcc3"
+  },
+  "captures": [
+    {
+      "file": "01-t000-full.png",
+      "sha256": "a5568bd8a92f21057e2a1843b78b80084975a5716485de7772cca584a988ede2",
+      "bytes": 19363,
+      "dimensions": [
+        480,
+        360
+      ]
+    },
+    {
+      "file": "02-t000-no-caustics.png",
+      "sha256": "cf8a6649f46e7ed6c628134723d6df3019557907f76ede728fa06e1acd250568",
+      "bytes": 17225,
+      "dimensions": [
+        480,
+        360
+      ]
+    },
+    {
+      "file": "03-t000-no-surface.png",
+      "sha256": "083d7ac95e19549a2e44f9b4ec9a44baec5df0537487bf0fbba293b50a3f2843",
+      "bytes": 17238,
+      "dimensions": [
+        480,
+        360
+      ]
+    },
+    {
+      "file": "04-t175-full.png",
+      "sha256": "f6a7ad1b18b65f68f89655c8d01b2cad83907e8a578e8a9949826e44af9fe30f",
+      "bytes": 19392,
+      "dimensions": [
+        480,
+        360
+      ]
+    },
+    {
+      "file": "05-t400-full.png",
+      "sha256": "3b79c4638176c04429f5737ee462a48b127e8502b8594c7c8b92ff1787d0ca0f",
+      "bytes": 19048,
+      "dimensions": [
+        480,
+        360
+      ]
+    }
+  ],
+  "artistic_acceptance": "not_reviewed",
+  "limits": [
+    "Software llvmpipe worker, not target Android/tablet GPU"
+  ]
+}
