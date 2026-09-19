@@ -34,15 +34,15 @@ jobs:
       - name: Install exact retained Godot
         run: python ci/yardscape-renderer/install_godot.py
 
-      - name: Render deterministic nine-image baseline
+      - name: Render current water look
         run: python ci/yardscape-water-lab/run_water.py
 
       - name: Upload temporary backup artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: northstar-water-baseline-01
-          path: ci/yardscape-water-lab/outputs/baseline-01
+          name: northstar-water-outputs
+          path: ci/yardscape-water-lab/outputs
           retention-days: 7
           if-no-files-found: warn
 
@@ -52,10 +52,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f ci/yardscape-water-lab/outputs/baseline-01
+          git add -f ci/yardscape-water-lab/outputs
           if git diff --cached --quiet; then
             echo "Rendered baseline is unchanged."
           else
-            git commit -m "water lab: publish baseline-01 renders [skip ci]"
+            git commit -m "water lab: publish current render outputs [skip ci]"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
