@@ -1,0 +1,7 @@
+Godot Engine v4.7.1.stable.official.a13da4feb - https://godotengine.org
+WARNING: Could not set V-Sync mode, as changing V-Sync mode is not supported by the graphics driver.
+     at: set_use_vsync (platform/linuxbsd/x11/gl_manager_x11.cpp:372)
+OpenGL API 4.5 (Core Profile) Mesa 25.2.8-0ubuntu0.24.04.2 - Compatibility - Using Device: Mesa - llvmpipe (LLVM 20.1.2, 256 bits)
+
+Northstar Water Lab | Space pause | C caustics | S surface | R reset | Left/Right scrub
+WATER_MATRIX captures=5 valid=true hashes={ "01-t000-full": "79c446a8be4e6a0fcc0d9cd87bb1fe7a761bac75f714fd0b9d596973b92b4b41", "02-t000-no-caustics": "da2d96cfb344ecc27b5544ced39fcb98028f29e8ebe0fdab3def633d29d37b64", "03-t000-no-surface": "3e76be4af3011604dafe2da26eda937e5466666320d0fdb6292f9dd5fc992640", "04-t175-full": "be3edf442c076c9c6a808dfc9b8371787d536ac779acfc310558525beefed6f0", "05-t400-full": "9272b1def2b19aad3bd65c701623d4e91af20dd068b49d3f3a3229d1dbd747da" }
