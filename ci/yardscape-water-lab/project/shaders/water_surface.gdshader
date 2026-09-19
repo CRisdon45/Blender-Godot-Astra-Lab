@@ -16,12 +16,16 @@ varying vec3 world_normal;
 varying float wave_height;
 varying vec2 media;
 
+float soft_triangle(float x) {
+	float f = abs(fract(x) - 0.5) * 2.0;
+	return f * f * (3.0 - 2.0 * f);
+}
+
 float paint_field(vec2 p) {
-	float warp = sin(dot(p, vec2(0.77, 0.31)) * 0.43 + 1.7);
-	float a = sin(dot(p, vec2(-0.42, 0.91)) * 0.86 + warp * 0.88);
-	float b = sin(dot(p, vec2(0.68, 0.73)) * 1.37 - warp * 0.54 + 2.2);
-	float c = sin(dot(p, vec2(0.93, -0.36)) * 2.12 + 4.1);
-	return clamp(0.50 + 0.20 * a + 0.12 * b + 0.065 * c, 0.0, 1.0);
+	float a = soft_triangle(dot(p, vec2(0.77, 0.31)) * 0.19 + 0.13);
+	float b = soft_triangle(dot(p, vec2(-0.42, 0.91)) * 0.27 + a * 0.17 + 0.37);
+	float c = soft_triangle(dot(p, vec2(0.68, 0.73)) * 0.43 - b * 0.13 + 0.71);
+	return clamp(0.16 + 0.44 * a + 0.28 * b + 0.12 * c, 0.0, 1.0);
 }
 
 void wave_sample(vec2 p, float t, out float h, out vec2 grad) {
