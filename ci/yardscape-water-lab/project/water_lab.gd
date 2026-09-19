@@ -146,11 +146,10 @@ func _make_pool() -> void:
 	_make_vertical_x("riser-2", -0.80, -1.00, -0.70)
 	_make_vertical_x("riser-3", -0.30, -1.50, -1.00)
 
-	# Interior perimeter only. Side walls may extend below the shelf, but the
-	# shelf/treads depth-test over them from this fixed oblique view.
+	# Water look-dev cutaway: retain only the two far interior walls.
+	# The camera sits west/south of the pool, so the west and south walls only
+	# occlude the Baja/steps/deep-water read and add no useful water evidence.
 	_make_vertical_z("wall-north", -POOL_WIDTH * 0.5, -1.50, WATER_LEVEL)
-	_make_vertical_z("wall-south", POOL_WIDTH * 0.5, -1.50, WATER_LEVEL)
-	_make_vertical_x_span("wall-west", -POOL_LENGTH * 0.5, -0.25, WATER_LEVEL, POOL_WIDTH)
 	_make_vertical_x_span("wall-east", POOL_LENGTH * 0.5, -1.50, WATER_LEVEL, POOL_WIDTH)
 
 	var mesh := PlaneMesh.new()
