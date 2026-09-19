@@ -1,10 +1,11 @@
 shader_type spatial;
 render_mode unshaded;
 
-// Submerged geometry carries the depth story. Caustics are evaluated on the
-// receiver, back-projecting toward the moving surface and estimating local
-// refracted-ray concentration. This keeps them coherent with the surface wave
-// field and avoids the old static Voronoi/cellular net.
+// Fast Northstar basin treatment. Depth comes from real geometry. Caustics are
+// evaluated on receiving geometry from the same four-wave field as the surface.
+// Instead of a per-pixel finite-difference refracted Jacobian, this candidate uses
+// an analytic curvature/focusing proxy after one flat-surface Snell back-projection.
+// The slower Jacobian experiment is retained under shaders/experiments/.
 uniform float visual_time = 0.0;
 uniform float water_level = 0.0;
 uniform vec3 sun_ray_dir = vec3(0.3796774, -0.8193039, 0.4296350);
@@ -40,9 +41,9 @@ float broad_wash(vec2 p) {
 		+ 0.11 * value_noise(p * 4.07 + 29.0);
 }
 
-void wave_sample(vec2 p, float t, out float h, out vec2 grad) {
-	h = 0.0;
-	grad = vec2(0.0);
+void wave_curvature(vec2 p, float t, vec2 travel_dir, out float laplacian, out float directional) {
+	laplacian = 0.0;
+	directional = 0.0;
 
 	vec2 d0 = normalize(vec2(1.00, 0.24));
 	vec2 d1 = normalize(vec2(-0.36, 1.00));
@@ -54,60 +55,41 @@ void wave_sample(vec2 p, float t, out float h, out vec2 grad) {
 	float p2 = dot(p, d2) * 5.70 + t * 0.56;
 	float p3 = dot(p, d3) * 7.60 - t * 1.27;
 
-	h += 0.020 * sin(p0);
-	h += 0.013 * sin(p1);
-	h += 0.008 * sin(p2);
-	h += 0.005 * sin(p3);
+	float c0 = -0.020 * 3.25 * 3.25 * sin(p0);
+	float c1 = -0.013 * 4.10 * 4.10 * sin(p1);
+	float c2 = -0.008 * 5.70 * 5.70 * sin(p2);
+	float c3 = -0.005 * 7.60 * 7.60 * sin(p3);
 
-	grad += d0 * (0.020 * 3.25 * cos(p0));
-	grad += d1 * (0.013 * 4.10 * cos(p1));
-	grad += d2 * (0.008 * 5.70 * cos(p2));
-	grad += d3 * (0.005 * 7.60 * cos(p3));
-}
-
-vec3 water_normal(vec2 p) {
-	float h;
-	vec2 grad;
-	wave_sample(p, visual_time, h, grad);
-	return normalize(vec3(-grad.x, 1.0, -grad.y));
-}
-
-vec2 refracted_receiver(vec2 surface_point, float depth) {
-	vec3 n = water_normal(surface_point);
-	vec3 ray = refract(normalize(sun_ray_dir), n, 1.0 / 1.333);
-	float distance_to_receiver = depth / max(-ray.y, 0.08);
-	return surface_point + ray.xz * distance_to_receiver;
-}
-
-vec2 find_surface_for_receiver(vec2 receiver, float depth) {
-	vec2 surface_point = receiver
-		- sun_ray_dir.xz * depth / max(-sun_ray_dir.y, 0.08);
-
-	// Two fixed-point corrections are enough for this shallow pool and keep
-	// runtime predictable. The lab can raise this later only if images justify it.
-	for (int i = 0; i < 2; i++) {
-		vec2 mapped = refracted_receiver(surface_point, depth);
-		surface_point += (receiver - mapped) * 0.88;
-	}
-	return surface_point;
+	laplacian = c0 + c1 + c2 + c3;
+	directional =
+		c0 * pow(dot(d0, travel_dir), 2.0)
+		+ c1 * pow(dot(d1, travel_dir), 2.0)
+		+ c2 * pow(dot(d2, travel_dir), 2.0)
+		+ c3 * pow(dot(d3, travel_dir), 2.0);
 }
 
 float floor_caustic(vec2 receiver, float depth) {
-	vec2 surface_point = find_surface_for_receiver(receiver, depth);
-	float eps = 0.0275;
+	vec3 flat_ray = refract(normalize(sun_ray_dir), vec3(0.0, 1.0, 0.0), 1.0 / 1.333);
+	float travel = depth / max(-flat_ray.y, 0.08);
+	vec2 surface_point = receiver - flat_ray.xz * travel;
+	vec2 travel_dir = normalize(flat_ray.xz + vec2(0.00001));
 
-	vec2 m0 = refracted_receiver(surface_point, depth);
-	vec2 mx = refracted_receiver(surface_point + vec2(eps, 0.0), depth);
-	vec2 mz = refracted_receiver(surface_point + vec2(0.0, eps), depth);
+	float laplacian;
+	float directional;
+	wave_curvature(surface_point, visual_time, travel_dir, laplacian, directional);
 
-	vec2 dx = (mx - m0) / eps;
-	vec2 dz = (mz - m0) / eps;
-	float jacobian = abs(dx.x * dz.y - dx.y * dz.x);
-	float focus = 1.0 / max(jacobian, 0.20);
+	// Curvature is an inexpensive proxy for local ray compression. The sign keeps
+	// only converging regions, avoiding a glowing line on every wave crest/trough.
+	float convergence = -depth * (directional * 0.72 + laplacian * 0.28) * 0.70;
+	float focus = 1.0 / max(1.0 - convergence, 0.32);
+	float band = smoothstep(1.12, 2.30, focus);
 
-	float band = smoothstep(1.08, 2.15, focus);
-	band *= 0.62 + 0.38 * broad_wash(surface_point * 0.82 + 23.0);
-	band *= exp(-depth * 0.18);
+	// Painterly breakup prevents a mathematically uniform network while remaining
+	// fixed in world coordinates and independent from viewport pixels.
+	float breakup = 0.60 + 0.40 * broad_wash(surface_point * 0.86 + 23.0);
+	float reserve = smoothstep(0.63, 0.78, broad_wash(surface_point * 1.23 + 51.0));
+	band *= breakup * (1.0 - reserve * 0.42);
+	band *= exp(-depth * 0.14);
 	return band;
 }
 
@@ -156,9 +138,7 @@ void fragment() {
 		}
 	}
 
-	// Northstar target: readable concentrated light, not a white neon net.
-	float light_amount = clamp(caustic * caustic_strength, 0.0, 0.48);
+	float light_amount = clamp(caustic * caustic_strength, 0.0, 0.44);
 	color = mix(color, light_tint, light_amount);
-
 	ALBEDO = color;
 }
