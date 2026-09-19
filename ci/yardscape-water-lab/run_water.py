@@ -7,7 +7,7 @@ PROJECT=ROOT/"project"
 OUTPUT=ROOT/"outputs"/"baseline-01"
 PIN="4.7.1.stable.official.a13da4feb"
 ENGINE_SHA="32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
-APPLICATION_SOURCE_COMMIT="81a4046b010a517bf5c3c98c3e2919a801046088"
+APPLICATION_SOURCE_COMMIT="24827b5cac02f0ce6c8635f0b3075f45a1d1d89b"
 ALLOWED={
  "project.godot","main.tscn","water_lab.gd",
  "shaders/basin.gdshader","shaders/water_surface.gdshader",
@@ -80,12 +80,12 @@ def main():
     if report.get("run_id")!=run_id or not report.get("passed") or report.get("failures"):
         raise RuntimeError("Missing, stale, or failed native report")
     pngs=sorted(inside.glob("*.png"))
-    if len(pngs)!=9: raise ValueError("Expected nine PNGs, got "+str(len(pngs)))
+    if len(pngs)!=5: raise ValueError("Expected five first-look PNGs, got "+str(len(pngs)))
 
     captures=[]
     for p in pngs:
         dims=png_dimensions(p)
-        if dims!=(720,540): raise ValueError("Unexpected size "+p.name+" "+str(dims))
+        if dims!=(480,360): raise ValueError("Unexpected size "+p.name+" "+str(dims))
         if p.stat().st_size<20000: raise ValueError("Suspiciously small "+p.name)
         shutil.copyfile(p,OUTPUT/p.name)
         captures.append({"file":p.name,"sha256":sha(p),"bytes":p.stat().st_size,"dimensions":list(dims)})
@@ -102,7 +102,7 @@ def main():
       "engine_sha256":ENGINE_SHA,
       "adapter":report.get("adapter"),
       "renderer":report.get("renderer"),
-      "viewport":[720,540],
+      "viewport":[480,360],
       "camera":"fixed","sun":"fixed",
       "source_sha256":source_hashes,
       "captures":captures,
