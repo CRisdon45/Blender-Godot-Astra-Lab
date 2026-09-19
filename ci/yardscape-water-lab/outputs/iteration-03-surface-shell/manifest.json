@@ -1,0 +1,36 @@
+{
+  "schema": "yardscape-water-first-look/1",
+  "application_source_commit": "d927fde74378ae9941f702f70a7dd5966ddcae0a",
+  "public_source_commit": "64aefa32d62fa5ad03e2b404e5f733e201efcdeb",
+  "engine": "4.7.1.stable.official.a13da4feb",
+  "engine_sha256": "32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde",
+  "renderer": "Godot Compatibility / OpenGL",
+  "viewport": [
+    480,
+    360
+  ],
+  "state": {
+    "time": 0.0,
+    "caustics": true,
+    "surface": true
+  },
+  "source_sha256": {
+    "main.tscn": "be8010aa374bef2199df568fce576a598a800389994e7a09eb1fdd9df0ed22a3",
+    "project.godot": "dabccc8d9465cc0e6bebb816bf22941453b027e2c78225d058a9a7ce81ed0419",
+    "shaders/basin_fast.gdshader": "0f06435db9dd38b07567447fc769c4a3b850a570d529ec3f5063ba8405574f03",
+    "shaders/wall_fast.gdshader": "1ede60dce278d8c6371dabb160bbc7122e7e23796d298dd66bb666a4b974327c",
+    "shaders/water_surface_fast.gdshader": "1f9e4f0cb2afcd5094fbb70c83feb7aaff45cbfef306cea455fef730153cf781",
+    "tests/capture_first_look.gd": "434cfe01a095ce9fccb2591ea52ca9d06662669571a1b6e8b49f21afd675a83b",
+    "water_lab.gd": "6b94027401e345bdc150ee4acc3ddd077e756fa45b0df372c2fce78cbdd4460a"
+  },
+  "capture": {
+    "file": "01-t000-full.png",
+    "sha256": "ff4573bf33ff467dd8a305c54b944073e51c13ceb865e5f97e08718503a200d8",
+    "bytes": 29004
+  },
+  "artistic_acceptance": "not_reviewed",
+  "limits": [
+    "Software llvmpipe worker, not target Android/tablet GPU",
+    "First-look full-water frame only"
+  ]
+}
