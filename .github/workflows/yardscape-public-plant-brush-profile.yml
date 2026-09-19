@@ -5,6 +5,7 @@ on:
       - ci/yardscape-renderer-slice
       - experiment/profile-brush-cloud-v1
       - experiment/profile-brush-northstar-polish-v1
+      - experiment/profile-brush-northstar-shadow-v1
     paths:
       - ci/yardscape-plant-brush-profile-probe/**
       - .github/workflows/yardscape-public-plant-brush-profile.yml

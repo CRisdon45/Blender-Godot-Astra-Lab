@@ -4,6 +4,8 @@ const DabTree=preload("res://presentation/northstar/foliage/profiled_batched_dab
 const BrushTree=preload("res://presentation/northstar/foliage/profiled_batched_brush_tree.gd")
 const Profiles=preload("res://presentation/northstar/foliage/plant_form_profiles.gd")
 const ShrubProfiles=preload("res://presentation/northstar/foliage/shrub_form_profile.gd")
+const SHADOW_STYLE := "northstar-light-shadow-wash/1"
+const SHADOW_OPACITY := .42
 
 var tree_brush:Node3D
 var shrub_dab:Node3D
@@ -14,6 +16,7 @@ var display_mode:="both"
 
 func _build()->void:
 	super._build()
+	sun.shadow_opacity=SHADOW_OPACITY
 	for child in derived.get_children():
 		if child.name=="tree-trunk" or str(child.name).begins_with("crown-"):child.visible=false
 	shrub_record={

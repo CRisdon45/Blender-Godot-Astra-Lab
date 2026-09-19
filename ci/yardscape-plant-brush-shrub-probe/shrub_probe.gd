@@ -53,6 +53,7 @@ func run()->void:
 	check(Profiles.input_error(shrub_profile).is_empty(),"generic shrub form profile validates through the retained schema")
 	study=load("res://northstar-profile-brush-shrub.tscn").instantiate();root.add_child(study);for i in 3:await process_frame
 	check(study is Current,"exact isolated retained-brush shrub study")
+	check(study.SHADOW_STYLE=="northstar-light-shadow-wash/1" and is_equal_approx(study.sun.shadow_opacity,.42),"tree and shrub cast through the isolated light shadow wash")
 	var tree=study.tree_brush;var dab=study.shrub_dab;var brush=study.shrub_brush;var shrub_record:Dictionary=study.shrub_record
 	check(tree.stats.recipe=="fixed-center-brush-card-cloud/2" and brush.stats.recipe==tree.stats.recipe,"shrub uses the exact retained v4 brush recipe")
 	check(tree.stats.surface_style=="northstar-illustrated-mass/2" and brush.stats.surface_style==tree.stats.surface_style,"tree and shrub use the isolated illustrated-mass surface")

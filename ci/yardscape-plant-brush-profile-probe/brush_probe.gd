@@ -61,6 +61,7 @@ func run()->void:
 	check(Profiles.input_error(ash_profile).is_empty() and Profiles.input_error(palo_profile).is_empty(),"retained form profiles validate")
 	study=load("res://northstar-profile-brush-cloud.tscn").instantiate();root.add_child(study);for i in 3:await process_frame
 	check(study is Current,"exact isolated opaque-brush study")
+	check(study.SHADOW_STYLE=="northstar-light-shadow-wash/1" and is_equal_approx(study.sun.shadow_opacity,.42),"Northstar vegetation shadows use the isolated light wash treatment")
 	var ash_plan_signature:=plan_signature(ash_profile);var ash_signature:=validate_profile(ash_profile,16,288,"Fan-Tex")
 	close(.55,.28,7.4);var ash_front_dab:=await capture("01-fantex-front-dab",false);var ash_front_brush:=await capture("02-fantex-front-brush",true);check(digest(ash_front_dab)!=digest(ash_front_brush),"Fan-Tex brush surface visibly differs from retained dabs")
 	close(.55+PI*.5,.30,7.4);await capture("03-fantex-side-dab",false);await capture("04-fantex-side-brush",true)

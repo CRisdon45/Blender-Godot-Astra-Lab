@@ -26,6 +26,8 @@ from run_emulator import (
 RUN_COUNT = 3
 EXPECTED_RECIPE = "fixed-center-brush-card-cloud/2"
 EXPECTED_SURFACE_STYLE = "northstar-illustrated-mass/2"
+EXPECTED_SHADOW_STYLE = "northstar-light-shadow-wash/1"
+EXPECTED_SHADOW_OPACITY = 0.42
 EXPECTED_WORKLOAD = {
     "fan_tex_trees": 3,
     "palo_verde_trees": 3,
@@ -113,6 +115,10 @@ def validate_benchmark(benchmark: dict) -> None:
         raise RuntimeError(f"Wrong retained recipe: {benchmark.get('recipe')}")
     if benchmark.get("surface_style") != EXPECTED_SURFACE_STYLE:
         raise RuntimeError(f"Wrong Northstar surface: {benchmark.get('surface_style')}")
+    if benchmark.get("shadow_style") != EXPECTED_SHADOW_STYLE:
+        raise RuntimeError(f"Wrong Northstar shadow treatment: {benchmark.get('shadow_style')}")
+    if abs(float(benchmark.get("shadow_opacity", -1.0)) - EXPECTED_SHADOW_OPACITY) > 0.001:
+        raise RuntimeError(f"Wrong Northstar shadow opacity: {benchmark.get('shadow_opacity')}")
     for key, expected in EXPECTED_WORKLOAD.items():
         if benchmark.get(key) != expected:
             raise RuntimeError(f"Unexpected {key}: {benchmark.get(key)} (expected {expected})")

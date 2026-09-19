@@ -315,6 +315,10 @@ def main() -> None:
                 raise RuntimeError(f"Wrong retained recipe in {label}")
             if benchmark.get("surface_style") != "northstar-illustrated-mass/2":
                 raise RuntimeError(f"Wrong Northstar surface in {label}: {benchmark.get('surface_style')}")
+            if benchmark.get("shadow_style") != "northstar-light-shadow-wash/1":
+                raise RuntimeError(f"Wrong Northstar shadow treatment in {label}: {benchmark.get('shadow_style')}")
+            if abs(float(benchmark.get("shadow_opacity", -1.0)) - 0.42) > 0.001:
+                raise RuntimeError(f"Wrong Northstar shadow opacity in {label}: {benchmark.get('shadow_opacity')}")
             expected = {
                 "fan_tex_trees": 3,
                 "palo_verde_trees": 3,

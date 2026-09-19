@@ -2,6 +2,8 @@ extends "res://presentation/northstar/spatial_material_study.gd"
 const DabTree=preload("res://presentation/northstar/foliage/profiled_batched_dab_tree.gd")
 const BrushTree=preload("res://presentation/northstar/foliage/profiled_batched_brush_tree.gd")
 const Profiles=preload("res://presentation/northstar/foliage/plant_form_profiles.gd")
+const SHADOW_STYLE := "northstar-light-shadow-wash/1"
+const SHADOW_OPACITY := .42
 var dab_tree:Node3D
 var brush_tree:Node3D
 var active_profile:Dictionary={}
@@ -9,6 +11,10 @@ var brush_enabled:=true
 
 func _build()->void:
 	super._build()
+	# The reference treats cast vegetation shadow as a subordinate wash. Keep
+	# the real sun vector and shadow geometry, but prevent cutout cards from
+	# becoming the highest-contrast marks in the composition.
+	sun.shadow_opacity=SHADOW_OPACITY
 	for child in derived.get_children():
 		if child.name=="tree-trunk" or str(child.name).begins_with("crown-"):child.visible=false
 	set_profile(Profiles.fan_tex_ash_v2())

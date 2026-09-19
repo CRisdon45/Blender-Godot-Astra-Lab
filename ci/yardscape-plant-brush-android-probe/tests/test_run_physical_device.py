@@ -51,6 +51,8 @@ class PhysicalDeviceRunnerTests(unittest.TestCase):
         benchmark = {
             "recipe": device.EXPECTED_RECIPE,
             "surface_style": device.EXPECTED_SURFACE_STYLE,
+            "shadow_style": device.EXPECTED_SHADOW_STYLE,
+            "shadow_opacity": device.EXPECTED_SHADOW_OPACITY,
             **device.EXPECTED_WORKLOAD,
             "sample_count": 720,
             "rendering_method": "gl_compatibility",
@@ -66,6 +68,8 @@ class PhysicalDeviceRunnerTests(unittest.TestCase):
         benchmark = {
             "recipe": device.EXPECTED_RECIPE,
             "surface_style": device.EXPECTED_SURFACE_STYLE,
+            "shadow_style": device.EXPECTED_SHADOW_STYLE,
+            "shadow_opacity": device.EXPECTED_SHADOW_OPACITY,
             **device.EXPECTED_WORKLOAD,
             "sample_count": 100,
             "rendering_method": "gl_compatibility",
@@ -76,6 +80,24 @@ class PhysicalDeviceRunnerTests(unittest.TestCase):
             "visual_capture": {"sampled_colors": 256},
         }
         with self.assertRaisesRegex(RuntimeError, "software renderer"):
+            device.validate_benchmark(benchmark)
+
+    def test_validate_rejects_wrong_shadow_opacity(self):
+        benchmark = {
+            "recipe": device.EXPECTED_RECIPE,
+            "surface_style": device.EXPECTED_SURFACE_STYLE,
+            "shadow_style": device.EXPECTED_SHADOW_STYLE,
+            "shadow_opacity": 1.0,
+            **device.EXPECTED_WORKLOAD,
+            "sample_count": 720,
+            "rendering_method": "gl_compatibility",
+            "viewport_width": 1920,
+            "viewport_height": 1200,
+            "video_adapter": "ANGLE (Samsung Xclipse)",
+            "video_vendor": "Samsung",
+            "visual_capture": {"sampled_colors": 256},
+        }
+        with self.assertRaisesRegex(RuntimeError, "shadow opacity"):
             device.validate_benchmark(benchmark)
 
 

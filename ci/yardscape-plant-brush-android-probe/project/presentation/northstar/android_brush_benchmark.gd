@@ -6,6 +6,8 @@ const ShrubProfiles=preload("res://presentation/northstar/foliage/shrub_form_pro
 
 const RECIPE := "fixed-center-brush-card-cloud/2"
 const SURFACE_STYLE := "northstar-illustrated-mass/2"
+const SHADOW_STYLE := "northstar-light-shadow-wash/1"
+const SHADOW_OPACITY := .42
 const FAN_TEX_COUNT := 3
 const PALO_VERDE_COUNT := 3
 const TREE_COUNT := FAN_TEX_COUNT+PALO_VERDE_COUNT
@@ -64,6 +66,8 @@ func _confirm_visual_ready()->void:
 			print("YARDSCAPE_BENCHMARK_READY="+JSON.stringify({
 				"recipe":RECIPE,
 				"surface_style":SURFACE_STYLE,
+				"shadow_style":SHADOW_STYLE,
+				"shadow_opacity":SHADOW_OPACITY,
 				"fan_tex_trees":FAN_TEX_COUNT,
 				"palo_verde_trees":PALO_VERDE_COUNT,
 				"trees":TREE_COUNT,
@@ -118,6 +122,7 @@ func _build_environment()->void:
 	sun.light_color=Color("fff1cf")
 	sun.light_energy=1.18
 	sun.shadow_enabled=true
+	sun.shadow_opacity=SHADOW_OPACITY
 	add_child(sun)
 	var ground:=MeshInstance3D.new()
 	var box:=BoxMesh.new();box.size=Vector3(19.0,0.18,12.0)
@@ -193,7 +198,7 @@ func _build_hud()->void:
 	layer.add_child(title)
 	var detail:=Label.new()
 	detail.position=Vector2(53,80)
-	detail.text="3 FAN-TEX  +  3 PALO VERDE  +  12 SHRUBS  /  ILLUSTRATED TONAL MASSES"
+	detail.text="3 FAN-TEX  +  3 PALO VERDE  +  12 SHRUBS  /  TONAL MASSES + SHADOW WASH"
 	detail.add_theme_font_size_override("font_size",16)
 	detail.add_theme_color_override("font_color",Color("bdc99f"))
 	layer.add_child(detail)
@@ -219,6 +224,8 @@ func _emit_report()->void:
 		"schema":"yardscape-android-render-loop/1",
 		"recipe":RECIPE,
 		"surface_style":SURFACE_STYLE,
+		"shadow_style":SHADOW_STYLE,
+		"shadow_opacity":SHADOW_OPACITY,
 		"engine":Engine.get_version_info().get("string","unknown"),
 		"os":OS.get_name(),
 		"os_version":OS.get_version(),
