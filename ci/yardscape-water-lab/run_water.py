@@ -70,10 +70,17 @@ def main():
         GODOT_SILENCE_ROOT_WARNING="1",
     )
     cmd=["xvfb-run","-a",str(engine),"--path",str(stage),"--audio-driver","Dummy","--script","res://tests/capture_first_look.gd"]
-    proc=subprocess.run(cmd,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=60,check=False)
-    log=proc.stdout
+    try:
+        proc=subprocess.run(cmd,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=25,check=False)
+        log=proc.stdout or ""
+    except subprocess.TimeoutExpired as exc:
+        log=exc.stdout or ""
+        if isinstance(log,bytes): log=log.decode("utf-8","replace")
+        (OUTPUT/"console.log").write_text(log)
+        print(log[-20000:])
+        raise RuntimeError("Godot direct water capture timed out; preserved console.log") from exc
     (OUTPUT/"console.log").write_text(log)
-    print(log[-16000:])
+    print(log[-20000:])
     if proc.returncode!=0 or re.search(r"SCRIPT ERROR:|SHADER ERROR:|Parse Error|ERROR:",log):
         raise RuntimeError("Native full-water first look failed")
     if not capture.exists(): raise FileNotFoundError("Scene exited without capture")
