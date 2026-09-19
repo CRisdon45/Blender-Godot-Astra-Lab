@@ -5,6 +5,7 @@ const Profiles=preload("res://presentation/northstar/foliage/plant_form_profiles
 const ShrubProfiles=preload("res://presentation/northstar/foliage/shrub_form_profile.gd")
 
 const RECIPE := "fixed-center-brush-card-cloud/2"
+const SURFACE_STYLE := "northstar-muted-macro-wash/1"
 const FAN_TEX_COUNT := 3
 const PALO_VERDE_COUNT := 3
 const TREE_COUNT := FAN_TEX_COUNT+PALO_VERDE_COUNT
@@ -62,6 +63,7 @@ func _confirm_visual_ready()->void:
 				break
 			print("YARDSCAPE_BENCHMARK_READY="+JSON.stringify({
 				"recipe":RECIPE,
+				"surface_style":SURFACE_STYLE,
 				"fan_tex_trees":FAN_TEX_COUNT,
 				"palo_verde_trees":PALO_VERDE_COUNT,
 				"trees":TREE_COUNT,
@@ -173,6 +175,7 @@ func _add_plant(record:Dictionary,profile:Dictionary)->void:
 	plant.set_light_values(Vector2(-0.48,-0.88))
 	add_child(plant)
 	assert(str(plant.stats.recipe)==RECIPE)
+	assert(str(plant.stats.surface_style)==SURFACE_STYLE)
 	visible_meshes+=int(plant.stats.visible_meshes)
 	visible_triangles+=int(plant.stats.visible_triangles)
 
@@ -190,7 +193,7 @@ func _build_hud()->void:
 	layer.add_child(title)
 	var detail:=Label.new()
 	detail.position=Vector2(53,80)
-	detail.text="3 FAN-TEX  +  3 PALO VERDE  +  12 LOW SHRUBS  /  36 MESHES"
+	detail.text="3 FAN-TEX  +  3 PALO VERDE  +  12 SHRUBS  /  MUTED MACRO WASH"
 	detail.add_theme_font_size_override("font_size",16)
 	detail.add_theme_color_override("font_color",Color("bdc99f"))
 	layer.add_child(detail)
@@ -215,6 +218,7 @@ func _emit_report()->void:
 	var report:={
 		"schema":"yardscape-android-render-loop/1",
 		"recipe":RECIPE,
+		"surface_style":SURFACE_STYLE,
 		"engine":Engine.get_version_info().get("string","unknown"),
 		"os":OS.get_name(),
 		"os_version":OS.get_version(),

@@ -3,8 +3,10 @@ on:
   push:
     branches:
       - experiment/profile-brush-shrub-v1
+      - experiment/profile-brush-northstar-polish-v1
     paths:
       - ci/yardscape-plant-brush-shrub-probe/**
+      - ci/yardscape-plant-brush-profile-probe/**
       - .github/workflows/yardscape-public-plant-brush-shrub.yml
   workflow_dispatch:
 permissions:
@@ -47,7 +49,7 @@ jobs:
         with:
           name: plant-brush-shrub-evidence
           path: /home/runner/work/_temp/plant-brush-shrub-evidence
-          retention-days: 7
+          retention-days: 14
           if-no-files-found: warn
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

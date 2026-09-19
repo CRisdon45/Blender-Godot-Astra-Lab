@@ -3,6 +3,7 @@ extends Node3D
 ## Every card has a fixed 3D center and broad emitter-derived normal. Only each
 ## small card faces the camera; the plant never billboards and has no solid core.
 const RECIPE := "fixed-center-brush-card-cloud/2"
+const SURFACE_STYLE := "northstar-muted-macro-wash/1"
 const ATLAS_TILES := 4
 const GOLDEN_ANGLE := 2.399963229728653
 
@@ -123,7 +124,14 @@ static func brush_atlas()->ImageTexture:
 					var edge:=.96+.055*sin((3.+float((tile+lobe)%2))*angle+float(tile)*.81+float(lobe))+.025*cos(7.*angle-float(lobe))
 					var bristle:=.022*sin((p.x+float(lobe)*.17)*19.+float(tile)*1.3)*(1.-clampf(abs(q.y),0.,1.))
 					alpha=maxf(alpha,clampf((edge+bristle-radial)*18.+.5,0.,1.))
-				image.set_pixel(tile*tile_size+x,y,Color(1,1,1,alpha))
+				# Stable pigment variation changes value inside the retained mark
+				# without cutting new holes or altering its reviewed silhouette.
+				var wash:=.50
+				wash+=.085*sin(p.x*3.10+p.y*.90+float(tile)*.83)
+				wash+=.050*cos(p.y*3.65-p.x*.72-float(tile)*.61)
+				var edge_pool:=1.0-smoothstep(.42,.82,alpha)
+				wash-=edge_pool*.022
+				image.set_pixel(tile*tile_size+x,y,Color(clampf(wash,.30,.70),1,1,alpha))
 	image.generate_mipmaps();return ImageTexture.create_from_image(image)
 
 func geometry_signature()->String:return var_to_bytes([descriptor,twig.mesh.surface_get_arrays(0),foliage.mesh.surface_get_arrays(0)]).hex_encode().sha256_text()

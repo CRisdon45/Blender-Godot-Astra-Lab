@@ -5,6 +5,10 @@ render_mode cull_disabled, depth_draw_opaque, diffuse_lambert, specular_disabled
 uniform sampler2D brush_atlas : repeat_disable, filter_linear_mipmap;
 uniform vec2 sun_direction = vec2(0.0,-1.0);
 uniform float leader_family_value = 0.0;
+uniform vec3 foliage_dark : source_color = vec3(0.08,0.13,0.055);
+uniform vec3 foliage_middle : source_color = vec3(0.22,0.28,0.13);
+uniform vec3 foliage_light : source_color = vec3(0.38,0.40,0.20);
+uniform float plant_height = 1.0;
 varying vec3 group_local;
 varying float family_angle;
 varying float interior_occlusion;
@@ -22,24 +26,29 @@ void vertex(){
  family_angle=COLOR.a*6.28318530718;
  interior_occlusion=COLOR.g;
 }
-float grain(vec3 p){return .5+.23*sin(p.x*4.7+p.y*3.3)+.12*sin(p.z*6.1-p.y*2.4);}
+float macro_pigment(vec3 p){
+ return .5+.20*sin(p.x*1.31+p.y*.73-p.z*.42)+.10*sin(p.z*1.67+p.y*.51);
+}
 void fragment(){
- float mask=texture(brush_atlas,UV).a;
+ vec4 brush=texture(brush_atlas,UV);
+ float mask=brush.a;
  ALPHA=mask;
  ALPHA_SCISSOR_THRESHOLD=.42;
  float family_value=0.0;
  vec2 family_dir=vec2(cos(family_angle),sin(family_angle));
  float alignment=dot(family_dir,sun_direction);
-  if(alignment>.28) family_value=.068;
-  else if(alignment<-.28) family_value=-.068;
- float local_tone=mix(.5,COLOR.r,.24)-interior_occlusion*.045;
- float tone=clamp(local_tone+family_value,.18,.80);
- vec3 dark=vec3(.18,.29,.12);
- vec3 middle=vec3(.35,.48,.215);
- vec3 light_value=vec3(.57,.62,.34);
- vec3 color=mix(dark,middle,smoothstep(.33,.52,tone));
- color=mix(color,light_value,smoothstep(.50,.66,tone)*.36);
- color*=.985+.030*grain(group_local);
+  if(alignment>.28) family_value=.050;
+  else if(alignment<-.28) family_value=-.050;
+ float height_band=clamp(group_local.y/max(plant_height,.001),0.0,1.0);
+ float height_value=(smoothstep(.28,.92,height_band)-.5)*.070;
+ float card_variation=(COLOR.r-.5)*.10;
+ float wash_value=(brush.r-.5)*.115;
+ float broad_value=(macro_pigment(group_local)-.5)*.070;
+ float tone=clamp(.49+family_value+height_value+card_variation+wash_value+broad_value-interior_occlusion*.130,.18,.76);
+ vec3 color=mix(foliage_dark,foliage_middle,smoothstep(.34,.53,tone));
+ color=mix(color,foliage_light,smoothstep(.51,.66,tone)*.28);
+ float edge_pool=1.0-smoothstep(.42,.80,mask);
+ color*=1.0-edge_pool*.018;
  ALBEDO=color;
  ROUGHNESS=1.0;
 }

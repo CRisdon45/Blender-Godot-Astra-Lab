@@ -50,6 +50,7 @@ class PhysicalDeviceRunnerTests(unittest.TestCase):
     def test_validate_exact_hardware_benchmark(self):
         benchmark = {
             "recipe": device.EXPECTED_RECIPE,
+            "surface_style": device.EXPECTED_SURFACE_STYLE,
             **device.EXPECTED_WORKLOAD,
             "sample_count": 720,
             "rendering_method": "gl_compatibility",
@@ -64,6 +65,7 @@ class PhysicalDeviceRunnerTests(unittest.TestCase):
     def test_validate_rejects_software_renderer(self):
         benchmark = {
             "recipe": device.EXPECTED_RECIPE,
+            "surface_style": device.EXPECTED_SURFACE_STYLE,
             **device.EXPECTED_WORKLOAD,
             "sample_count": 100,
             "rendering_method": "gl_compatibility",
