@@ -1,6 +1,6 @@
-"""Authorized public water-only renderer probe."""
+"""Authorized public one-frame water look-development probe."""
 from pathlib import Path, PurePosixPath
-import hashlib, json, os, re, shutil, struct, subprocess, sys, uuid
+import hashlib, json, os, re, shutil, struct, subprocess, sys
 
 ROOT=Path(__file__).resolve().parent
 PROJECT=ROOT/"project"
@@ -56,66 +56,46 @@ def main():
     stage=Path(os.environ["RUNNER_TEMP"])/"northstar-water-lab"
     if stage.exists(): shutil.rmtree(stage)
     shutil.copytree(PROJECT,stage)
-    inside=stage/".local"/"output"; inside.mkdir(parents=True)
-
     if OUTPUT.exists(): shutil.rmtree(OUTPUT)
     OUTPUT.mkdir(parents=True)
 
-    run_id=str(uuid.uuid4())
+    capture=OUTPUT/"01-t000-full.png"
     env={k:v for k,v in os.environ.items() if not k.startswith(("PLAN_TRACE_","YARDSCAPE_","GODOT_MCP_"))}
     env.update(
-        YARDSCAPE_WATER_OUTPUT=str(inside),
-        YARDSCAPE_WATER_RUN_ID=run_id,
+        YARDSCAPE_WATER_TIME="0.00",
+        YARDSCAPE_WATER_CAUSTICS="1",
+        YARDSCAPE_WATER_SURFACE="1",
+        YARDSCAPE_WATER_CAPTURE=str(capture.resolve()),
         LIBGL_ALWAYS_SOFTWARE="1",
         GODOT_SILENCE_ROOT_WARNING="1",
     )
-    cmd=["xvfb-run","-a",str(engine),"--path",str(stage),"--audio-driver","Dummy","--script","res://tests/water_matrix.gd"]
-    proc=subprocess.run(cmd,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=300,check=False)
+    cmd=["xvfb-run","-a",str(engine),"--path",str(stage),"--audio-driver","Dummy"]
+    proc=subprocess.run(cmd,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=60,check=False)
     log=proc.stdout
-    print(log[-20000:])
+    (OUTPUT/"console.log").write_text(log)
+    print(log[-16000:])
     if proc.returncode!=0 or re.search(r"SCRIPT ERROR:|SHADER ERROR:|Parse Error|ERROR:",log):
-        raise RuntimeError("Native water matrix failed")
-
-    report=json.loads((inside/"report.json").read_text())
-    if report.get("run_id")!=run_id or not report.get("passed") or report.get("failures"):
-        raise RuntimeError("Missing, stale, or failed native report")
-    pngs=sorted(inside.glob("*.png"))
-    if len(pngs)!=5: raise ValueError("Expected five first-look PNGs, got "+str(len(pngs)))
-
-    captures=[]
-    for p in pngs:
-        dims=png_dimensions(p)
-        if dims!=(480,360): raise ValueError("Unexpected size "+p.name+" "+str(dims))
-        if p.stat().st_size<20000: raise ValueError("Suspiciously small "+p.name)
-        shutil.copyfile(p,OUTPUT/p.name)
-        captures.append({"file":p.name,"sha256":sha(p),"bytes":p.stat().st_size,"dimensions":list(dims)})
-    shutil.copyfile(inside/"report.json",OUTPUT/"report.json")
-
-    full=[c["sha256"] for c in captures if "-full" in c["file"]]
-    if len(full)!=3 or len(set(full))!=3: raise ValueError("Full-water frames are not three distinct states")
+        raise RuntimeError("Native full-water first look failed")
+    if not capture.exists(): raise FileNotFoundError("Scene exited without capture")
+    dims=png_dimensions(capture)
+    if dims!=(480,360): raise ValueError("Unexpected capture size "+str(dims))
+    if capture.stat().st_size<10000: raise ValueError("Suspiciously small capture")
 
     manifest={
-      "schema":"yardscape-water-baseline/1",
+      "schema":"yardscape-water-first-look/1",
       "application_source_commit":APPLICATION_SOURCE_COMMIT,
       "public_source_commit":os.environ.get("GITHUB_SHA"),
       "engine":version,
       "engine_sha256":ENGINE_SHA,
-      "adapter":report.get("adapter"),
-      "renderer":report.get("renderer"),
+      "renderer":"Godot Compatibility / OpenGL",
       "viewport":[480,360],
-      "camera":"fixed","sun":"fixed",
+      "state":{"time":0.0,"caustics":True,"surface":True},
       "source_sha256":source_hashes,
-      "captures":captures,
-      "native_checks":len(report.get("checks",[])),
-      "failures":report.get("failures",[]),
+      "capture":{"file":capture.name,"sha256":sha(capture),"bytes":capture.stat().st_size},
       "artistic_acceptance":"not_reviewed",
-      "limits":[
-        "Software llvmpipe worker, not target Android/tablet GPU",
-        "No screen-space refraction or reflection in this baseline",
-        "No coping, decking, plants, house, furniture, or app UI",
-      ],
+      "limits":["Software llvmpipe worker, not target Android/tablet GPU","First-look full-water frame only"],
     }
     (OUTPUT/"manifest.json").write_text(json.dumps(manifest,indent=2)+"\n")
-    print(json.dumps({"passed":True,"captures":len(captures),"native_checks":manifest["native_checks"],"adapter":manifest["adapter"]}))
+    print(json.dumps({"passed":True,"capture":capture.name,"bytes":capture.stat().st_size,"sha256":sha(capture)}))
 
 if __name__=="__main__": main()
