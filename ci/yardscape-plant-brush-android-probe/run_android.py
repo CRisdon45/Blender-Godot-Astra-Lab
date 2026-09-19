@@ -21,6 +21,7 @@ PIN = "4.7.1.stable.official.a13da4feb"
 ENGINE_SHA = "32f8d7596c4b41185512b1c49d69f2da3be018fd784a53e349fa92a98a97bcde"
 PACKAGE = "studio.yardscape.plantingprobe"
 APK_NAME = "yardscape-retained-planting-debug.apk"
+DEVICE_KIT_FILES = ("DEVICE_TEST.md", "run_physical_device.py", "run_emulator.py")
 
 PROJECT_FILES = {
     "export_presets.cfg",
@@ -165,8 +166,21 @@ def build() -> None:
         missing = sorted(required_members - names)
         if missing:
             raise RuntimeError(f"APK missing required members: {missing}")
+        for file_name in DEVICE_KIT_FILES:
+            source = ROOT / file_name
+            if not source.is_file():
+                raise FileNotFoundError(source)
+            shutil.copyfile(source, output / file_name)
+        kit_hashes = {file_name: sha(output / file_name) for file_name in DEVICE_KIT_FILES}
         status = "android_debug_export_passed"
-        manifest.update(status=status, apk=APK_NAME, apk_bytes=apk.stat().st_size, apk_sha256=sha(apk))
+        manifest.update(
+            status=status,
+            apk=APK_NAME,
+            apk_bytes=apk.stat().st_size,
+            apk_sha256=sha(apk),
+            physical_device_test_kit=list(DEVICE_KIT_FILES),
+            physical_device_test_kit_sha256=kit_hashes,
+        )
     except Exception as error:
         failure = f"{type(error).__name__}: {error}"
         manifest.update(status="failed", failure=failure)

@@ -5,8 +5,12 @@ const Profiles=preload("res://presentation/northstar/foliage/plant_form_profiles
 const ShrubProfiles=preload("res://presentation/northstar/foliage/shrub_form_profile.gd")
 
 const RECIPE := "fixed-center-brush-card-cloud/2"
-const TREE_COUNT := 6
+const FAN_TEX_COUNT := 3
+const PALO_VERDE_COUNT := 3
+const TREE_COUNT := FAN_TEX_COUNT+PALO_VERDE_COUNT
 const SHRUB_COUNT := 12
+const EXPECTED_VISIBLE_MESHES := 36
+const EXPECTED_VISIBLE_TRIANGLES := 44718
 const WARMUP_SECONDS := 3.0
 const SAMPLE_SECONDS := 12.0
 const VISUAL_COLOR_MIN := 32
@@ -58,6 +62,8 @@ func _confirm_visual_ready()->void:
 				break
 			print("YARDSCAPE_BENCHMARK_READY="+JSON.stringify({
 				"recipe":RECIPE,
+				"fan_tex_trees":FAN_TEX_COUNT,
+				"palo_verde_trees":PALO_VERDE_COUNT,
 				"trees":TREE_COUNT,
 				"shrubs":SHRUB_COUNT,
 				"visible_meshes":visible_meshes,
@@ -126,18 +132,22 @@ func _build_environment()->void:
 	add_child(camera)
 
 func _build_plantings()->void:
-	var tree_profile:=Profiles.fan_tex_ash_v2()
+	var ash_profile:=Profiles.fan_tex_ash_v2()
+	var palo_profile:=Profiles.desert_museum_palo_verde_v2()
 	var shrub_profile:=ShrubProfiles.dense_desert_mound_v2()
 	for index in TREE_COUNT:
 		var column:=index%3
 		var row:=index/3
+		var is_ash:=index%2==0
+		var species_index:=index/2
+		var tree_profile:Dictionary=ash_profile if is_ash else palo_profile
 		var record:={
-			"id":"benchmark-tree-%02d"%index,
+			"id":("benchmark-fan-tex-%02d" if is_ash else "benchmark-palo-verde-%02d")%species_index,
 			"x":-5.3+float(column)*5.3+float(row)*0.55,
 			"y":2.25-float(row)*4.15,
 			"base_elevation":0.0,
-			"height":4.1+float(index%2)*0.22,
-			"crown_radius":1.76+float((index+1)%3)*0.08,
+			"height":4.18+float(species_index%2)*0.16 if is_ash else 3.72+float(species_index%2)*0.14,
+			"crown_radius":1.78+float(species_index%2)*0.08 if is_ash else 1.92+float(species_index%2)*0.09,
 			"seed":41011+index*977
 		}
 		_add_plant(record,tree_profile)
@@ -154,6 +164,8 @@ func _build_plantings()->void:
 			"seed":73001+index*613
 		}
 		_add_plant(record,shrub_profile)
+	assert(visible_meshes==EXPECTED_VISIBLE_MESHES)
+	assert(visible_triangles==EXPECTED_VISIBLE_TRIANGLES)
 
 func _add_plant(record:Dictionary,profile:Dictionary)->void:
 	var plant:=BrushTree.new()
@@ -178,7 +190,7 @@ func _build_hud()->void:
 	layer.add_child(title)
 	var detail:=Label.new()
 	detail.position=Vector2(53,80)
-	detail.text="6 FAN-TEX TREES  +  12 LOW SHRUBS  /  36 MESHES  /  OPAQUE BRUSH CARDS"
+	detail.text="3 FAN-TEX  +  3 PALO VERDE  +  12 LOW SHRUBS  /  36 MESHES"
 	detail.add_theme_font_size_override("font_size",16)
 	detail.add_theme_color_override("font_color",Color("bdc99f"))
 	layer.add_child(detail)
@@ -223,6 +235,8 @@ func _emit_report()->void:
 		"max_ms":snappedf(ordered[ordered.size()-1] if not ordered.is_empty() else 0.0,0.001),
 		"frames_over_16_667_ms":over_16,
 		"frames_over_33_333_ms":over_33,
+		"fan_tex_trees":FAN_TEX_COUNT,
+		"palo_verde_trees":PALO_VERDE_COUNT,
 		"trees":TREE_COUNT,
 		"shrubs":SHRUB_COUNT,
 		"plantings":TREE_COUNT+SHRUB_COUNT,

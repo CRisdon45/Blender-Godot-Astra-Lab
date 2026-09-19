@@ -313,7 +313,15 @@ def main() -> None:
                 raise RuntimeError(f"No in-app measuring screenshot for {label}")
             if benchmark.get("recipe") != "fixed-center-brush-card-cloud/2":
                 raise RuntimeError(f"Wrong retained recipe in {label}")
-            expected = {"trees": 6, "shrubs": 12, "plantings": 18, "visible_meshes": 36}
+            expected = {
+                "fan_tex_trees": 3,
+                "palo_verde_trees": 3,
+                "trees": 6,
+                "shrubs": 12,
+                "plantings": 18,
+                "visible_meshes": 36,
+                "visible_triangles": 44_718,
+            }
             for key, value in expected.items():
                 if benchmark.get(key) != value:
                     raise RuntimeError(f"Unexpected {key} in {label}: {benchmark.get(key)}")
@@ -325,8 +333,6 @@ def main() -> None:
                 )
             if int(benchmark.get("viewport_width", 0)) <= int(benchmark.get("viewport_height", 0)):
                 raise RuntimeError(f"Expected landscape viewport in {label}")
-            if int(benchmark.get("visible_triangles", 0)) < 40_000:
-                raise RuntimeError(f"Unexpectedly small planting workload in {label}")
             visual_capture = benchmark.get("visual_capture", {})
             if int(visual_capture.get("sampled_colors", 0)) < 32:
                 raise RuntimeError(f"Invalid in-app completion capture in {label}: {visual_capture}")

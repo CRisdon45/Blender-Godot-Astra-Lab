@@ -8,7 +8,8 @@ renderer evidence before any production integration.
 ## Workload
 
 - exact retained `fixed-center-brush-card-cloud/2` renderer;
-- six `fan-tex-ash-macro-form/2` trees;
+- three `fan-tex-ash-macro-form/2` trees;
+- three `desert-museum-palo-verde-macro-form/2` trees;
 - twelve `dense-desert-shrub-mound/2` shrubs;
 - 36 visible meshes in one planting-bed view;
 - a three-second warm-up followed by a twelve-second deterministic orbit;
@@ -48,4 +49,10 @@ does not establish performance, thermal behavior, touch quality, or S Pen
 behavior on the Galaxy Tab S10 FE.
 
 Physical-device acceptance remains a separate gate using the exported APK and
-the same fixed flow.
+the same fixed flow. The APK artifact now includes `run_physical_device.py` and
+`DEVICE_TEST.md`. The runner verifies a real device, can require the exact model,
+performs three fresh measurements without changing global display settings, and
+packages screenshots, logs, frame data, memory, battery, and thermal evidence.
+Its provisional 30 FPS / 50 ms p95 result is kept separate from the required
+human visual review and from later touch, S Pen, full-app, and sustained-thermal
+testing.
