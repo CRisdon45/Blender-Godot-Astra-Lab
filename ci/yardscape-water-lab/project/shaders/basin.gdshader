@@ -1,11 +1,9 @@
 shader_type spatial;
 render_mode unshaded;
 
-// Fast Northstar basin treatment. Depth comes from real geometry. Caustics are
-// evaluated on receiving geometry from the same four-wave field as the surface.
-// Instead of a per-pixel finite-difference refracted Jacobian, this candidate uses
-// an analytic curvature/focusing proxy after one flat-surface Snell back-projection.
-// The slower Jacobian experiment is retained under shaders/experiments/.
+// Fast Northstar basin treatment. Real geometry drives depth. Caustics use the
+// same four-wave field as the surface, with an analytic curvature/focusing proxy.
+// Broad watercolor variation is deliberately shape-first rather than hash noise.
 uniform float visual_time = 0.0;
 uniform float water_level = 0.0;
 uniform vec3 sun_ray_dir = vec3(0.3796774, -0.8193039, 0.4296350);
@@ -20,25 +18,12 @@ uniform vec3 light_tint : source_color = vec3(0.90, 0.98, 0.94);
 varying vec3 world_position;
 varying vec3 world_normal;
 
-float hash21(vec2 p) {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-}
-
-float value_noise(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(
-		mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
-		mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x),
-		f.y
-	);
-}
-
-float broad_wash(vec2 p) {
-	return 0.62 * value_noise(p)
-		+ 0.27 * value_noise(p * 2.03 + 11.0)
-		+ 0.11 * value_noise(p * 4.07 + 29.0);
+float paint_field(vec2 p) {
+	float warp = sin(dot(p, vec2(0.77, 0.31)) * 0.43 + 1.7);
+	float a = sin(dot(p, vec2(-0.42, 0.91)) * 0.86 + warp * 0.88);
+	float b = sin(dot(p, vec2(0.68, 0.73)) * 1.37 - warp * 0.54 + 2.2);
+	float c = sin(dot(p, vec2(0.93, -0.36)) * 2.12 + 4.1);
+	return clamp(0.50 + 0.20 * a + 0.12 * b + 0.065 * c, 0.0, 1.0);
 }
 
 void wave_curvature(vec2 p, float t, vec2 travel_dir, out float laplacian, out float directional) {
@@ -78,17 +63,13 @@ float floor_caustic(vec2 receiver, float depth) {
 	float directional;
 	wave_curvature(surface_point, visual_time, travel_dir, laplacian, directional);
 
-	// Curvature is an inexpensive proxy for local ray compression. The sign keeps
-	// only converging regions, avoiding a glowing line on every wave crest/trough.
 	float convergence = -depth * (directional * 0.72 + laplacian * 0.28) * 0.70;
 	float focus = 1.0 / max(1.0 - convergence, 0.32);
 	float band = smoothstep(1.12, 2.30, focus);
 
-	// Painterly breakup prevents a mathematically uniform network while remaining
-	// fixed in world coordinates and independent from viewport pixels.
-	float breakup = 0.60 + 0.40 * broad_wash(surface_point * 0.86 + 23.0);
-	float reserve = smoothstep(0.63, 0.78, broad_wash(surface_point * 1.23 + 51.0));
-	band *= breakup * (1.0 - reserve * 0.42);
+	float breakup = 0.62 + 0.38 * paint_field(surface_point * 0.88 + vec2(8.0, 3.0));
+	float reserve = smoothstep(0.66, 0.82, paint_field(surface_point * 1.31 + vec2(-5.0, 11.0)));
+	band *= breakup * (1.0 - reserve * 0.40);
 	band *= exp(-depth * 0.14);
 	return band;
 }
@@ -100,7 +81,7 @@ float wall_caustic(vec2 p, float depth) {
 	float signal = (a + 0.72 * b + 0.48 * c) / 2.20;
 	float width = 0.11 + fwidth(signal) * 1.4;
 	float ribbon = 1.0 - smoothstep(width, width + 0.18, abs(signal));
-	ribbon *= 0.46 + 0.54 * broad_wash(p * 0.74 + 37.0);
+	ribbon *= 0.55 + 0.45 * paint_field(p * 0.72 + vec2(4.0, 9.0));
 	ribbon *= exp(-depth * 0.22);
 	return ribbon;
 }
@@ -121,10 +102,10 @@ void fragment() {
 	vec3 color = horizontal ? horizontal_color : vertical_color;
 
 	vec2 plan = world_position.xz;
-	float wash = broad_wash(plan * 0.40 + vec2(7.0, 13.0));
-	float reserve = smoothstep(0.56, 0.76, broad_wash(plan * 0.67 + 31.0));
+	float wash = paint_field(plan * 0.43 + vec2(2.0, 6.0));
+	float reserve = smoothstep(0.66, 0.82, paint_field(plan * 0.71 + vec2(-7.0, 4.0)));
 	color *= 0.91 + 0.13 * wash;
-	color = mix(color, color * vec3(0.92, 0.97, 0.98), reserve * 0.24);
+	color = mix(color, color * vec3(0.92, 0.97, 0.98), reserve * 0.22);
 
 	float caustic = 0.0;
 	if (caustics_enabled && depth > 0.03) {
