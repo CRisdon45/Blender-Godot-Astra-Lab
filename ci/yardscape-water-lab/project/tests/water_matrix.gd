@@ -28,8 +28,7 @@ func set_state(time_value: float, caustics: bool, surface: bool) -> void:
 	study._apply_time()
 
 func grab(name: String) -> Image:
-	for i in 3:
-		await process_frame
+	await process_frame
 	await RenderingServer.frame_post_draw
 	var image := root.get_texture().get_image()
 	image.convert(Image.FORMAT_RGBA8)
@@ -46,7 +45,7 @@ func run() -> void:
 		quit(1)
 		return
 
-	root.size = Vector2i(960, 720)
+	root.size = Vector2i(720, 540)
 	var scene = load("res://main.tscn")
 	check(scene != null, "minimal water scene loads")
 	if scene == null:
