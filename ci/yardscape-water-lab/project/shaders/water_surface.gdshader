@@ -1,9 +1,9 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled, unshaded;
 
-// Surface is deliberately restrained: most water color comes from the real
-// submerged shelf / steps / floor. This layer supplies motion, Fresnel presence,
-// and selective sun response without screen-space noise or TIME.
+// Restrained surface: depth story remains on submerged geometry. This layer adds
+// motion, Fresnel presence and selective sun response. Broad pigment variation is
+// shape-first, world-space and deterministic rather than hash-noise based.
 uniform float visual_time = 0.0;
 uniform vec3 sun_ray_dir = vec3(0.3796774, -0.8193039, 0.4296350);
 uniform vec3 surface_tint : source_color = vec3(0.26, 0.69, 0.75);
@@ -16,25 +16,12 @@ varying vec3 world_normal;
 varying float wave_height;
 varying vec2 media;
 
-float hash21(vec2 p) {
-	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
-}
-
-float value_noise(vec2 p) {
-	vec2 i = floor(p);
-	vec2 f = fract(p);
-	f = f * f * (3.0 - 2.0 * f);
-	return mix(
-		mix(hash21(i), hash21(i + vec2(1.0, 0.0)), f.x),
-		mix(hash21(i + vec2(0.0, 1.0)), hash21(i + vec2(1.0, 1.0)), f.x),
-		f.y
-	);
-}
-
-float broad_wash(vec2 p) {
-	return 0.62 * value_noise(p)
-		+ 0.27 * value_noise(p * 2.03 + 11.0)
-		+ 0.11 * value_noise(p * 4.07 + 29.0);
+float paint_field(vec2 p) {
+	float warp = sin(dot(p, vec2(0.77, 0.31)) * 0.43 + 1.7);
+	float a = sin(dot(p, vec2(-0.42, 0.91)) * 0.86 + warp * 0.88);
+	float b = sin(dot(p, vec2(0.68, 0.73)) * 1.37 - warp * 0.54 + 2.2);
+	float c = sin(dot(p, vec2(0.93, -0.36)) * 2.12 + 4.1);
+	return clamp(0.50 + 0.20 * a + 0.12 * b + 0.065 * c, 0.0, 1.0);
 }
 
 void wave_sample(vec2 p, float t, out float h, out vec2 grad) {
@@ -70,7 +57,6 @@ void vertex() {
 
 	VERTEX.y += h;
 	NORMAL = normalize(vec3(-grad.x, 1.0, -grad.y));
-
 	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = normalize(MODEL_NORMAL_MATRIX * NORMAL);
 	wave_height = h;
@@ -86,10 +72,10 @@ void fragment() {
 	vec3 half_vector = normalize(to_camera + to_sun);
 	float sun_glint = pow(max(dot(n, half_vector), 0.0), 72.0);
 
-	float wash = broad_wash(media * 0.42 + vec2(3.0, 17.0));
-	float reserve = smoothstep(0.58, 0.78, broad_wash(media * 0.73 + 41.0));
+	float wash = paint_field(media * 0.46 + vec2(2.0, 5.0));
+	float reserve = smoothstep(0.66, 0.82, paint_field(media * 0.79 + vec2(-6.0, 8.0)));
 	float crest = smoothstep(0.006, 0.028, wave_height + 0.018);
-	float broken_glint = sun_glint * smoothstep(0.50, 0.72, wash) * (1.0 - reserve * 0.55);
+	float broken_glint = sun_glint * smoothstep(0.52, 0.74, wash) * (1.0 - reserve * 0.55);
 
 	vec3 color = surface_tint;
 	color *= 0.93 + 0.10 * wash;
