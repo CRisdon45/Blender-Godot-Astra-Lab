@@ -1,12 +1,14 @@
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled, unshaded;
 
-// Four-wave surface shared conceptually with basin curvature caustics.
-// Surface remains restrained; underwater depth/value should do most of the work.
+// Four-wave Northstar surface.
+// Depth/value still comes from submerged geometry. The surface now adds sparse,
+// broken highlight passages extracted from iso-height contours of the *combined*
+// wave field, so the marks bend with interference rather than forming a grid.
 uniform float visual_time = 0.0;
 uniform vec3 sun_ray_dir = vec3(0.3796774, -0.8193039, 0.4296350);
 uniform vec3 surface_tint : source_color = vec3(0.23, 0.64, 0.72);
-uniform vec3 highlight_tint : source_color = vec3(0.92, 0.99, 0.97);
+uniform vec3 highlight_tint : source_color = vec3(0.93, 0.99, 0.97);
 
 varying vec3 world_position;
 varying vec3 world_normal;
@@ -68,19 +70,32 @@ void fragment() {
 	vec3 to_camera = normalize(CAMERA_POSITION_WORLD - world_position);
 	vec3 to_sun = normalize(-sun_ray_dir);
 
-	float fresnel = pow(1.0 - clamp(dot(n, to_camera), 0.0, 1.0), 3.5);
+	float fresnel = pow(1.0 - clamp(dot(n, to_camera), 0.0, 1.0), 3.35);
 	vec3 half_vector = normalize(to_camera + to_sun);
-	float sun_glint = pow(max(dot(n, half_vector), 0.0), 54.0);
+	float sun_glint = pow(max(dot(n, half_vector), 0.0), 34.0);
 
 	float wash = paint_field(world_position.xz * 0.55 + vec2(3.0, 4.0));
-	float broken = smoothstep(0.56, 0.78, wash);
-	float crest = smoothstep(0.013, 0.026, wave_height);
+	float broken = smoothstep(0.55, 0.78, wash);
+	float crest = smoothstep(0.012, 0.026, wave_height);
 	float glint = sun_glint * broken;
 
-	vec3 color = surface_tint * (0.95 + 0.07 * wash);
-	color = mix(color, highlight_tint, clamp(glint * 0.52 + crest * 0.045, 0.0, 0.55));
+	// Irregular curved surface passages from the full interference field.
+	// These are intentionally sparse and broken; they should read like selected
+	// illustrated light gestures, not every wave crest.
+	float contour_a = 1.0 - smoothstep(0.0025, 0.0085, abs(wave_height - 0.0085));
+	float contour_b = 1.0 - smoothstep(0.0020, 0.0070, abs(wave_height + 0.0100));
+	float passage_mask = smoothstep(0.62, 0.82,
+		paint_field(world_position.xz * 0.78 + vec2(-4.0, 8.0)));
+	float reserve = smoothstep(0.74, 0.90,
+		paint_field(world_position.xz * 1.17 + vec2(9.0, -3.0)));
+	float passage = max(contour_a, contour_b * 0.62);
+	passage *= passage_mask * (1.0 - reserve * 0.72);
 
-	float alpha = 0.050 + 0.145 * fresnel + 0.050 * glint + 0.012 * crest;
+	vec3 color = surface_tint * (0.95 + 0.07 * wash);
+	float light_mix = clamp(glint * 0.62 + crest * 0.060 + passage * 0.24, 0.0, 0.62);
+	color = mix(color, highlight_tint, light_mix);
+
+	float alpha = 0.064 + 0.165 * fresnel + 0.055 * glint + 0.014 * crest + 0.050 * passage;
 	ALBEDO = color;
-	ALPHA = clamp(alpha, 0.04, 0.24);
+	ALPHA = clamp(alpha, 0.045, 0.27);
 }
