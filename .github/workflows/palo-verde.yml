@@ -69,9 +69,12 @@ jobs:
         shell: bash
         env:
           LIBGL_ALWAYS_SOFTWARE: '1'
-          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         run: |
           set -euo pipefail
+          # Mesa changed the manifest filename between package versions.
+          # Discover the installed CPU Vulkan driver instead of assuming a path.
+          export VK_DRIVER_FILES="$(python -c 'from pathlib import Path; p=sorted(Path("/usr/share/vulkan/icd.d").glob("lvp_icd*.json")); assert len(p)==1,p; print(p[0])')"
+          xvfb-run -a vulkaninfo --summary 2>&1 | tee "$STUDY/generated/logs/vulkan_adapter.log"
           godot --headless --path "$STUDY/godot" --editor --import 2>&1 | tee "$STUDY/generated/logs/godot_import.log"
           timeout 720 xvfb-run -a -s "-screen 0 1600x1000x24" godot --rendering-method forward_plus --rendering-driver vulkan --audio-driver Dummy --path "$STUDY/godot" -- --validate --capture 2>&1 | tee "$STUDY/generated/logs/godot_runtime.log"
           cp "$STUDY/godot/captures/01_hero.png" "$STUDY/generated/hero_before_reimport.png"
