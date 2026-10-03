@@ -17,7 +17,7 @@ background_mode = 2
 sky = SubResource("Sky")
 ambient_light_source = 3
 ambient_light_color = Color(0.76, 0.82, 0.63, 1)
-ambient_light_energy = 0.55
+ambient_light_energy = 0.72
 reflected_light_source = 2
 tonemap_mode = 0
 
@@ -38,7 +38,7 @@ camera_attributes = SubResource("CameraAttributes")
 [node name="Sun" type="DirectionalLight3D" parent="."]
 rotation_degrees = Vector3(-43, -32, 0)
 light_color = Color(1, 0.95, 0.78, 1)
-light_energy = 1.55
+light_energy = 1.25
 shadow_enabled = true
 shadow_bias = 0.035
 directional_shadow_max_distance = 40.0

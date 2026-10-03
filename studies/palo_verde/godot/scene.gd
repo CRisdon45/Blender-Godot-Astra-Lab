@@ -32,6 +32,10 @@ func apply_materials(node: Node, is_tree: bool) -> void:
 		var mesh_node := node as MeshInstance3D
 		if is_tree:
 			tree_meshes.append(mesh_node)
+		if "Bark" in node.name:
+			var bark_material := ShaderMaterial.new()
+			bark_material.shader = FOLIAGE
+			mesh_node.material_override = bark_material
 		if "Leaves" in node.name or "Blossoms" in node.name or "Grass" in node.name or "FallenPetals" in node.name:
 			var mat := ShaderMaterial.new()
 			mat.shader = FOLIAGE

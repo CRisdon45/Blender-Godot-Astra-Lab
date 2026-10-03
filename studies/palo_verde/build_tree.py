@@ -42,14 +42,16 @@ class MeshBatch:
         self.vertices = []
         self.faces = []
         self.colors = []
+        self.normals = []
         self.palette = [color(c) for c in PALETTES[name]]
 
-    def add(self, vertices, faces, tint=None):
+    def add(self, vertices, faces, tint=None, normals=None):
         offset = len(self.vertices)
         self.vertices.extend(tuple(v) for v in vertices)
         self.faces.extend(tuple(offset + i for i in f) for f in faces)
         chosen = self.palette[RNG.randrange(len(self.palette))] if tint is None else tint
         self.colors.extend([chosen] * len(vertices))
+        self.normals.extend(normals if normals is not None else [None]*len(vertices))
 
     def finish(self, collection):
         mesh = bpy.data.meshes.new(self.name + '_Mesh')
@@ -71,7 +73,9 @@ class MeshBatch:
         mat.node_tree.links.new(vc.outputs['Color'], node.inputs['Base Color'])
         obj.data.materials.append(mat)
         for p in mesh.polygons:
-            p.use_smooth = self.name == 'PV_Bark'
+            p.use_smooth = self.name in ('PV_Bark', 'PV_Leaves')
+        if all(v is not None for v in self.normals):
+            mesh.normals_split_custom_set_from_vertices(self.normals)
         obj['asset_role'] = self.name.removeprefix('PV_').lower()
         return obj
 
@@ -123,14 +127,19 @@ def direction():
     return Vector((r*math.cos(a), r*math.sin(a), z))
 
 
-def leaf(batch, center, axis, length):
+def leaf(batch, center, axis, length, shade_normal=None):
     # Folded geometric leaflets, no alpha cards and no camera-facing billboards.
     axis = axis.normalized()
-    across = axis.cross(direction()).normalized() * length * .38
+    if shade_normal is not None:
+        axis = (axis-shade_normal*axis.dot(shade_normal)).normalized()
+        across = shade_normal.cross(axis).normalized()*length*.38
+    else:
+        across = axis.cross(direction()).normalized()*length*.38
     normal = axis.cross(across).normalized()
     verts = [center-axis*length*.5, center+across, center+axis*length*.5,
              center-across, center+normal*length*.13]
-    batch.add(verts, [(0, 1, 4), (1, 2, 4), (2, 3, 4), (3, 0, 4)])
+    shading = (shade_normal if shade_normal is not None else normal).normalized()
+    batch.add(verts, [(4,1,0),(4,2,1),(4,3,2),(4,0,3)], normals=[tuple(shading)]*5)
 
 
 def flower(batch, center, normal, size):
@@ -152,21 +161,47 @@ def flower(batch, center, normal, size):
     batch.add(verts, faces)
 
 
-def foliage_lobe(leaves, flowers, center, scale):
-    # Dense overlapping radial sprays form shaded lobes while retaining branch gaps.
-    for _ in range(225):
+def foliage_core(batch, center, scale):
+    # Irregular inner mass groups values; outer leaves conceal its silhouette.
+    verts, faces, normals = [], [], []
+    sides, rings = 12, 7
+    for j in range(rings+1):
+        polar = math.pi*j/rings
+        for i in range(sides):
+            a = TAU*i/sides
+            unit = Vector((math.sin(polar)*math.cos(a),math.sin(polar)*math.sin(a),math.cos(polar)))
+            radius = .70 + .06*math.sin(a*3+polar*5)
+            verts.append(center+Vector(tuple(unit[k]*scale[k]*radius for k in range(3))))
+            normals.append(tuple(Vector(tuple(unit[k]/scale[k] for k in range(3))).normalized()))
+    for j in range(rings):
+        for i in range(sides):
+            a = j*sides+i
+            b = j*sides+(i+1)%sides
+            if j == 0:
+                faces.append((a,b+sides,a+sides))
+            elif j == rings-1:
+                faces.append((a,b,b+sides))
+            else:
+                faces.append((a,b,b+sides,a+sides))
+    batch.add(verts,[tuple(reversed(f)) for f in faces],tint=color('#82932e'),normals=normals)
+
+
+def foliage_lobe(leaves, flowers, center, scale, leaf_count=760, bloom_count=230):
+    # Canopy-directed normals give smooth authored mass shading without confetti.
+    foliage_core(leaves,center,scale)
+    for _ in range(leaf_count):
         outward = direction()
-        radial = RNG.random() ** .36
+        radial = RNG.uniform(.68,1.05)
         p = center + Vector(tuple(outward[i]*scale[i]*radial for i in range(3)))
-        length = RNG.uniform(.055, .105)
-        leaf(leaves, p, outward + Vector((.2, 0, .35)), length)
-        if RNG.random() < .52:
-            leaf(leaves, p+Vector((.025, .012, .04)), outward+Vector((0, .3, .25)), length*.72)
-    for _ in range(105):
+        length = RNG.uniform(.075, .14)
+        leaf(leaves,p,direction()+Vector((.2,0,.25)),length,outward)
+        if RNG.random() < .28:
+            leaf(leaves,p+Vector((.025,.012,.04)),direction(),length*.72,outward)
+    for _ in range(bloom_count):
         outward = direction()
-        radial = RNG.uniform(.55, 1.05)
+        radial = RNG.uniform(.78, 1.10)
         p = center + Vector(tuple(outward[i]*scale[i]*radial for i in range(3)))
-        flower(flowers, p, outward+Vector((0, -.2, .3)), RNG.uniform(.033, .057))
+        flower(flowers,p,outward+Vector((0,-.2,.3)),RNG.uniform(.038,.063))
 
 
 def collection(name):
@@ -201,24 +236,27 @@ def make_tree():
     ]
     for index, (pts, radius) in enumerate(scaffold):
         tube(bark, pts, [radius,radius*.79,radius*.48,radius*.24,.018], sides=10, steps=6)
-        # Secondary and tertiary branch endpoints are attached to the real scaffold.
-        for level in (2, 3, 4):
-            base = Vector(pts[level])
-            parent_dir = (base-Vector(pts[level-1])).normalized()
-            for side in (-1, 1):
-                lateral = Vector((-parent_dir.y, parent_dir.x, RNG.uniform(.5, 1.1))).normalized()
-                span = RNG.uniform(.65, 1.15) if level != 4 else .55
-                tip = base + lateral*side*span + parent_dir*.45 + Vector((0,0,.42))
-                mid = base.lerp(tip,.54)+Vector((0,0,.12))
-                tube(bark, [base,mid,tip], [radius*(.23 if level==2 else .12),.016,.006], sides=6, steps=3)
-                lobe_scale = Vector((RNG.uniform(.48,.69),RNG.uniform(.42,.65),RNG.uniform(.38,.61)))
-                foliage_lobe(leaves,flowers,tip,lobe_scale)
-                # Smaller outer sprays add ragged fine tips rather than solid sphere edges.
-                for twig in range(2):
-                    twig_tip = tip + direction()*RNG.uniform(.35,.65)+Vector((0,0,.15))
-                    tube(bark,[tip,tip.lerp(twig_tip,.6),twig_tip],[.008,.004,.0015],sides=5,steps=2)
-                    foliage_lobe(leaves,flowers,twig_tip,lobe_scale*.53)
-        foliage_lobe(leaves,flowers,Vector(pts[-1]),Vector((.63,.60,.60)))
+    anchors = [Vector(p) for points,_ in scaffold for p in points[2:]]
+    crowns = []
+    for y in (-2.25,-.75,.85,2.35):
+        for x in (-4.1,-2.05,0,2.0,4.05):
+            if abs(x)>3 and abs(y)>2:
+                continue
+            height = 5.05 - .051*x*x - .047*y*y
+            crowns.append((Vector((x+RNG.uniform(-.25,.25),y,height+RNG.uniform(-.17,.17))),Vector((1.28,1.05,.86))))
+    for y in (-.85,.85):
+        for x in (-2.5,-.85,.8,2.4):
+            height = 5.95 - .045*x*x
+            crowns.append((Vector((x,y,height)),Vector((1.0,.95,.83))))
+    for center,scale in crowns:
+        base = min(anchors,key=lambda p:(p-center).length_squared)
+        middle = base.lerp(center,.55)+Vector((0,0,.18))
+        tube(bark,[base,middle,center],[.037,.021,.006],sides=7,steps=4)
+        foliage_lobe(leaves,flowers,center,scale)
+        for side in (-1,1):
+            tuft = center+Vector((side*scale.x*.62,RNG.uniform(-.4,.4),RNG.uniform(-.12,.3)))
+            tube(bark,[center,center.lerp(tuft,.55),tuft],[.008,.004,.0015],sides=5,steps=2)
+            foliage_lobe(leaves,flowers,tuft,scale*RNG.uniform(.55,.66),leaf_count=260,bloom_count=100)
     objects = []
     for batch in batches.values():
         obj = batch.finish(col)
