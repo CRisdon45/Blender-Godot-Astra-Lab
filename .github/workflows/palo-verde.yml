@@ -60,7 +60,7 @@ jobs:
           set -euo pipefail
           blender --version | tee "$STUDY/generated/logs/blender_version.log"
           godot --version | tee "$STUDY/generated/logs/godot_version.log"
-          blender --background --python-exit-code 1 --python "$STUDY/build_tree.py" -- --render 2>&1 | tee "$STUDY/generated/logs/blender_build.log"
+          blender --background --python-exit-code 1 --python "$STUDY/build_tree.py" 2>&1 | tee "$STUDY/generated/logs/blender_build.log"
           cp "$STUDY/generated/asset_manifest.json" "$STUDY/generated/first_manifest.json"
           blender --background --python-exit-code 1 --python "$STUDY/build_tree.py" 2>&1 | tee "$STUDY/generated/logs/blender_rebuild.log"
           python "$STUDY/verify_artifacts.py" --compare "$STUDY/generated/first_manifest.json"

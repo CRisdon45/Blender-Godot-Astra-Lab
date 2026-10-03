@@ -39,7 +39,7 @@ Wind starts disabled so the fixed-view scene is reproducible.
 | Runtime overrides | `scene.gd` reapplies shaders by role; safe across clean GLB reimports |
 | Fixture | `godot/palo_verde.tscn`, fixed 1600 × 1000 Godot capture suite |
 | Budget | Desktop hero study, up to 3,000,000 tree triangles, three tree mesh submissions |
-| Desktop target | Forward+; 4× MSAA, 8192-pixel soft sun shadows, full-resolution SSAO/SSIL, AgX tone mapping, thin-leaf backlighting |
+| Desktop target | Forward+; 4× MSAA, 8192-pixel soft sun shadows, full-resolution SSAO/SSIL, ACES tone mapping, thin-leaf backlighting |
 | Validation hardware | Mesa CPU Vulkan in Actions; desktop GPU performance is not measured by CI |
 
 The current result is an artistic study, not a claim of exact style parity. CI
@@ -55,6 +55,9 @@ blender --background --python studies/palo_verde/build_tree.py -- --render
 godot --headless --path studies/palo_verde/godot --editor --import
 godot --path studies/palo_verde/godot -- --validate --capture
 ```
+
+The optional `--render` flag adds a Cycles Blender preview; CI renders the
+actual Godot scene and skips this duplicate beauty pass.
 
 The build creates `generated/palo_verde_authored.blend`, two GLBs and a source
 manifest. It overwrites generated files; preserve manual `.blend` edits before

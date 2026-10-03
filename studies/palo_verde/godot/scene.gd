@@ -6,7 +6,7 @@ var camera: Camera3D
 var target := Vector3(0.0, 3.35, 0.0)
 var yaw := 0.10
 var pitch := 0.085
-var distance := 18.0
+var distance := 15.2
 var dragging := false
 var wind_enabled := false
 var animation_time := 0.0
@@ -75,7 +75,7 @@ func reset_camera() -> void:
 	target = Vector3(0.0, 3.35, 0.0)
 	yaw = 0.10
 	pitch = 0.085
-	distance = 18.0
+	distance = 15.2
 	update_camera()
 
 
@@ -182,7 +182,7 @@ func save_image(path: String) -> void:
 
 func capture_suite() -> void:
 	controls.hide()
-	for _frame in range(28):
+	for _frame in range(8):
 		await get_tree().process_frame
 	validate_asset()
 	await save_image("res://captures/01_hero.png")
@@ -190,7 +190,7 @@ func capture_suite() -> void:
 	yaw = 1.15
 	pitch = 0.23
 	update_camera()
-	for _frame in range(18):
+	for _frame in range(3):
 		await get_tree().process_frame
 	await save_image("res://captures/03_side.png")
 	distance = 9.2
@@ -198,18 +198,18 @@ func capture_suite() -> void:
 	pitch = 0.10
 	target = Vector3(-1.5, 4.9, 0.0)
 	update_camera()
-	for _frame in range(18):
+	for _frame in range(3):
 		await get_tree().process_frame
 	await save_image("res://captures/04_foliage_detail.png")
 	reset_camera()
 	$Sun.rotation_degrees = Vector3(-28, 55, 0)
-	for _frame in range(18):
+	for _frame in range(3):
 		await get_tree().process_frame
 	await save_image("res://captures/05_second_sun.png")
 	for mat in foliage_materials:
 		mat.set_shader_parameter("wind_strength", 0.075)
 		mat.set_shader_parameter("time_seconds", 1.25)
-	for _frame in range(18):
+	for _frame in range(3):
 		await get_tree().process_frame
 	await save_image("res://captures/06_fixed_wind.png")
 	print("PALO_VERDE_CAPTURE_SUITE_OK")

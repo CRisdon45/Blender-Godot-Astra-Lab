@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode cull_disabled, diffuse_lambert_wrap;
+render_mode cull_disabled, diffuse_burley;
 
 uniform float time_seconds = 0.0;
 uniform float wind_strength = 0.0;
@@ -27,5 +27,5 @@ void fragment() {
     ROUGHNESS = woody ? 0.82 : 0.88;
     SPECULAR = woody ? 0.22 : 0.14;
     // Thin petals/leaflets receive transmitted light instead of constant emission.
-    BACKLIGHT = woody ? vec3(0.0) : base * (blossom ? 0.40 : 0.27);
+    BACKLIGHT = woody ? vec3(0.0) : base * (blossom ? 0.18 : 0.16);
 }
