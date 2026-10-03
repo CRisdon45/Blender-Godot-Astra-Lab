@@ -3,10 +3,10 @@ extends Node3D
 const FOLIAGE: Shader = preload("res://shaders/foliage.gdshader")
 const GROUND: Shader = preload("res://shaders/ground.gdshader")
 var camera: Camera3D
-var target := Vector3(0.0, 3.7, 0.0)
+var target := Vector3(0.0, 3.35, 0.0)
 var yaw := 0.10
 var pitch := 0.085
-var distance := 19.4
+var distance := 18.0
 var dragging := false
 var wind_enabled := false
 var animation_time := 0.0
@@ -72,10 +72,10 @@ func toggle_wind() -> void:
 
 
 func reset_camera() -> void:
-	target = Vector3(0.0, 3.7, 0.0)
+	target = Vector3(0.0, 3.35, 0.0)
 	yaw = 0.10
 	pitch = 0.085
-	distance = 19.4
+	distance = 18.0
 	update_camera()
 
 
@@ -196,7 +196,7 @@ func capture_suite() -> void:
 	distance = 9.2
 	yaw = 0.3
 	pitch = 0.10
-	target = Vector3(-1.5, 5.6, 0.0)
+	target = Vector3(-1.5, 4.9, 0.0)
 	update_camera()
 	for _frame in range(18):
 		await get_tree().process_frame

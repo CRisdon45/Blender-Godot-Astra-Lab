@@ -203,7 +203,7 @@ def spray(bark, leaves, flowers, origin, heading, length, flowering):
         # Paired pinnate leaflets; varying individual normals preserve leaf shape.
         for side in (-1,1):
             leaf_axis = (across*side*.8+tangent*.45+up*RNG.uniform(-.2,.2)).normalized()
-            size = RNG.uniform(.065,.108)*(1-.24*t)
+            size = RNG.uniform(.052,.085)*(1-.24*t)
             leaf_center = point+leaf_axis*size*.48
             shade = (up*.6+Vector((0,0,1))*.5+direction()*.35).normalized()
             leaf(leaves,leaf_center,leaf_axis,size,shade)
@@ -212,9 +212,9 @@ def spray(bark, leaves, flowers, origin, heading, length, flowering):
             for _ in range(RNG.randint(2,4)):
                 radial = direction()
                 bloom_point = point+radial*RNG.uniform(.028,.105)
-                flower(flowers,bloom_point,(radial+Vector((0,0,.6))).normalized(),RNG.uniform(.026,.044))
+                flower(flowers,bloom_point,(radial+Vector((0,0,.6))).normalized(),RNG.uniform(.038,.057))
     for _ in range(2):
-        flower(flowers,Vector(points[-1])+direction()*.038,direction()+Vector((0,0,.6)),RNG.uniform(.024,.037))
+        flower(flowers,Vector(points[-1])+direction()*.038,direction()+Vector((0,0,.6)),RNG.uniform(.033,.049))
 
 
 def make_tree():
@@ -315,6 +315,12 @@ def make_tree():
         polygon.material_index = 0
     objects = [wood,leaves.finish(col),flowers.finish(col)]
     for obj in objects:
+        # One continuous crown profile, applied to connected wood and foliage.
+        # Keep the low forks intact; spread the upper flowering crown visually.
+        for vertex in obj.data.vertices:
+            if vertex.co.z > 3.2:
+                vertex.co.z = 3.2+(vertex.co.z-3.2)*.71
+        obj.data.update()
         obj.parent = root
     root['flowering_sprays'] = sprig_count
     return root, objects
