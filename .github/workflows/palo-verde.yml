@@ -1,0 +1,126 @@
+name: Authored Palo Verde
+
+on:
+  push:
+    branches: ['codex/authored-palo-verde']
+    paths: ['studies/palo_verde/**', '.github/workflows/palo-verde.yml']
+  pull_request:
+    paths: ['studies/palo_verde/**', '.github/workflows/palo-verde.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: palo-verde-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  STUDY: studies/palo_verde
+  BLENDER_VERSION: '4.5.3'
+  GODOT_VERSION: '4.7.2'
+  GODOT_SHA256: cadd3204e728a35d3f13adb7fd0d7902636b79f6b95c40c265eb73b6c35329e4
+  TEMPLATES_SHA256: f298490b8d44d934be425a5a65a51bf15f422428b229a06a6e11d9ffea248011
+
+jobs:
+  build-render-package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install software rendering dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb libgl1-mesa-dri libegl1 libxkbcommon0 libxi6 libxrender1 libxxf86vm1 libsm6
+          mkdir -p .tools "$STUDY/generated/logs"
+
+      - name: Download and verify official Blender and Godot
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender_archive="blender-${BLENDER_VERSION}-linux-x64.tar.xz"
+          blender_base="https://download.blender.org/release/Blender4.5"
+          curl -fL --retry 3 "$blender_base/$blender_archive" -o ".tools/$blender_archive"
+          curl -fL --retry 3 "$blender_base/blender-${BLENDER_VERSION}.sha256" -o .tools/blender.sha256
+          (cd .tools && grep " $blender_archive\$" blender.sha256 | sha256sum --check --strict)
+          tar -xf ".tools/$blender_archive" -C .tools
+          echo "$(pwd)/.tools/blender-${BLENDER_VERSION}-linux-x64" >> "$GITHUB_PATH"
+          curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" -o .tools/godot.zip
+          echo "$GODOT_SHA256  .tools/godot.zip" | sha256sum --check --strict
+          unzip -q .tools/godot.zip -d .tools
+          mv ".tools/Godot_v${GODOT_VERSION}-stable_linux.x86_64" .tools/godot
+          chmod +x .tools/godot
+          echo "$(pwd)/.tools" >> "$GITHUB_PATH"
+          cp .tools/blender.sha256 "$STUDY/generated/logs/blender_official_checksums.txt"
+
+      - name: Build editable Blender source and GLBs
+        shell: bash
+        run: |
+          set -euo pipefail
+          blender --version | tee "$STUDY/generated/logs/blender_version.log"
+          godot --version | tee "$STUDY/generated/logs/godot_version.log"
+          blender --background --python-exit-code 1 --python "$STUDY/build_tree.py" -- --render 2>&1 | tee "$STUDY/generated/logs/blender_build.log"
+          cp "$STUDY/generated/asset_manifest.json" "$STUDY/generated/first_manifest.json"
+          blender --background --python-exit-code 1 --python "$STUDY/build_tree.py" 2>&1 | tee "$STUDY/generated/logs/blender_rebuild.log"
+          python "$STUDY/verify_artifacts.py" --compare "$STUDY/generated/first_manifest.json"
+
+      - name: Import, validate and capture Godot
+        shell: bash
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          set -euo pipefail
+          godot --headless --path "$STUDY/godot" --editor --import 2>&1 | tee "$STUDY/generated/logs/godot_import.log"
+          timeout 240 xvfb-run -a godot --path "$STUDY/godot" -- --validate --capture 2>&1 | tee "$STUDY/generated/logs/godot_runtime.log"
+          cp "$STUDY/godot/captures/01_hero.png" "$STUDY/generated/hero_before_reimport.png"
+          rm -rf "$STUDY/godot/.godot"
+          godot --headless --path "$STUDY/godot" --editor --import 2>&1 | tee "$STUDY/generated/logs/godot_clean_reimport.log"
+          timeout 240 xvfb-run -a godot --path "$STUDY/godot" -- --validate --capture 2>&1 | tee "$STUDY/generated/logs/godot_reimport_runtime.log"
+          python - <<'PY'
+          import os, pathlib, re
+          logs = pathlib.Path(os.environ['STUDY'])/'generated/logs'
+          for path in logs.glob('godot*.log'):
+              text = path.read_text()
+              assert not re.search(r'(?im)(SCRIPT ERROR|Parse Error|Shader compilation failed|^ERROR:)', text), f'{path}: engine error'
+          for name in ('godot_runtime.log', 'godot_reimport_runtime.log'):
+              text = (logs/name).read_text()
+              assert 'PALO_VERDE_RUNTIME_OK' in text and 'PALO_VERDE_CAPTURE_SUITE_OK' in text
+          PY
+
+      - name: Export standalone Windows scene
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 3 "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz" -o .tools/templates.tpz
+          echo "$TEMPLATES_SHA256  .tools/templates.tpz" | sha256sum --check --strict
+          mkdir -p "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable" "$STUDY/generated/windows"
+          unzip -p .tools/templates.tpz templates/windows_release_x86_64.exe > "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable/windows_release_x86_64.exe"
+          curl -fL --retry 3 "https://raw.githubusercontent.com/godotengine/godot/${GODOT_VERSION}-stable/LICENSE.txt" -o "$STUDY/godot/COPYING-GODOT.txt"
+          godot --headless --path "$STUDY/godot" --export-release "Windows Desktop" 2>&1 | tee "$STUDY/generated/logs/windows_export.log"
+          test -s "$STUDY/generated/windows/PaloVerde.exe"
+          cp "$STUDY/godot/COPYING-GODOT.txt" "$STUDY/generated/windows/COPYING-GODOT.txt"
+          cp "$STUDY/README.md" "$STUDY/generated/windows/README.md"
+
+      - name: Package scene and verification evidence
+        run: python "$STUDY/verify_artifacts.py" --package
+
+      - name: Upload source, scene and render evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: palo-verde-source-and-evidence
+          path: |
+            studies/palo_verde/generated/
+            studies/palo_verde/godot/captures/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload standalone Windows scene
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: palo-verde-windows
+          path: studies/palo_verde/generated/windows/
+          if-no-files-found: error
+          retention-days: 30

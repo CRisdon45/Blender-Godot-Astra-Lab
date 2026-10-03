@@ -1,0 +1,6 @@
+generated/
+godot/assets/*.glb
+godot/captures/
+godot/COPYING-GODOT.txt
+godot/*.uid
+godot/shaders/*.uid
