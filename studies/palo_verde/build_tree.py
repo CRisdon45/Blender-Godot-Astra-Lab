@@ -353,7 +353,7 @@ def main():
         'glb_sha256':hashlib.sha256((assets/'palo_verde.glb').read_bytes()).hexdigest(),
         'alpha_textures':0,'tree_materials':3,'desktop_hero_asset':True}
     (out/'asset_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
-    bpy.ops.wm.save_as_mainfile(filepath=str(out/'palo_verde_authored.blend'))
+    bpy.ops.wm.save_as_mainfile(filepath=str(out/'palo_verde_authored.blend'), compress=True)
     if args.render:
         scene.render.filepath = str(out/'blender_preview.png')
         bpy.ops.render.render(write_still=True)

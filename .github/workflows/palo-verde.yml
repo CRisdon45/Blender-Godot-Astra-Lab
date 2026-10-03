@@ -2,7 +2,7 @@ name: Authored Palo Verde
 
 on:
   push:
-    branches: ['codex/authored-palo-verde']
+    branches: ['main', 'codex/authored-palo-verde']
     paths: ['studies/palo_verde/**', '.github/workflows/palo-verde.yml']
   pull_request:
     paths: ['studies/palo_verde/**', '.github/workflows/palo-verde.yml']
@@ -72,11 +72,11 @@ jobs:
         run: |
           set -euo pipefail
           godot --headless --path "$STUDY/godot" --editor --import 2>&1 | tee "$STUDY/generated/logs/godot_import.log"
-          timeout 240 xvfb-run -a godot --path "$STUDY/godot" -- --validate --capture 2>&1 | tee "$STUDY/generated/logs/godot_runtime.log"
+          timeout 240 xvfb-run -a godot --audio-driver Dummy --path "$STUDY/godot" -- --validate --capture 2>&1 | tee "$STUDY/generated/logs/godot_runtime.log"
           cp "$STUDY/godot/captures/01_hero.png" "$STUDY/generated/hero_before_reimport.png"
           rm -rf "$STUDY/godot/.godot"
           godot --headless --path "$STUDY/godot" --editor --import 2>&1 | tee "$STUDY/generated/logs/godot_clean_reimport.log"
-          timeout 240 xvfb-run -a godot --path "$STUDY/godot" -- --validate --capture 2>&1 | tee "$STUDY/generated/logs/godot_reimport_runtime.log"
+          timeout 240 xvfb-run -a godot --audio-driver Dummy --path "$STUDY/godot" -- --validate --capture 2>&1 | tee "$STUDY/generated/logs/godot_reimport_runtime.log"
           python - <<'PY'
           import os, pathlib, re
           logs = pathlib.Path(os.environ['STUDY'])/'generated/logs'
@@ -111,9 +111,23 @@ jobs:
         with:
           name: palo-verde-source-and-evidence
           path: |
-            studies/palo_verde/generated/
-            studies/palo_verde/godot/captures/
+            studies/palo_verde/generated/PaloVerde_Blender_Godot.zip
+            studies/palo_verde/generated/asset_manifest.json
+            studies/palo_verde/generated/verification.json
+            studies/palo_verde/generated/logs/
           if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload preview images
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: palo-verde-previews
+          path: |
+            studies/palo_verde/godot/captures/
+            studies/palo_verde/generated/blender_preview.png
+            studies/palo_verde/generated/asset_manifest.json
+          if-no-files-found: warn
           retention-days: 30
 
       - name: Upload standalone Windows scene
