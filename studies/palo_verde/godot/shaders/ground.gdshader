@@ -10,6 +10,10 @@ void fragment() {
     float wash = sin(world_position.x * 0.17 + sin(world_position.z * 0.13))
                * cos(world_position.z * 0.24) * 0.5 + 0.5;
     ALBEDO = mix(vec3(0.18, 0.24, 0.065), vec3(0.29, 0.35, 0.11), wash);
+    if (OUTPUT_IS_SRGB) {
+        ALBEDO = mix(ALBEDO * 12.92, 1.055 * pow(ALBEDO, vec3(1.0 / 2.4)) - 0.055,
+                     step(vec3(0.0031308), ALBEDO));
+    }
     ROUGHNESS = 1.0;
     SPECULAR = 0.0;
 }

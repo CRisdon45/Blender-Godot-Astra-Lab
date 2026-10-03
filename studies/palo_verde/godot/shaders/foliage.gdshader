@@ -15,12 +15,19 @@ void vertex() {
 }
 
 void fragment() {
-    ALBEDO = COLOR.rgb;
+    vec3 base = COLOR.rgb;
+    // glTF vertex colors are linear; Compatibility performs lighting in sRGB.
+    // Forward+/Mobile consume the same exported colors without this conversion.
+    if (OUTPUT_IS_SRGB) {
+        base = mix(base * 12.92, 1.055 * pow(max(base, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055,
+                   step(vec3(0.0031308), base));
+    }
+    ALBEDO = base;
     ROUGHNESS = 0.95;
     SPECULAR = 0.0;
     // Small constant fill keeps clustered foliage readable, while real shadows
     // and normals supply all directional shading. No baked sunlight in color.
-    EMISSION = COLOR.rgb * (blossom ? 0.065 : 0.025);
+    EMISSION = base * (blossom ? 0.14 : 0.08);
 }
 
 void light() {

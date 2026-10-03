@@ -136,10 +136,15 @@ def leaf(batch, center, axis, length, shade_normal=None):
     else:
         across = axis.cross(direction()).normalized()*length*.38
     normal = axis.cross(across).normalized()
-    verts = [center-axis*length*.5, center+across, center+axis*length*.5,
-             center-across, center+normal*length*.13]
+    verts = [center-axis*length*.5,
+             center-axis*length*.23+across*.88,
+             center+axis*length*.23+across*.88,
+             center+axis*length*.5,
+             center+axis*length*.23-across*.88,
+             center-axis*length*.23-across*.88,
+             center+normal*length*.10]
     shading = (shade_normal if shade_normal is not None else normal).normalized()
-    batch.add(verts, [(4,1,0),(4,2,1),(4,3,2),(4,0,3)], normals=[tuple(shading)]*5)
+    batch.add(verts,[(6,(i+1)%6,i) for i in range(6)],normals=[tuple(shading)]*7)
 
 
 def flower(batch, center, normal, size):
@@ -183,10 +188,10 @@ def foliage_core(batch, center, scale):
                 faces.append((a,b,b+sides))
             else:
                 faces.append((a,b,b+sides,a+sides))
-    batch.add(verts,[tuple(reversed(f)) for f in faces],tint=color('#82932e'),normals=normals)
+    batch.add(verts,[tuple(reversed(f)) for f in faces],tint=color('#a6a43d'),normals=normals)
 
 
-def foliage_lobe(leaves, flowers, center, scale, leaf_count=760, bloom_count=230):
+def foliage_lobe(leaves, flowers, center, scale, leaf_count=600, bloom_count=320):
     # Canopy-directed normals give smooth authored mass shading without confetti.
     foliage_core(leaves,center,scale)
     for _ in range(leaf_count):
@@ -201,7 +206,7 @@ def foliage_lobe(leaves, flowers, center, scale, leaf_count=760, bloom_count=230
         outward = direction()
         radial = RNG.uniform(.78, 1.10)
         p = center + Vector(tuple(outward[i]*scale[i]*radial for i in range(3)))
-        flower(flowers,p,outward+Vector((0,-.2,.3)),RNG.uniform(.038,.063))
+        flower(flowers,p,outward+Vector((0,-.2,.3)),RNG.uniform(.045,.071))
 
 
 def collection(name):
@@ -256,7 +261,7 @@ def make_tree():
         for side in (-1,1):
             tuft = center+Vector((side*scale.x*.62,RNG.uniform(-.4,.4),RNG.uniform(-.12,.3)))
             tube(bark,[center,center.lerp(tuft,.55),tuft],[.008,.004,.0015],sides=5,steps=2)
-            foliage_lobe(leaves,flowers,tuft,scale*RNG.uniform(.55,.66),leaf_count=260,bloom_count=100)
+            foliage_lobe(leaves,flowers,tuft,scale*RNG.uniform(.55,.66),leaf_count=220,bloom_count=180)
     objects = []
     for batch in batches.values():
         obj = batch.finish(col)
