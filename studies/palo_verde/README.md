@@ -2,8 +2,8 @@
 
 A self-contained flowering palo verde on a meadow, reconstructed as real 3D
 geometry from Cody's photographic and stylized-tree references. The low green
-trunk, spreading irregular crown, small folded leaflets and five-petalled yellow
-flowers are authored by a deterministic Blender script. No generated image is
+trunk, spreading irregular crown, branch-attached folded leaflets and five-petalled yellow
+flower sprays are authored by a deterministic Blender script. No generated image is
 used as a billboard or backdrop. The supplied reference images are not published.
 
 ## Get the built scene
@@ -37,9 +37,10 @@ Wind starts disabled so the fixed-view scene is reproducible.
 | Meadow export | Separate `meadow.glb` |
 | Materials | Three tree roles; linear vertex colors, rough matte surfaces, no image maps or alpha cards |
 | Runtime overrides | `scene.gd` reapplies shaders by role; safe across clean GLB reimports |
-| Fixture | `godot/palo_verde.tscn`, fixed 1200 × 900 Godot capture suite |
-| Budget | Desktop hero study, fewer than 450,000 tree triangles, three tree mesh submissions |
-| Target limits | Compatibility renderer for software CI and desktop portability; tablet performance and LODs not yet measured |
+| Fixture | `godot/palo_verde.tscn`, fixed 1600 × 1000 Godot capture suite |
+| Budget | Desktop hero study, up to 3,000,000 tree triangles, three tree mesh submissions |
+| Desktop target | Forward+; 4× MSAA, 8192-pixel soft sun shadows, full-resolution SSAO/SSIL, AgX tone mapping, thin-leaf backlighting |
+| Validation hardware | Mesa CPU Vulkan in Actions; desktop GPU performance is not measured by CI |
 
 The current result is an artistic study, not a claim of exact style parity. CI
 images prove the rendering route and reveal the remaining artistic differences.
@@ -63,8 +64,24 @@ asset roles, or transfer the edits into the script for reproducible builds.
 Actions regenerates twice and compares geometry and GLB hashes, validates glTF
 structure and vertex colors, imports and runs Godot, verifies imported bounds
 and polygon count, captures front/side/detail/two sun states/fixed wind, then
-deletes the import cache, reimports and checks identical hero pixels. It scans
+deletes the import cache, reimports and checks settled visual stability. SSIL
+uses temporal samples: the proof records mean channel differences and the
+fraction of channels differing by more than four levels, rather than asserting
+byte-identical PNGs. Geometry and GLB rebuilds remain hash-identical. It scans
 logs for engine and shader errors even if the process exits with zero status.
+
+## Desktop art revision
+
+The previous prototype placed foliage on similarly sized ellipsoid shells. This
+revision replaces those shells with connected secondary/tertiary branches and
+5,040 small flowering twig sprays. Forks in the structural wood are voxel-fused
+and smoothed; fine twigs retain their individual geometry. Grass uses bent,
+multisegment blades and the ground has a gentle slope.
+
+The asset budget is a guard against accidental runaway generation, not a tablet
+budget. No mobile renderer, tablet LOD, or tablet performance target constrains
+this scene. Runtime validation reports actual render submissions and adapter
+identity; software CI frame rate is not a prediction of desktop GPU performance.
 
 ## Provenance
 

@@ -28,10 +28,10 @@ def color(hex_value):
 
 
 PALETTES = {
-    'PV_Bark': ['#62733c', '#6d8043', '#7b8c4c', '#869653'],
-    'PV_Leaves': ['#566b2b', '#668431', '#7b9838', '#8ba241', '#9caf4a'],
+    'PV_Bark': ['#697d49', '#748952', '#809459', '#899d61'],
+    'PV_Leaves': ['#526b32', '#64813a', '#739141', '#88a44b', '#96af54'],
     'PV_Blossoms': ['#e5bc29', '#f1cb34', '#ffdc48', '#f6d044', '#fbe263'],
-    'PV_Grass': ['#6a7c35', '#829644', '#92a24a', '#a6ae57'],
+    'PV_Grass': ['#58713b', '#698342', '#7a944a', '#8ea458'],
     'PV_FallenPetals': ['#e6c137', '#f5d24a'],
 }
 
@@ -166,27 +166,55 @@ def flower(batch, center, normal, size):
     batch.add(verts, faces)
 
 
-def foliage_lobe(leaves, flowers, center, scale, leaf_count=820, bloom_count=320):
-    # Canopy-directed normals give smooth authored mass shading without confetti.
-    for _ in range(leaf_count):
-        outward = direction()
-        radial = .42 + .63 * RNG.random() ** .42
-        p = center + Vector(tuple(outward[i]*scale[i]*radial for i in range(3)))
-        length = RNG.uniform(.085, .165)
-        leaf(leaves,p,direction()+Vector((.2,0,.25)),length,outward)
-        if RNG.random() < .28:
-            leaf(leaves,p+Vector((.025,.012,.04)),direction(),length*.72,outward)
-    for _ in range(bloom_count):
-        outward = direction()
-        radial = RNG.uniform(.78, 1.10)
-        p = center + Vector(tuple(outward[i]*scale[i]*radial for i in range(3)))
-        flower(flowers,p,outward+Vector((0,-.2,.3)),RNG.uniform(.045,.071))
-
-
 def collection(name):
     col = bpy.data.collections.new(name)
     bpy.context.scene.collection.children.link(col)
     return col
+
+
+def along(points, t):
+    """Sample the same smoothed centerline that is used by the parent tube."""
+    pts, _ = catmull(points, [1.0]*len(points), steps=12)
+    segment = min(int(t*(len(pts)-1)), len(pts)-2)
+    fraction = t*(len(pts)-1)-segment
+    return pts[segment].lerp(pts[segment+1],fraction), (pts[segment+1]-pts[segment]).normalized()
+
+
+def branch_points(origin, heading, length):
+    heading = heading.normalized()
+    bend = direction()*length*.12
+    return [origin, origin+heading*length*.30+bend,
+            origin+heading*length*.65-bend*.45+Vector((0,0,length*.05)),
+            origin+heading*length+Vector((0,0,length*.08))]
+
+
+def spray(bark, leaves, flowers, origin, heading, length, flowering):
+    """Leaves and racemes grow ON a fine twig, rather than in a sphere shell."""
+    points = branch_points(origin, heading, length)
+    tube(bark,points,[.0038,.0026,.0015,.0006],sides=5,steps=2)
+    heading = heading.normalized()
+    across = heading.cross(Vector((0,0,1))).normalized()
+    if across.length < .1:
+        across = Vector((1,0,0))
+    up = across.cross(heading).normalized()
+    for index in range(8):
+        t = .15+index*.105
+        point, tangent = along(points,t)
+        # Paired pinnate leaflets; varying individual normals preserve leaf shape.
+        for side in (-1,1):
+            leaf_axis = (across*side*.8+tangent*.45+up*RNG.uniform(-.2,.2)).normalized()
+            size = RNG.uniform(.065,.108)*(1-.24*t)
+            leaf_center = point+leaf_axis*size*.48
+            shade = (up*.6+Vector((0,0,1))*.5+direction()*.35).normalized()
+            leaf(leaves,leaf_center,leaf_axis,size,shade)
+        if RNG.random() < flowering:
+            # Uneven groups of blossoms follow the stems, with air between sprays.
+            for _ in range(RNG.randint(2,4)):
+                radial = direction()
+                bloom_point = point+radial*RNG.uniform(.028,.105)
+                flower(flowers,bloom_point,(radial+Vector((0,0,.6))).normalized(),RNG.uniform(.026,.044))
+    for _ in range(2):
+        flower(flowers,Vector(points[-1])+direction()*.038,direction()+Vector((0,0,.6)),RNG.uniform(.024,.037))
 
 
 def make_tree():
@@ -198,54 +226,99 @@ def make_tree():
     root['seed'] = SEED
     root['units'] = 'meters'
     root['pivot'] = 'trunk_ground_contact'
-    batches = {name: MeshBatch(name) for name in ['PV_Bark', 'PV_Leaves', 'PV_Blossoms']}
-    bark, leaves, flowers = batches.values()
-    tube(bark, [(0,0,0),(-.12,.02,.42),(-.30,0,.91),(-.40,.01,1.40),(-.43,.05,1.85)],
-         [.32,.30,.255,.225,.15], sides=14, steps=6)
-    # Deliberate scaffold: short trunk, low forks, broad asymmetric umbrella.
+    root['design_revision'] = 'desktop_branch_attached_sprays'
+    trunk = MeshBatch('PV_Bark')
+    bark, leaves, flowers = (MeshBatch(name) for name in ('PV_Bark','PV_Leaves','PV_Blossoms'))
+    # A short leaning trunk, staggered forks, elbows and unequal leaders.
+    tube(trunk, [(0,0,0),(-.17,.03,.45),(-.35,.04,.92),(-.57,.10,1.48),(-.67,.12,2.08)],
+         [.34,.31,.275,.23,.105],sides=20,steps=8)
     scaffold = [
-        ([(-.28,0,.85),(-1.05,-.02,1.8),(-2.25,-.10,2.8),(-3.65,-.15,3.65),(-4.8,-.18,4.02)], .20),
-        ([(-.35,.02,1.1),(-1.0,.32,2.35),(-1.55,.50,3.60),(-2.1,.65,4.75),(-2.0,.7,5.8)], .19),
-        ([(-.38,.04,1.3),(-.2,-.1,2.55),(-.42,-.15,3.8),(-.55,-.3,5.2),(-.3,-.4,6.0)], .18),
-        ([(-.32,0,1.0),(.7,-.12,1.95),(1.75,-.3,2.95),(3.3,-.45,3.75),(4.7,-.55,4.4)], .23),
-        ([(-.40,.03,1.4),(.12,.65,2.65),(1.0,1.2,3.9),(1.9,1.5,4.9),(2.1,1.65,5.6)], .17),
-        ([(-.37,.03,1.2),(-.65,-.85,2.2),(-1.05,-1.7,3.2),(-1.2,-2.65,4.0),(-1.4,-3.3,4.6)], .145),
-        ([(-.35,.08,1.45),(-1.1,1.0,2.5),(-2.0,2.0,3.55),(-2.7,3.0,4.2),(-3.0,3.5,4.65)], .15),
-        ([(-.3,.02,1.1),(.55,-.85,2.0),(1.3,-1.7,2.9),(2.25,-2.6,3.7),(3.0,-3.0,4.3)], .16),
+        ([(-.34,.03,.92),(-1.0,-.06,1.86),(-1.65,-.20,2.72),(-2.55,-.33,3.08),(-3.52,-.29,3.76),(-4.50,-.30,4.10)],.205),
+        ([(-.55,.09,1.43),(-.83,.26,2.30),(-1.38,.42,3.02),(-1.54,.46,4.00),(-2.0,.38,4.76),(-2.33,.30,5.39)],.172),
+        ([(-.62,.09,1.8),(-.63,-.13,2.73),(-.31,-.32,3.40),(-.48,-.28,4.46),(-.15,-.12,5.44),(-.40,-.03,5.95)],.157),
+        ([(-.40,.04,1.1),(.20,-.09,1.86),(.96,-.18,2.48),(1.61,-.13,3.33),(2.65,-.32,3.63),(3.65,-.47,4.16),(4.67,-.52,4.56)],.22),
+        ([(-.57,.11,1.52),(-.14,.58,2.48),(.59,.90,3.14),(.92,1.0,4.08),(1.55,.94,4.71),(1.83,.87,5.63)],.155),
+        ([(-.55,.09,1.42),(-.84,-.61,2.36),(-1.09,-1.24,2.91),(-1.09,-1.96,3.69),(-1.43,-2.71,4.20),(-1.21,-3.05,4.61)],.145),
+        ([(-.59,.12,1.7),(-1.08,.74,2.54),(-1.73,1.42,3.18),(-1.88,2.20,3.72),(-2.74,2.90,4.08),(-2.92,3.21,4.80)],.14),
+        ([(-.42,.06,1.2),(.13,-.54,1.92),(.56,-1.22,2.72),(1.43,-1.66,3.17),(1.95,-2.40,3.91),(2.67,-2.84,4.33)],.166),
+        ([(-.57,.10,1.52),(-.24,.73,2.32),(.35,1.50,2.97),(1.39,2.0,3.43),(2.09,2.60,4.14),(2.37,2.83,4.79)],.14),
     ]
-    for index, (pts, radius) in enumerate(scaffold):
-        tube(bark, pts, [radius,radius*.79,radius*.48,radius*.24,.018], sides=10, steps=6)
-    anchors = [Vector(p) for points,_ in scaffold for p in points[2:]]
-    crowns = []
-    for y in (-2.25,-.75,.85,2.35):
-        for x in (-4.1,-2.05,0,2.0,4.05):
-            if abs(x)>3 and abs(y)>2:
-                continue
-            height = 5.05 - .051*x*x - .047*y*y
-            crowns.append((Vector((x+RNG.uniform(-.25,.25),y,height+RNG.uniform(-.17,.17))),Vector((1.28,1.05,.86))))
-    for y in (-.85,.85):
-        for x in (-2.5,-.85,.8,2.4):
-            height = 5.95 - .045*x*x
-            crowns.append((Vector((x,y,height)),Vector((1.0,.95,.83))))
-    for center,scale in crowns:
-        base = min(anchors,key=lambda p:(p-center).length_squared)
-        middle = base.lerp(center,.55)+Vector((0,0,.18))
-        tube(bark,[base,middle,center],[.037,.021,.006],sides=7,steps=4)
-        foliage_lobe(leaves,flowers,center,scale)
-        for side in (-1,1):
-            tuft = center+Vector((side*scale.x*.62,RNG.uniform(-.4,.4),RNG.uniform(-.12,.3)))
-            tube(bark,[center,center.lerp(tuft,.55),tuft],[.008,.004,.0015],sides=5,steps=2)
-            foliage_lobe(leaves,flowers,tuft,scale*RNG.uniform(.55,.66),leaf_count=280,bloom_count=180)
-    objects = []
-    for batch in batches.values():
-        obj = batch.finish(col)
+    for points, radius in scaffold:
+        tube(trunk,points,[radius*(1-t*.96)**1.35 for t in [i/(len(points)-1) for i in range(len(points))]],sides=16,steps=7)
+    # Fuse only structural wood. Preserve fine twigs as geometry below.
+    wood = trunk.finish(col)
+    bpy.context.view_layer.objects.active = wood
+    wood.select_set(True)
+    remesh = wood.modifiers.new('Joined_Organic_Forks','REMESH')
+    remesh.mode = 'VOXEL'
+    remesh.voxel_size = .018
+    remesh.use_smooth_shade = True
+    bpy.ops.object.modifier_apply(modifier=remesh.name)
+    smooth = wood.modifiers.new('Soften_Fork_Junctions','SMOOTH')
+    smooth.factor = .65
+    smooth.iterations = 5
+    bpy.ops.object.modifier_apply(modifier=smooth.name)
+    for polygon in wood.data.polygons:
+        polygon.use_smooth = True
+    # Remeshing may interpolate attributes; replace wood color consistently.
+    layer = wood.data.color_attributes.get('Col')
+    if layer is None:
+        layer = wood.data.color_attributes.new(name='Col',type='FLOAT_COLOR',domain='POINT')
+    layer.data.foreach_set('color',[v for vertex in wood.data.vertices for v in color('#788b52')])
+    wood.data.color_attributes.active_color = layer
+    wood.select_set(False)
+    sprig_count = 0
+    for branch_index,(points,radius) in enumerate(scaffold):
+        # Spiral side branches do not produce repeated spherical crown units.
+        for index in range(10):
+            t = .39+index*.064+RNG.uniform(-.014,.014)
+            origin,tangent = along(points,t)
+            outward = Vector((origin.x,origin.y,0)).normalized()
+            sideways = tangent.cross(Vector((0,0,1))).normalized()
+            phase = index*2.399+branch_index*.83
+            heading = tangent*.35+sideways*math.sin(phase)*.78+outward*.18+Vector((0,0,.64+.25*math.cos(phase)))
+            branch_length = RNG.uniform(1.10,1.90)*(1-.20*abs(origin.x)/5)
+            branch = branch_points(origin,heading,branch_length)
+            tube(bark,branch,[.030,.020,.010,.0024],sides=8,steps=4)
+            flowering = RNG.uniform(.58,.94)
+            for j in range(7):
+                child_origin,child_tangent = along(branch,.26+j*.113)
+                phase2 = phase+j*2.399+RNG.uniform(-.3,.3)
+                cross = child_tangent.cross(Vector((0,0,1))).normalized()
+                child_heading = (child_tangent*.60+cross*math.sin(phase2)*.70+Vector((0,0,.24+.18*math.cos(phase2)))).normalized()
+                child_length = RNG.uniform(.56,.95)
+                child = branch_points(child_origin,child_heading,child_length)
+                tube(bark,child,[.009,.0055,.003,.0009],sides=6,steps=3)
+                for k in range(7):
+                    twig_origin,twig_tangent = along(child,.16+k*.133)
+                    twig_cross = twig_tangent.cross(Vector((0,0,1))).normalized()
+                    twig_heading = twig_tangent*.48+twig_cross*((-1 if k%2 else 1)*.74)+Vector((0,0,RNG.uniform(.12,.50)))
+                    spray(bark,leaves,flowers,twig_origin,twig_heading,RNG.uniform(.22,.48),flowering)
+                    sprig_count += 1
+                spray(bark,leaves,flowers,Vector(child[-1]),child_heading,RNG.uniform(.28,.46),flowering)
+                sprig_count += 1
+    # Incorporate fused scaffold into the stable bark role, leaving three meshes.
+    fine = bark.finish(col)
+    bpy.ops.object.select_all(action='DESELECT')
+    wood.select_set(True)
+    fine.select_set(True)
+    bpy.context.view_layer.objects.active = wood
+    bpy.ops.object.join()
+    wood.name = 'PV_Bark'
+    # Both sources share one identical shader role; unify the material slots.
+    wood.data.materials.clear()
+    wood.data.materials.append(bpy.data.materials['PV_Bark_Material'])
+    for polygon in wood.data.polygons:
+        polygon.material_index = 0
+    objects = [wood,leaves.finish(col),flowers.finish(col)]
+    for obj in objects:
         obj.parent = root
-        objects.append(obj)
+    root['flowering_sprays'] = sprig_count
     return root, objects
 
 
 def ground_height(x,y):
-    return -.035 + .035*math.sin(x*.23)*math.sin(y*.17)
+    return -.025 + .05*math.sin(x*.24)*math.sin(y*.18) + max(0.,abs(y)-8)*.013
 
 
 def make_ground():
@@ -257,7 +330,7 @@ def make_ground():
     bsdf.inputs['Base Color'].default_value = color('#7e9148')
     bsdf.inputs['Roughness'].default_value = 1
     verts, faces = [], []
-    n = 32
+    n = 110
     for j in range(n+1):
         for i in range(n+1):
             x,y = -90+i*180/n,-90+j*180/n
@@ -273,16 +346,16 @@ def make_ground():
     obj.data.materials.append(mat)
     grass = MeshBatch('PV_Grass')
     petals = MeshBatch('PV_FallenPetals')
-    for _ in range(18000):
+    for _ in range(110000):
         x,y = RNG.uniform(-16,16),RNG.uniform(-16,16)
         if x*x+y*y < .28:
             continue
         p = Vector((x,y,ground_height(x,y)))
-        h = RNG.uniform(.045,.18)
+        h = RNG.uniform(.075,.24)
         a = RNG.random()*TAU
-        w = Vector((math.cos(a)*.017,math.sin(a)*.017,0))
-        grass.add([p-w,p+w,p+Vector((.028,.012,h))],[(0,1,2)])
-    for _ in range(1600):
+        w = Vector((math.cos(a)*.020,math.sin(a)*.020,0))
+        grass.add([p-w,p+w,p+Vector((.026,.014,h*.65))-w*.40,p+Vector((.026,.014,h*.65))+w*.40,p+Vector((.055,.023,h))],[(0,1,3,2),(2,3,4)])
+    for _ in range(7500):
         a = RNG.random()*TAU
         r = math.sqrt(RNG.random())*5.4
         x,y = math.cos(a)*r,math.sin(a)*r*.75
@@ -295,12 +368,12 @@ def make_ground():
 def set_preview():
     scene = bpy.context.scene
     scene.render.engine = 'CYCLES'
-    scene.cycles.samples = 24
+    scene.cycles.samples = 32
     scene.cycles.use_denoising = True
-    scene.render.resolution_x = 1440
-    scene.render.resolution_y = 1080
+    scene.render.resolution_x = 1600
+    scene.render.resolution_y = 1000
     scene.render.resolution_percentage = 100
-    scene.view_settings.view_transform = 'Standard'
+    scene.view_settings.view_transform = 'AgX'
     world = bpy.data.worlds.new('Pale_Blue_Sky')
     world.use_nodes = True
     world.node_tree.nodes['Background'].inputs[0].default_value = color('#abcce3')
@@ -315,8 +388,8 @@ def set_preview():
     data = bpy.data.cameras.new('Reference_Camera')
     cam = bpy.data.objects.new('Reference_Camera',data)
     scene.collection.objects.link(cam)
-    cam.location = (1.6,-16.5,5.2)
-    cam.rotation_euler = (Vector((0,0,3.3))-cam.location).to_track_quat('-Z','Y').to_euler()
+    cam.location = (1.7,-19.7,5.3)
+    cam.rotation_euler = (Vector((0,0,3.7))-cam.location).to_track_quat('-Z','Y').to_euler()
     data.lens = 45
     scene.camera = cam
 
@@ -362,13 +435,13 @@ def main():
     assert len(tree) == 3
     assert abs(bounds[0][2]) < .05, bounds
     assert bounds[1][2] > 5 and bounds[1][0]-bounds[0][0] > 9, bounds
-    assert sum(c['triangles'] for c in counts.values()) < 450000, counts
+    assert sum(c['triangles'] for c in counts.values()) < 3000000, counts
     signature = hashlib.sha256(json.dumps({o.name:[tuple(v.co) for v in o.data.vertices] for o in tree},sort_keys=True).encode()).hexdigest()
     manifest = {'asset_id':root['asset_id'],'seed':SEED,'blender':bpy.app.version_string,
         'units':'meters','blender_up':'Z','gltf_godot_up':'Y','pivot':[0,0,0],
         'bounds_blender':bounds,'meshes':counts,'geometry_sha256':signature,
         'glb_sha256':hashlib.sha256((assets/'palo_verde.glb').read_bytes()).hexdigest(),
-        'alpha_textures':0,'tree_materials':3,'desktop_hero_asset':True}
+        'flowering_sprays':root['flowering_sprays'],'design_revision':root['design_revision'],'alpha_textures':0,'tree_materials':3,'desktop_hero_asset':True}
     (out/'asset_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     bpy.ops.wm.save_as_mainfile(filepath=str(out/'palo_verde_authored.blend'), compress=True)
     if args.render:

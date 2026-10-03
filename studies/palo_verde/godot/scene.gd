@@ -3,10 +3,10 @@ extends Node3D
 const FOLIAGE: Shader = preload("res://shaders/foliage.gdshader")
 const GROUND: Shader = preload("res://shaders/ground.gdshader")
 var camera: Camera3D
-var target := Vector3(0.0, 3.2, 0.0)
+var target := Vector3(0.0, 3.7, 0.0)
 var yaw := 0.10
-var pitch := 0.12
-var distance := 17.8
+var pitch := 0.085
+var distance := 19.4
 var dragging := false
 var wind_enabled := false
 var animation_time := 0.0
@@ -21,7 +21,7 @@ func _ready() -> void:
 	apply_materials($Meadow, false)
 	update_camera()
 	build_controls()
-	if "--validate" in OS.get_cmdline_user_args():
+	if "--validate" in OS.get_cmdline_user_args() and "--capture" not in OS.get_cmdline_user_args():
 		validate_asset()
 	if "--capture" in OS.get_cmdline_user_args():
 		capture_suite()
@@ -35,7 +35,9 @@ func apply_materials(node: Node, is_tree: bool) -> void:
 		if "Bark" in node.name:
 			var bark_material := ShaderMaterial.new()
 			bark_material.shader = FOLIAGE
+			bark_material.set_shader_parameter("woody", true)
 			mesh_node.material_override = bark_material
+			foliage_materials.append(bark_material)
 		if "Leaves" in node.name or "Blossoms" in node.name or "Grass" in node.name or "FallenPetals" in node.name:
 			var mat := ShaderMaterial.new()
 			mat.shader = FOLIAGE
@@ -70,10 +72,10 @@ func toggle_wind() -> void:
 
 
 func reset_camera() -> void:
-	target = Vector3(0.0, 3.2, 0.0)
+	target = Vector3(0.0, 3.7, 0.0)
 	yaw = 0.10
-	pitch = 0.12
-	distance = 17.8
+	pitch = 0.085
+	distance = 19.4
 	update_camera()
 
 
@@ -130,7 +132,7 @@ func build_controls() -> void:
 	panel.add_child(wind)
 	var hint := Label.new()
 	hint.text = "Right-drag or touch to orbit · Scroll to zoom · R reset · W wind · F12 capture"
-	hint.position = Vector2(20, 1040)
+	hint.position = Vector2(20, 955)
 	hint.add_theme_color_override("font_color", Color(0.95, 0.96, 0.86))
 	controls.add_child(hint)
 
@@ -147,11 +149,16 @@ func validate_asset() -> void:
 			var arrays := node.mesh.surface_get_arrays(surface)
 			var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
 			triangles += indices.size() / 3
-	var passed := tree_meshes.size() == 3 and absf(bounds.position.y) < 0.05 and bounds.size.x > 9.0 and bounds.size.y > 5.0 and triangles > 10000 and triangles < 450000
+	var passed := tree_meshes.size() == 3 and absf(bounds.position.y) < 0.05 and bounds.size.x > 9.0 and bounds.size.y > 5.0 and triangles > 10000 and triangles < 3000000
 	var report := {"passed": passed, "tree_meshes": tree_meshes.size(), "tree_triangles": triangles,
 		"bounds_origin": [bounds.position.x, bounds.position.y, bounds.position.z],
 		"bounds_size": [bounds.size.x, bounds.size.y, bounds.size.z],
-		"godot": Engine.get_version_info(), "renderer": ProjectSettings.get_setting("rendering/renderer/rendering_method")}
+		"godot": Engine.get_version_info(), "renderer": RenderingServer.get_current_rendering_method(),
+		"rendering_device": RenderingServer.get_video_adapter_name(),
+		"rendered_objects": Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME),
+		"draw_calls": Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME),
+		"rendered_primitives": Performance.get_monitor(Performance.RENDER_TOTAL_PRIMITIVES_IN_FRAME),
+		"note": "CI uses CPU Vulkan; frame rate does not represent a desktop GPU."}
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://captures"))
 	var file := FileAccess.open("res://captures/runtime_validation.json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t") + "\n")
@@ -175,33 +182,34 @@ func save_image(path: String) -> void:
 
 func capture_suite() -> void:
 	controls.hide()
-	for _frame in range(12):
+	for _frame in range(28):
 		await get_tree().process_frame
+	validate_asset()
 	await save_image("res://captures/01_hero.png")
 	await save_image("res://captures/02_hero_repeat.png")
 	yaw = 1.15
 	pitch = 0.23
 	update_camera()
-	for _frame in range(4):
+	for _frame in range(18):
 		await get_tree().process_frame
 	await save_image("res://captures/03_side.png")
-	distance = 9.0
+	distance = 9.2
 	yaw = 0.3
 	pitch = 0.10
-	target = Vector3(0.0, 3.8, 0.0)
+	target = Vector3(-1.5, 5.6, 0.0)
 	update_camera()
-	for _frame in range(4):
+	for _frame in range(18):
 		await get_tree().process_frame
 	await save_image("res://captures/04_foliage_detail.png")
 	reset_camera()
 	$Sun.rotation_degrees = Vector3(-28, 55, 0)
-	for _frame in range(4):
+	for _frame in range(18):
 		await get_tree().process_frame
 	await save_image("res://captures/05_second_sun.png")
 	for mat in foliage_materials:
 		mat.set_shader_parameter("wind_strength", 0.075)
 		mat.set_shader_parameter("time_seconds", 1.25)
-	for _frame in range(4):
+	for _frame in range(18):
 		await get_tree().process_frame
 	await save_image("res://captures/06_fixed_wind.png")
 	print("PALO_VERDE_CAPTURE_SUITE_OK")

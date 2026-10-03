@@ -1,38 +1,31 @@
 shader_type spatial;
-render_mode cull_disabled, diffuse_lambert_wrap, specular_disabled;
+render_mode cull_disabled, diffuse_lambert_wrap;
 
 uniform float time_seconds = 0.0;
 uniform float wind_strength = 0.0;
 uniform bool blossom = false;
-varying vec3 local_position;
+uniform bool woody = false;
 
 void vertex() {
-    local_position = VERTEX;
-    float weight = smoothstep(1.6, 6.7, VERTEX.y);
-    float branch_phase = VERTEX.x * 0.63 + VERTEX.z * 0.44;
+    // Shared spatial field keeps branches and their attached sprays together.
+    float weight = smoothstep(1.6, 7.8, VERTEX.y);
+    float branch_phase = VERTEX.x * 0.43 + VERTEX.z * 0.31;
     VERTEX.x += sin(time_seconds * 0.9 + branch_phase) * weight * wind_strength;
     VERTEX.z += sin(time_seconds * 0.7 + branch_phase * 0.6) * weight * wind_strength * 0.4;
 }
 
 void fragment() {
     vec3 base = COLOR.rgb;
-    // glTF vertex colors are linear; Compatibility performs lighting in sRGB.
-    // Forward+/Mobile consume the same exported colors without this conversion.
     if (OUTPUT_IS_SRGB) {
         base = mix(base * 12.92, 1.055 * pow(max(base, vec3(0.0)), vec3(1.0 / 2.4)) - 0.055,
                    step(vec3(0.0031308), base));
     }
+    if (!FRONT_FACING) {
+        NORMAL = -NORMAL;
+    }
     ALBEDO = base;
-    ROUGHNESS = 0.95;
-    SPECULAR = 0.0;
-    // Small constant fill keeps clustered foliage readable, while real shadows
-    // and normals supply all directional shading. No baked sunlight in color.
-    EMISSION = base * (blossom ? 0.14 : 0.08);
-}
-
-void light() {
-    float facing = dot(NORMAL, LIGHT);
-    float wrap = clamp((facing + 0.35) / 1.35, 0.0, 1.0);
-    float soft_band = mix(wrap, smoothstep(0.2, 0.75, wrap), 0.3);
-    DIFFUSE_LIGHT += ALBEDO * LIGHT_COLOR * ATTENUATION * soft_band / PI;
+    ROUGHNESS = woody ? 0.82 : 0.88;
+    SPECULAR = woody ? 0.22 : 0.14;
+    // Thin petals/leaflets receive transmitted light instead of constant emission.
+    BACKLIGHT = woody ? vec3(0.0) : base * (blossom ? 0.40 : 0.27);
 }
