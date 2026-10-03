@@ -2,7 +2,7 @@ name: Authored Palo Verde
 
 on:
   push:
-    branches: ['main', 'codex/authored-palo-verde']
+    branches: ['main']
     paths: ['studies/palo_verde/**', '.github/workflows/palo-verde.yml']
   pull_request:
     paths: ['studies/palo_verde/**', '.github/workflows/palo-verde.yml']
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: palo-verde-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: palo-verde-study-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 env:

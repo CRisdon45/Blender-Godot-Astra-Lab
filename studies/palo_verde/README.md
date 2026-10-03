@@ -37,7 +37,7 @@ Wind starts disabled so the fixed-view scene is reproducible.
 | Meadow export | Separate `meadow.glb` |
 | Materials | Three tree roles; linear vertex colors, rough matte surfaces, no image maps or alpha cards |
 | Runtime overrides | `scene.gd` reapplies shaders by role; safe across clean GLB reimports |
-| Fixture | `godot/palo_verde.tscn`, fixed 1440 × 1080 capture suite |
+| Fixture | `godot/palo_verde.tscn`, fixed 1200 × 900 Godot capture suite |
 | Budget | Desktop hero study, fewer than 450,000 tree triangles, three tree mesh submissions |
 | Target limits | Compatibility renderer for software CI and desktop portability; tablet performance and LODs not yet measured |
 
