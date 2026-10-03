@@ -305,6 +305,9 @@ def make_tree():
     bpy.context.view_layer.objects.active = wood
     bpy.ops.object.join()
     wood.name = 'PV_Bark'
+    # Angled tube rings and voxel smoothing can cross the placement plane.
+    for vertex in wood.data.vertices:
+        vertex.co.z = max(0.0, vertex.co.z)
     # Both sources share one identical shader role; unify the material slots.
     wood.data.materials.clear()
     wood.data.materials.append(bpy.data.materials['PV_Bark_Material'])
